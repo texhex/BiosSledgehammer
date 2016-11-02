@@ -1,0 +1,19 @@
+# 850 G1 BIOS Update
+
+#The BIOS version the device should have
+Version == 1.37
+
+#Command to be executed for the BIOS update
+Command==HPBiosUpdRec64.exe 
+
+#Arguments to pass to COMMAND
+
+# Silent
+Arg1 == -s
+# Do not restart automatically
+Arg2 == -r
+# Disable BitLocker during upgrade
+Arg3 == -b
+# Password file (will be removed if device has no BIOS password)
+Arg4 == -p"@@PASSWORD_FILE@@"
+
