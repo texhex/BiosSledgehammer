@@ -39,7 +39,7 @@ Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
 When starting BiosSledgehammer.ps1, the following will happen:
 
 * It checks if the environment is ready (64-bit OS, required folders, device is from HP)
-* It will try to figure out the password the device is using by going through all files in the [PwdFiles](pwdfilesfolder) folder 
+* It will try to figure out the password the device is using by going through all files in the [PwdFiles](#pwdfilesfolder) folder 
 
 ### <a name="pwdfilesfolder">PwdFile folder</a>
 
