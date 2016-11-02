@@ -175,7 +175,7 @@ The settings for a TPM update need to be stored in the file ``TPM-Update.txt`` f
 Manufacturer == 1229346816
 #1229346816 is IFX
 
-# The TPM Spec version we want this this device to have
+# The TPM Spec version we want this device to have
 SpecVersion == 2.0
 
 # The Firmware version we want this device to have 
@@ -285,5 +285,5 @@ TPM Information
 * [Dell: How to change TPM Modes](http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0)
 * http://www.dell.com/support/article/de/de/debsdt1/SLN300906/en
 * http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291
-  #>
+ 
 -->

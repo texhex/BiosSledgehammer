@@ -5,7 +5,7 @@
 Manufacturer==1229346816
 #1229346816 is IFX
 
-# The TPM Spec version we want this this device to have
+# The TPM Spec version we want this device to have
 SpecVersion == 2.0
 
 # The Firmware version we want this device to have 
