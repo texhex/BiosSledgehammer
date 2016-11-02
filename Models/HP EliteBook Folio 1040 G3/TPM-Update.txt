@@ -25,5 +25,3 @@ Arg1 == -s
 Arg2 == -f"@@FIRMWARE_FILE@@"
 Arg3 == -p"@@PASSWORD_FILE@@"
 
-
-

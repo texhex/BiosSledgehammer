@@ -17,5 +17,3 @@ Arg3 == -b
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
 
-
-

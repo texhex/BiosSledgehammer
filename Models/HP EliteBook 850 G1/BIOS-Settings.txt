@@ -1,0 +1,10 @@
+# 850 G1 
+
+LAN/WLAN Switching == Enable
+
+Intel (R) HT Technology == Enable
+
+Floppy boot == Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+

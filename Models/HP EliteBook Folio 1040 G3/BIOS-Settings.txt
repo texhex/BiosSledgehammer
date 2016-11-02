@@ -1,0 +1,14 @@
+# 1040 Folio G3
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+
+TPM State==Enable
+TPM Device==Available
+
+Virtualization Technology (VTx)==Enable
+Virtualization Technology for Directed I/O (VTd)==Disable
+        
+Fast Boot==Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
