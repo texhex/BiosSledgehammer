@@ -65,14 +65,14 @@ Version==1.08
  Version == 1.08
 ```
 
-## <a name="#pwdfilesfolder">*PwdFile* folder</a>
+## <a name="pwdfilesfolder">*PwdFiles* folder</a>
 
 The ``\PwdFiles`` folder stores all passowrds BIOS Sledgehammer should try and also the order in which they are processed. 
 
 The order it uses is determined by simply sorting the files
 
 
-## <a name="#modelsfolder">*Models* folder</a>
+## <a name="modelsfolder">*Models* folder</a>
 
 It is expected that each model (type) of hardware you want to support, requires a separate sub folder below ``\Models``. The model (type) is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to know the model for it. 
 
