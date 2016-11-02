@@ -129,6 +129,8 @@ The sub folder will contain all settings files together with the source files fo
 
 To locate the model folder, a partial search with the current model is used. If you execute it on a ``HP EliteBook Folio 1040 G1``, the folder can be called exactly like that, or, if you are lazy, ``1040 G1``. 
 
+Where this partial search help a lot is for models that are technical identical but have differnt model name. For example the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. If you create one folder *HP ProDesk 600 G1* this folder will match all this form factors.  
+
 If you do not want to change anything for a given model, simply create an empty folder. If no model folder at all is found, an error is generated. 
 
 ## <a name="biosupdate">BIOS Update</a>
