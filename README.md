@@ -53,7 +53,7 @@ You can now waste precious life time to try to script this, or you can just use 
 * The BIOS password can be set individual per model or you just set all devices to the same password.
 * BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
 
-If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works. 
+If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
 ## <a name="requirements">System requirements</a>
 
