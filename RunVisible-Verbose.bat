@@ -14,6 +14,6 @@ REM We need to make sure to start the 64-bit PowerShell on a 64-bit machine.
 REM If we are running in WoW, C:\windows\sysnative is active, in any other case it is not 
 IF EXIST "%PS_EXE_SYSNATIVE%" SET PS_EXE=%PS_EXE_SYSNATIVE% 
  
-start "BIOS Sledgehammer" /wait %PS_EXE% -ExecutionPolicy Bypass -File "%~dp0BiosSledgehammer.ps1" -WaitAtEnd 
+start "BIOS Sledgehammer" /wait %PS_EXE% -ExecutionPolicy Bypass -File "%~dp0BiosSledgehammer.ps1" -WaitAtEnd -Verbose
 
 
