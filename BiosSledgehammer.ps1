@@ -6,10 +6,10 @@
  https://github.com/texhex/BiosSledgehammer
 #>
 
-#Activate verbose output:
+# Activate verbose output:
 # .\BiosSledgehammer.ps1 -Verbose
 
-#Wait 30 seconds at the end of the script
+# Wait 30 seconds at the end of the script
 # .\BiosSledgehammer.ps1 -WaitAtEnd
 
 [CmdletBinding()]
@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.39.3"
+$scriptversion="2.40.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -27,12 +27,8 @@ $scriptversion="2.39.3"
 #Guard against common code errors
 Set-StrictMode -version 2.0
 
-#Terminate script on errors 
-#$ErrorActionPreference = 'Stop'
-
 #Require full level Administrator
 #requires –runasadministrator
-
 
 #Import Module with some helper functions
 Import-Module $PSScriptRoot\MPSXM.psm1 -Force
@@ -52,15 +48,14 @@ if ( $DebugMode )
 #log the output
 Start-TranscriptTaskSequence -NewLog
 
-
 #This banner was taken from http://chris.com/ascii/index.php?art=objects/tools
 #region BANNER
 $banner=@"
 
             _
-    jgs   ./ |    
-         /  /    BIOS Sledgehammer  
-       /'  /     Version @@VERSION@@    
+    jgs   ./ |   
+         /  /    BIOS Sledgehammer 
+       /'  /     Version @@VERSION@@
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\   
@@ -70,12 +65,12 @@ $banner=@"
   ( |        |                    |= -= - = - = - = - =--= = - = =|
    \|        |___________________/- = - -= =_- =_-=_- -=_=-=_=_= -|
     |        |                   ``````-------...___________________.'
-    |________|      
-      \    /     
-      |    |     This is *NOT* an official HP tool.                         
-    ,-'    ``-,   This is *NOT* sponsored or endorsed by HP.
-    |        |   Use at your own risk. 
-    ``--------'    
+    |________|   
+      \    /     This is *NOT* an official HP tool.  
+      |    |     This is *NOT* sponsored or endorsed by HP.     
+    ,-'    ``-,   
+    |        |   Use at your own risk.
+    ``--------'   
 "@
 #endregion
 
@@ -174,7 +169,7 @@ function ConvertTo-ResultFromBCUOutput()
       $result.Returncode = [string]$xml.BIOSCONFIG.Information.translated
    }  
 
-   #fTry to get the data from the SETTING node
+   #Try to get the data from the SETTING node
    if ( $setting_node -ne $null) 
    {        
       #This should be zero to indicate everything is OK
@@ -186,15 +181,15 @@ function ConvertTo-ResultFromBCUOutput()
    #if there is an error node, we get the message from there
    if ( $error_node -ne $null ) 
    {
-      #the error message is in the first error node
+      #The error message is in the first error node
       $result.Message=[string]$error_node[0].Node.Attributes["msg"].'#text'
          
-      #the error code is inside the LAST error node
+      #The error code is inside the LAST error node
       $result.Returncode=[string]$error_node[$error_node.Count-1].Node.Attributes["real"].'#text'
    }
    else
    {
-      #if no ERROR node exists, we can check for SUCCESS Nodes
+      #If no ERROR node exists, we can check for SUCCESS Nodes
       if ( $success_node -ne $null) 
       {          
          #Check if this a single node or a list of nodes
@@ -227,7 +222,7 @@ catch
   write-error "Error trying to parse BCU output: $($error[0])"
 }
 
- #try to get something meaningful from the return code
+ #Try to get something meaningful from the return code
  $result.ReturncodeText=ConvertTo-DescriptionFromBCUReturncode $result.Returncode
 
  return $result
@@ -276,7 +271,7 @@ function Get-BiosValue()
      }
      else
      {
-       if (-not ($Silent)) { write-host "    Value successfully read: $result" }
+       if (-not ($Silent)) { write-host "    Setting read: [$result]" }
      }
  }
  catch
@@ -307,7 +302,7 @@ function Set-BiosPassword()
 
  $result=$null
  $settingsFile="$ModelFolder\BIOS-Password.txt"
- Write-HostSection "Set BIOS Password"
+ Write-HostSection -Start "Set BIOS Password"
  
  write-host "Reading BIOS Password from [$settingsFile]..."
  if ( -not (Test-Path $settingsFile) ) 
@@ -429,9 +424,7 @@ function Set-BiosPassword()
     }
  }
    
- write-host "Set BIOS Password finished"
- Write-HostSection 
-
+ Write-HostSection -End "Set BIOS Password"
  return $result
 }
 
@@ -444,11 +437,11 @@ function Set-BiosValue()
   [ValidateNotNullOrEmpty()]
   [string]$name,
 
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]  
+  [Parameter(Mandatory=$false,ValueFromPipeline=$True)]  
   [string]$value="",
 
   [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$passwordfile="",
+  [string]$PasswordFile="",
 
   [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
   [switch]$Silent=$False
@@ -456,14 +449,21 @@ function Set-BiosValue()
 
  $result=-1
 
- if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value]..." }
-
  #check for replacement values
  if ( ($value.Contains("@@COMPUTERNAME@@")) ) 
  {
     $value = $value -replace "@@COMPUTERNAME@@",$env:computername
-    if (-Not $Silent) { write-host " Detected replacement value, value is now [$value]" }
+    if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value] (replaced)..." -NoNewline  }
  }
+ else
+ {
+    #no replacement
+    if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value]..." -NoNewline }
+ }
+ 
+ #If verbose output is activated, this line will make sure that the next call to write-verbose will be on a new line
+ Write-Verbose " "
+  
 
  #Reading a value is way faster then setting it, so we should try to read the value first.
  #However, Get-BIOSValue for settings that can have several option (e.g. Enable/Disable),
@@ -478,12 +478,16 @@ function Set-BiosValue()
        #This "," causes PowerShell to put the value into the NEXT argument!
        #Therefore it must be escapced using "`,".
        if ( Get-StringIsNullOrWhiteSpace $passwordfile ) {
+          
           #No password defined
-          if (-Not $Silent) { write-host "   Will not use a password file" }
+          write-verbose "   Will not use a password file" 
           $output=&$BCU_EXE /setvalue:"$name"`,"$value" | Out-String 
+
        } else {        
-          if (-Not $Silent) { write-host "   Using password file $passwordfile" }
+          
+          write-verbose "   Using password file $passwordfile" 
           $output=&$BCU_EXE /setvalue:"$name"`,"$value" /cpwdfile:"$passwordFile" | Out-String 
+
        }
 
        #Get a parsed result
@@ -496,27 +500,34 @@ function Set-BiosValue()
 
        if ( ($bcuResult.Returncode -eq 18) -and ($bcuResult.Message="skip") ) 
        {
-          if (-Not $Silent) { write-host "   BIOS value successfully set (was already set)" }
+          if (-Not $Silent) { write-host "  Done (was already set)." }
           $result=0
        } 
        else 
        {        
-          if ($bcuResult.Returncode -ne 0) 
+          if ($bcuResult.Returncode -eq 0) 
           {
-             if (-Not $Silent) { write-warning "   Setting BIOS value failed with status [$($bcuResult.Changestatus)]: $($bcuResult.Message)" }
-             if (-Not $Silent) { write-warning "   BCU return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" }
+            if (-Not $Silent) { write-host "  Done." }
+            $result=1
+          }
+          else
+          {
+             if (-Not $Silent) 
+             {
+                write-host " " #to create a new line
+                write-warning "   Update BIOS setting failed with status [$($bcuResult.Changestatus)]: $($bcuResult.Message)" 
+                write-warning "   Return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
+             }
 
              $result=-1
-          } else {
-             if (-Not $Silent) { write-host "   BIOS value successfully set" }
-             $result=1
           }
        }    
    }
    catch
    {
      #this should never happen
-     write-error "   Setting BIOS value fatal error: $($error[0])"
+     write-host " " #to create a new line
+     write-error "   Update BIOS setting fatal error: $($error[0])"
      $result=-1
    }
  
@@ -580,7 +591,7 @@ function Update-BiosSettings()
  )
 
  $result=-1
- Write-HostSection "Apply BIOS Settings"
+ Write-HostSection -Start "BIOS Settings"
 
  $settingsfile="$modelfolder\BIOS-Settings.txt"
  write-host "Reading BIOS settings information from [$settingsfile]..."
@@ -601,27 +612,29 @@ function Update-BiosSettings()
     } 
     else
     {
+       #Inform which password we use
+       write-host "Using password file [$PasswordFile]" 
+
        #Apply settings
        $changeresult=Set-BiosValuesHashtable -Hastable $settings -Passwordfile $PasswordFile
 
        if ( $changeresult -lt 0 ) 
        {
           #Something went wrong applying our settings
-          write-error "Changing BIOS Setting failed!"
+          write-error "Applying BIOS Setting failed!"
        }
        
        if ( $changeresult -eq 1 )
        {
           #Since this message will appear each and every time, I'm unsure if it should remain or not
-          write-host "BIOS setting applied. A restart is recommended to activated them."
+          write-host "One or more BIOS setting(s) have been changed. A restart is recommended to activated them."
        }
 
        $result=$changeresult
     }
  }
 
- write-host "Applying BIOS settings finished"
- Write-HostSection 
+ Write-HostSection -End "BIOS Settings"
  return $result
 }
 
@@ -634,7 +647,7 @@ function Test-BiosPasswordFiles()
   [string]$PwdFilesFolder
  )
   
-  Write-HostSection "Testing BIOS password files"
+  Write-HostSection -Start "Determine BIOS Password"
 
   $files=@()
 
@@ -654,12 +667,11 @@ function Test-BiosPasswordFiles()
   write-host "Testing BIOS passwords..."
 
   $assettag_old=get-biosvalue $ASSET_NAME
-  write-host "Old Asset Tag [$assettag_old]"
+  write-host "Original Asset Tag [$assettag_old]"
 
   $testvalue=Get-RandomString 14
   write-host "Asset Tag used for testing [$testvalue]"
   
-
   $matchingPwdFile=$null
 
   ForEach ($file in $files) 
@@ -673,7 +685,7 @@ function Test-BiosPasswordFiles()
         write-host "Password file is [$file]!"
         write-host "Restoring old Asset Tag..."
         
-        $ignored=Set-BiosValue -Name $ASSET_NAME -Value $assettag_old -Passwordfile $file
+        $ignored=Set-BiosValue -Name $ASSET_NAME -Value $assettag_old -Passwordfile $file -Silent
 
         $matchingPwdFile=$file
         break
@@ -681,8 +693,7 @@ function Test-BiosPasswordFiles()
      
   }
   
-  Write-host "Testing BIOS password files done"  
-  Write-HostSection 
+  Write-HostSection -End "Determine BIOS Password"
 
   return $matchingPwdFile
 }
@@ -774,10 +785,10 @@ param(
 )
   $result=""
   
-  Write-HostSection "Locate model folder"
+  Write-HostSection "Locate Model Folder"
 
   write-host "Searching [$MODELS_PATH]..."
-  write-host " Looking for [$model] (partitial matches allowed)"
+  write-host "  Searching for [$model] (partitial matches allowed)"
   
   $model=$model.ToLower()
   $folders=Get-ChildItem -Path $MODELS_PATH -Directory -Force
@@ -790,12 +801,12 @@ param(
     if ( ($model.Contains($name)) )
     {
       $result=$folder.FullName
-      write-host "Found matching folder: $result"
+      write-host "Matching folder found: [$result]"
       break
     }
   }
 
-  Write-HostSection 
+  Write-HostSection -End "Model Folder"
   return $result
 }
 
@@ -1272,7 +1283,7 @@ function Update-Bios()
                   write-host "BIOS update success, return code $returnCode"
                }
 
-               #we always reutrn TRUE because even a failed command might indicate that the BIOS was installed
+               #We always return TRUE because even a failed command might indicate that the BIOS was installed
                $result=$true
             }          
          }
@@ -1280,8 +1291,7 @@ function Update-Bios()
     }
  }
 
- write-host "BIOS Update finished"
- Write-HostSection 
+ Write-HostSection -End "BIOS Update"
  return $result
 }
 
@@ -1384,10 +1394,11 @@ function Update-TPM()
   $TPMDetails
  )
 
+ Write-HostSection "TPM Update"
+
  $result=$false
  $updatefile="$ModelFolder\TPM-Update.txt"
- Write-HostSection "TPM Firmware Update"
- 
+   
  write-host "Reading TPM update information from [$updatefile]..."
 
  if ( -not (Test-Path $updatefile) ) 
@@ -1653,8 +1664,7 @@ function Update-TPM()
     }
  }
 
- write-host "TPM Update finished"
- Write-HostSection 
+ Write-HostSection -End "TPM Update"
  return $result
 }
 
@@ -1663,30 +1673,39 @@ function Write-HostSection()
 {
  param(
   [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$Name=""
+  [string]$Start="",
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$End=""
  )
 
  $charlength=65
  $output=""
  
- if ( Get-StringIsNullOrWhiteSpace $name )
+ if ( Get-StringHasData $Start )
  {
-    $output='*' * $charlength
+    $output="***** $Start *****"
+    $len=$charlength-($output.Length)
+    
+    if ( $len -gt 0 ) 
+    {
+       $output += '*' * $len
+    }
  }
  else
  {
-    $output="***** $Name *****"
-    $len=$charlength-($output.Length)
-    
-    if ( $len -gt 0 ) {
-       $output += '*' * $len
+    if ( Get-StringHasData $End )
+    {
+       write-host "Section -$($End)- finished"
     }
+        
+    $output='*' * $charlength    
  }
 
  write-host $output
  
  #Add a single empty line if no name was given
- if ( Get-StringIsNullOrWhiteSpace $name )
+ if ( Get-StringHasData $End )
  {
     write-host "   "
  }
@@ -1793,7 +1812,7 @@ function Write-HostPleaseRestart()
 function Remove-File()
 {
  param(
-  [Parameter(Mandatory=$False)]
+  [Parameter(Mandatory=$False)] #$False to allow empty strings
   [string]$Filename
 )
 
@@ -1822,11 +1841,7 @@ function Remove-File()
  if ( -not $DebugMode ) 
  {
    $header="This script might alter your firmware and/or BIOS settings"
-
-   #$text=@()
-   #$text+="Your computer can become FUBAR in the process."
    $text=""
-
    $footer="You have 15 seconds to press CTRL+C to stop it."
 
    Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true
@@ -1857,7 +1872,7 @@ function Remove-File()
     {
         write-error "Unable to communicate with BIOS. Can't continue."
 
-        #If we are unable to communicate with the BIOS, we might always have a non-HP device.
+        #If we are unable to communicate with the BIOS, we might be running on a non-HP device.
 		#However, this should have been prevented by Test-Environment. Hence, we will return an error code
     }           
  }
@@ -2008,8 +2023,6 @@ function Remove-File()
                    Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
                    does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
                    value as before. 
-
-                   Hence, we we can only recommend a restart....
                  
                  if ( $settingsApplied -ge 1 )
                  {
