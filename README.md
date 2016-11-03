@@ -259,7 +259,7 @@ If you want to see what BIOS Sledgehammer is doing, run the provided batch file 
 
 This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This waym, you can have a quick look at the results.
 
-It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 – (Do not perform update) during POST when asked if a firmware update should take place.      
+It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.      
 
 
 ## <a name="contributions">Contributions</a>

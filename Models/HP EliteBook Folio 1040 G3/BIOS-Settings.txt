@@ -2,8 +2,11 @@
 
 Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
 
+LAN / WLAN Auto Switching==Enabled
+
 TPM State==Enable
 TPM Device==Available
+TPM Activation Policy==No prompts
 
 Virtualization Technology (VTx)==Enable
 Virtualization Technology for Directed I/O (VTd)==Disable
