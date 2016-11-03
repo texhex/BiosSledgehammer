@@ -1,12 +1,12 @@
 # 1040 G3 update
 
-#The BIOS version the device should be on
+# The BIOS version the device should be on
 Version == 1.08
 
-#Command to be executed for the BIOS update
+# Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
 
-#Arguments passed to COMMAND
+# Arguments passed to COMMAND
 
 # Silent
 Arg1 == -s

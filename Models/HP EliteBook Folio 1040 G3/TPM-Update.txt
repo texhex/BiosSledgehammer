@@ -3,7 +3,7 @@
 # Manufacturer of the TPM. 
 # If the value exists, the device must have this vendor or no update takes place
 Manufacturer==1229346816
-#1229346816 is IFX
+# 1229346816 is IFX
 
 # The TPM Spec version we want this device to have
 SpecVersion == 2.0
@@ -20,7 +20,7 @@ FirmwareVersion == 7.41
 # Command to be used to perform the TPM firmware upgrade
 Command == TPMConfig64.exe
 
-#Arguments passed to COMMAND
+# Arguments passed to COMMAND
 Arg1 == -s
 Arg2 == -f"@@FIRMWARE_FILE@@"
 Arg3 == -p"@@PASSWORD_FILE@@"
