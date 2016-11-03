@@ -46,7 +46,7 @@ You can now waste precious life time to try to script this, or you can just use 
 * BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
 * You can use it directly from MDT/SCCM, it will detect if a OSD is active and store the log(s) in the same path the task sequence uses. If desired, it can also be executed visible to see what it does.    
     
-If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view the [MDT or SCCM](sccmmdt) information or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
+If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view the [MDT or SCCM](#sccmmdt) information or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
 
 ## <a name="requirements">System requirements</a>
