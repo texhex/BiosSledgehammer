@@ -16,9 +16,9 @@ Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
    \|        |___________________/- = - -= =_- =_-=_- -=_=-=_=_= -|
     |        |                   `` -------...___________________.'
     |________|      
-      \    /     
-      |    |     This is *NOT* an official HP tool.                         
-    ,-'    `-,   This is *NOT* sponsored or endorsed by HP.
+      \    /     This is *NOT* an official HP tool.
+      |    |     This is *NOT* sponsored or endorsed by HP.                         
+    ,-'    `-,   
     |        |   Use at your own risk. 
     `--------'    
 
