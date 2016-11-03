@@ -30,30 +30,24 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 * BIOS Sledgehammer is **NOT** an official HP tool.                         
 * This is **NOT** sponsored or endorsed by HP.
 * HP was **NOT** involved in developing BIOS Sledgehammer.
-* You computer can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
+* Your computer can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
 
 ## <a name="about">About</a>
 
-<!--
-If you deploy the devices you use in your enterprise automatically (e.g. MDT or SCCM), changes are good that somewhere in that automatic process you also have one step to automatically update the BIOS firmware. 
-
-This is normally plain easy: If model/type is of that type X, execute ``HPBIOSUPDREC64.exe -params X`` and you are done. Except if the BIOS you deployed was buggy. And HP fixed it already on newer devices. But your script didn’t check the installed BIOS version so you downgraded all devices to the faulty BIOS version. Woops. So, you create a new script, try to parse the BIOS version and roll it out. Just to note three weeks that another BIOS version is delivered that breaks your parsing and you can start over again....
-
-The upcoming change to Windows 10 increases this complexity by several magnitudes:
--->
-
 Suppose you get a workitem like this: 
 
-> For the Windows 10 rollout, we need you to support ten different hardware models and all of them need to be updated to the newest BIOS version. Some devices require a TPM firmware update to use new features that depend on TPM 2.0. And of course, some BIOS settings like Secure Boot, Fast Boot etc. need to be changed as well. Oh, and a new BIOS password would also be a big plus because we currently have twenty different passwords in use. 
+> For the Windows 10 rollout, we need you to support ten different hardware models and all of them need to be updated to the newest BIOS version. Some devices require a TPM firmware update to use security features that depend on TPM 2.0. And of course, you need to update the BIOS settings on all devices (Secure Boot, Fast Boot etc.) to meet Microsoft recommendations. Oh, and a new BIOS password for devices would be a big plus because we currently have twenty different passwords in use. 
 
 You can now waste precious life time to try to script this, or you can just use BIOS Sledgehammer:
-* You can support several BIOS passwords for your devices, it will simply try all password you specify until the correct one is found
-* You define which BIOS version the devices should have. Newer version of the BIOS will not trigger a downgrade and the BIOS version parsing works from a rather old 2570p up to a 1040 G3.
-* Define which TPM firmware and/or Specification (1.2 or 2.0) the device should have. Of course, there are checks so BIOS Sledgehammer won’t try to flash “Update 6.40 to 7.41” on a device that has firmware 6.41
-* The BIOS password can be set individual per model or you just set all devices to the same password.
+* You can support several BIOS passwords for your devices, it will simply try all passwords you specify until the correct one is found
+* You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade (the BIOS version parsing works from a rather old 2570p up to a 1040 G3).
+* Define which TPM firmware and/or specification version (1.2 or 2.0) the device should have. Firmware checks are in place so BIOS Sledgehammer won’t try to flash “Update 6.40 to 7.41” on a device that has firmware 6.41
+* The BIOS password can be set individual per model or you just set all devices to the same password. All passwords are stored encrypted (HPQPswd tool). 
 * BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
+* You can use it directly from MDT/SCCM, it will detect if a OSD is active and store the log(s) in the same path the task sequence uses. If desired, it can also be executed visible to see what it does.    
+    
+If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view the [MDT or SCCM](sccmmdt) information or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
-If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
 ## <a name="requirements">System requirements</a>
 
@@ -73,7 +67,7 @@ When starting BiosSledgehammer.ps1, the following will happen:
 * It tries to figure out the password the device is using by going through all files in the [PwdFiles folder](#pwdfilesfolder) and trying to change the value of *Asset Tracking Number* to a random value (it will be reverted to the original value at the end). An empty password is always tried first.  
 * A search is performed below the [Models folder](#modelsfolder) to locate the matching folder for the current model (this is a partial search, so a sub folder named *1040 G1* will match the model *HP EliteBook Folio 1040 G1*). All configuration is then read from this folder only. 
 * If the file **BIOS-Update.txt** is found, it is read and checked if a BIOS update is required. If so, the BIOS update files are locally copied and the update is performed. Any **.log* file generated by the update tool is attached to the BIOS Sledgehammer log file.  Finally, a restart is requested because the actual update is performed during POST. See [BIOS Update](#biosupdate) for more details.
-* If the file **TPM-Update.txt** exists, it is read and checked if a TPM update is required. This is done by checking if the TPM Specification version (1.2 or 2.0) or the TPM firmware are below the configured versions. If so, the TPM updates files are locally copied and executed. Any **.log* file generated by the update tool is attached to the BIOS Sledgehammer log file.  Finally, a restart is requested because the actual update is performed during POST. See [TPM Update](#tpmupdate) for more details.
+* If the file **TPM-Update.txt** exists, it is read and checked if a TPM update is required. This happens by checking if the TPM specification version (1.2 or 2.0) or the TPM firmware are below the configured versions. If so, the TPM updates files are locally copied and executed. Any **.log* file generated by the update tool is attached to the BIOS Sledgehammer log file.  Finally, a restart is requested because the actual update is performed during POST. See [TPM Update](#tpmupdate) for more details.
 * If the file **BIOS-Password.txt** is found, it is checked if the device is already set to use this password. The password is not specified directly (clear), but using a *.bin file name that stores the password encrypted. If the passwords differ, the configured *.bin file is read from the [PwdFiles folder](#pwdfilesfolder) and the password is changed. See [BIOS Password](#biospassword) for more details.
 * If the file **BIOS-Settings.txt** exists, it is read and each entry is the name of a BIOS setting that needs to be changed. Each entry will be performed as single change (not all in a batch) to detect faulty settings more easily. See [BIOS Settings](#biossettings) for more details.
 
@@ -81,7 +75,7 @@ Return codes (exit code):
 
 * 0 if everything was successful
 * 3010 (ERROR_SUCCESS_REBOOT_REQUIRED) if a restart is required because of a BIOS or TPM update
-* 666 if something didn't worked (Error) 
+* 666 if something didn't worked (Error)
 
 ## <a name="configformat">Configuration files format</a>
 
@@ -118,7 +112,7 @@ The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. 
 
 The order, in which they are tried, is determined by sorting the files by name: a file called *01_Standard.bin* is tried before *02_Standard.bin*. The most commonly used password should always come first because some BIOS versions enforce how many times you can try a wrong BIOS password. When this limit is reached, any password is rejected until the computer is restarted. 
 
-To create these files, execute ``HPQPswd64.exe`` (found in the BCU folder) and save the file to the ``\PwdFiles`` folder as *.BIN file.  
+To create a password file, execute ``HPQPswd64.exe`` (found in the BCU folder) and save the file to the ``\PwdFiles`` folder as *.BIN file.  
 
 
 ## <a name="modelsfolder">*Models* folder</a>
@@ -129,7 +123,7 @@ The sub folder will contain all settings files together with the source files fo
 
 To locate the model folder, a partial search with the current model is used. If you execute it on a ``HP EliteBook Folio 1040 G1``, the folder can be called exactly like that, or, if you are lazy, ``1040 G1``. 
 
-Where this partial search help a lot is for models that are technical identical but have differnt model name. For example the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. If you create one folder *HP ProDesk 600 G1* this folder will match all this form factors.  
+Where this partial search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder *HP ProDesk 600 G1* and this folder will match all these form factors.
 
 If you do not want to change anything for a given model, simply create an empty folder. If no model folder at all is found, an error is generated. 
 
@@ -140,13 +134,13 @@ The settings for a BIOS update need to be stored in the file ``BIOS-Update.txt``
 ```
 # 850 G1 BIOS Update
 
-#The BIOS version the device should have
+# The BIOS version the device should have
 Version == 1.37
 
-#Command to be executed for the BIOS update
+# Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
 
-#Arguments to pass to COMMAND
+# Arguments to pass to COMMAND
 
 # Silent
 Arg1 == -s
@@ -159,7 +153,7 @@ Arg4 == -p"@@PASSWORD_FILE@@"
 ```
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``BIOS-<VERSION>``. If the desired BIOS version is 1.37, the BIOS files need to be stored in ``\BIOS-1.37\``. Given that the current model folder is ``\Models\HP EliteBook 850 G1``, the entire path would be ``\Models\HP EliteBook 850 G1\BIOS-1.37``. 
 
-The source folder is then copied to %TEMP% (to avoid any network issues) and the process is started from there. Because the update utility sometimes restarts itself, it is waited until the process noted in COMMAND does no longer appear as running process. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
+The source folder is then copied to %TEMP% (to avoid any network issues) and the update process is started from there. Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
 
@@ -173,7 +167,7 @@ The settings for a TPM update need to be stored in the file ``TPM-Update.txt`` f
 # Manufacturer of the TPM. 
 # If the value exists, the device must have this vendor or no update takes place
 Manufacturer == 1229346816
-#1229346816 is IFX
+# 1229346816 is IFX
 
 # The TPM Spec version we want this device to have
 SpecVersion == 2.0
@@ -190,7 +184,7 @@ FirmwareVersion == 7.41
 # Command to be used to perform the TPM firmware upgrade
 Command == TPMConfig64.exe
 
-#Arguments passed to COMMAND
+# Arguments passed to COMMAND
 Arg1 == -s
 Arg2 == -f"@@FIRMWARE_FILE@@"
 Arg3 == -p"@@PASSWORD_FILE@@"
@@ -209,7 +203,7 @@ Once this is all set and done, the source folder is copied to %TEMP% (to avoid a
 
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``TPM-<VERSION>``. If the desired TPM firmware version is 7.41, the TPM files need to be stored in ``\TPM-7.41\``. Given that the current model folder is *\Models\HP EliteBook Folio 1040 G3*, the entire path would be *\Models\HP EliteBook Folio 1040 G3\TPM-7.41*. 
 
-Because the update utility sometimes restarts itself, it is waited until the process noted in COMMAND does no longer appear as running process. If any **.log* file was generated in the local folder, the content of the log is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
+Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
 
@@ -226,6 +220,7 @@ PasswordFile == 01_W2f4x7t8NxD4xUH.bin
 
 This file has to be stored in the [PwdFiles folder](#pwdfilesfolder) (see this section how to create the files). If you want to use an empty password, just leave the value empty like this:
 ```
+# Empty password (bad idea!)
 PasswordFile == 
 ```
 Regarding BIOS passwords, please note the following:
@@ -258,13 +253,13 @@ Also, BCU performs some basic checks to prevent changes that are not compatible 
 
 ## <a name="sccmmdt">Using it from MDT or SCCM</a>
 
-By default, MDT/SCCM will run all scripts hidden in order to hide any sensitive information. If you are okay with that, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell native.
+By default, MDT/SCCM will run all scripts hidden to hide sensitive information. If you are okay with this, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell scripts native.
 
 If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder). 
 
-This batch automatically uses the correct (native) version of PowerShell. It will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished so you can have a quick look at the results.
+This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This waym, you can have a quick look at the results.
 
-It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything really worked.    
+It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 – (Do not perform update) during POST when asked if a firmware update should take place.      
 
 
 ## <a name="contributions">Contributions</a>
@@ -286,4 +281,12 @@ TPM Information
 * http://www.dell.com/support/article/de/de/debsdt1/SLN300906/en
 * http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291
  
+-->
+
+<!--
+If you deploy the devices you use in your enterprise automatically (e.g. MDT or SCCM), changes are good that somewhere in that automatic process you also have one step to automatically update the BIOS firmware. 
+
+This is normally plain easy: If model/type is of that type X, execute ``HPBIOSUPDREC64.exe -params X`` and you are done. Except if the BIOS you deployed was buggy. And HP fixed it already on newer devices. But your script didn’t check the installed BIOS version so you downgraded all devices to the faulty BIOS version. Woops. So, you create a new script, try to parse the BIOS version and roll it out. Just to note three weeks that another BIOS version is delivered that breaks your parsing and you can start over again....
+
+The upcoming change to Windows 10 increases this complexity by several magnitudes:
 -->
