@@ -123,13 +123,13 @@ The sub folder will contain all settings files together with the source files fo
 
 To locate the model folder, a partial search with the current model is used. If you execute it on a ``HP EliteBook Folio 1040 G1``, the folder can be called exactly like that, or, if you are lazy, ``1040 G1``. 
 
-Where this partial search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder *HP ProDesk 600 G1* and this folder will match all these form factors.
+Where this partial search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder ``HP ProDesk 600 G1`` and this folder will match all these form factors.
 
 If you do not want to change anything for a given model, simply create an empty folder. If no model folder at all is found, an error is generated. 
 
 ## <a name="biosupdate">BIOS Update</a>
 
-The settings for a BIOS update need to be stored in the file ``BIOS-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the model folder is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Update.txt*. Here is an example file for this device:
+The settings for a BIOS update need to be stored in the file ``BIOS-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Update.txt*. Here is an example file for this device:
 
 ```
 # 850 G1 BIOS Update
@@ -159,7 +159,7 @@ If anything goes wrong during the process, an error is generated.
 
 ## <a name="tpmupdate">TPM Update</a>
 
-The settings for a TPM update need to be stored in the file ``TPM-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook Folio 1040 G3* and the model folder is called *\Models\HP EliteBook Folio 1040 G3\*, the entire file path is *\Models\HP EliteBook Folio 1040 G3\TPM-Update.txt*. Here is an example file for this device:
+The settings for a TPM update need to be stored in the file ``TPM-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook Folio 1040 G3* and the [model folder](#modelsfolder) is called *\Models\HP EliteBook Folio 1040 G3\*, the entire file path is *\Models\HP EliteBook Folio 1040 G3\TPM-Update.txt*. Here is an example file for this device:
 
 ```
 # 1040 G3 TPM Update
@@ -210,7 +210,7 @@ If anything goes wrong during the process, an error is generated.
 
 ## <a name="biospassword">BIOS Password</a>
 
-To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the model folder. For example, if you execute it on a *HP EliteBook 850 G1* and the model folder is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Password.txt*. Here is an example file:
+To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#modelsfolder). For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Password.txt*. Here is an example file:
 
 ```
 # Use our standard password
@@ -229,7 +229,7 @@ Regarding BIOS passwords, please note the following:
 
 ## <a name="biossettings">BIOS Settings</a>
 
-The configuration for BIOS settings need to be stored in the file ``BIOS-Settings.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the model folder is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Settings.txt*. Here is an example:
+The configuration for BIOS settings need to be stored in the file ``BIOS-Settings.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called *\Models\HP EliteBook 850 G1\*, the entire file path is *\Models\HP EliteBook 850 G1\BIOS-Settings.txt*. Here is an example:
 ```
 # 850 G1 
 LAN/WLAN Switching == Enable
@@ -248,7 +248,7 @@ A single replacement value is supported: *@@COMPUTERNAME@@*. If this value is de
 
 Please note that on some devices, some BIOS settings (e.g. TPM Activation Policy on a 2570p), require a password to be set or they can’t be activated. If this happens, BCU just fails with error 32769.
 
-Also, BCU performs some basic checks to prevent changes that are not compatible with the current OS. For example, setting “SecureBoot” to “Enable” fails with error code 32769 when using Windows 7 but works directly on Windows 10. However, other settings are not checked so don’t count on it that BCU will prevent any incompatible change.
+Also, BCU performs some basic checks to prevent changes that are not compatible with the current OS. For example, setting “SecureBoot” to “Enable” fails with error code 32769 when using Windows 7 but works directly on Windows 10. However, other settings are not checked so don’t count on that BCU will prevent all incompatible changes.
 
 
 ## <a name="sccmmdt">Using it from MDT or SCCM</a>
