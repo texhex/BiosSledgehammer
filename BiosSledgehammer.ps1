@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.40.0"
+$scriptversion="2.40.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -382,7 +382,7 @@ function Set-BiosPassword()
 
                write-host " Changing password using password file [$CurrentPasswordFile]..." 
 
-               if ( Get-StringHasData $CurrentPasswordFile )
+               if ( Test-String -HasData $CurrentPasswordFile )
                {
                   #BCU expects an empty string if the password should be set to empty, so we use the parameter directly
                   $output=&$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
@@ -450,7 +450,8 @@ function Set-BiosValue()
  $result=-1
 
  #check for replacement values
- if ( ($value.Contains("@@COMPUTERNAME@@")) ) 
+ #if ( ($value.Contains("@@COMPUTERNAME@@")) ) 
+ if ( Test-String $value -Contains "@@COMPUTERNAME@@" )
  {
     $value = $value -replace "@@COMPUTERNAME@@",$env:computername
     if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value] (replaced)..." -NoNewline  }
@@ -477,7 +478,7 @@ function Set-BiosValue()
        #IMPORTANT! HP expects a single argument for /setvalue, but also a ",".
        #This "," causes PowerShell to put the value into the NEXT argument!
        #Therefore it must be escapced using "`,".
-       if ( Get-StringIsNullOrWhiteSpace $passwordfile ) {
+       if ( Test-String -IsNullOrWhiteSpace $passwordfile ) {
           
           #No password defined
           write-verbose "   Will not use a password file" 
@@ -734,7 +735,8 @@ function Test-Environment(){
              {
                 $Make=(Get-CimInstance Win32_ComputerSystem).Manufacturer
 
-                if ( ($Make.StartsWith("HP","CurrentCultureIgnoreCase")) -or ($Make.StartsWith("Hewlett","CurrentCultureIgnoreCase")) )
+                #if ( ($Make.StartsWith("HP","CurrentCultureIgnoreCase")) -or ($Make.StartsWith("Hewlett","CurrentCultureIgnoreCase")) )
+                if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
                 {
                    #All seems to be fine
                    $result=$true
@@ -762,7 +764,7 @@ function Test-BiosCommunication()
   write-host "Trying to read UUID value to test BIOS communication..."
   $UUID=Get-BiosValue -Name "Universally Unique Identifier (UUID)" -Silent
 
-  if ( -not (Get-StringIsNullOrWhiteSpace $UUID) ) 
+  if ( -not (Test-String -IsNullOrWhiteSpace $UUID) ) 
   {
      write-host "  Success"
      $result=$true
@@ -798,7 +800,8 @@ param(
     $name=$folder.Name.ToLower()
     
     #Note: This search is case insensitve and partial matches are accepted
-    if ( ($model.Contains($name)) )
+    #if ( ($model.Contains($name)) )
+    if ( Test-String $model -Contains $name )
     {
       $result=$folder.FullName
       write-host "Matching folder found: [$result]"
@@ -820,7 +823,7 @@ function Copy-PasswordFileToTemp()
  $result=""
  
  #A password file variable can be empty (=empty password), no error in this case
- if ( Get-StringHasData $SourcePasswordFile )
+ if ( Test-String -HasData $SourcePasswordFile )
  {
    $result=Copy-FileToTemp -SourceFilename $SourcePasswordFile
  }
@@ -859,7 +862,8 @@ function ConvertTo-VersionFromBIOSVersion()
  $Text=$Text.Trim() 
  $Text=$Text.ToUpper()
 
- if ( $Text.StartsWith("F.") )
+ #if ( $Text.StartsWith("F.") )
+ if ( Test-String $Text -StartsWith "F." )
  {
     $Text=$Text.Replace("F.", "1.")
  }
@@ -911,7 +915,8 @@ function Get-BIOSVersionDetails()
        else
        {
          #we have more than exactly two tokens. Check if the second part is "Ver."
-         if ( $tokens[1].Trim().ToLower().StartsWith("ver") )
+         #if ( $tokens[1].Trim().ToLower().StartsWith("ver") )
+         if ( Test-String ($tokens[1].Trim()) -StartsWith "Ver" )
          {
             #Use third token as version
             $versionRaw=$tokens[2].Trim()
@@ -980,7 +985,8 @@ function Get-ArgumentsFromHastable()
    #We need to use a for loop since a foreach will not change the array
    for ($i=0; $i -lt $params.length; $i++) 
    {
-       if ( ($params[$i].Contains("@@PASSWORD_FILE@@")) )
+       #if ( ($params[$i].Contains("@@PASSWORD_FILE@@")) )
+       if ( Test-String $params[$i] -Contains "@@PASSWORD_FILE@@" )
        {
           if ( $PasswordFile -eq "" ) 
           {
@@ -993,7 +999,8 @@ function Get-ArgumentsFromHastable()
           }
        }
        
-       if ( ($params[$i].Contains("@@FIRMWARE_FILE@@")) )
+       #if ( ($params[$i].Contains("@@FIRMWARE_FILE@@")) )
+       if ( Test-String $params[$i] -Contains "@@FIRMWARE_FILE@@" )
        {
           if ( $FirmwareFile -eq "" ) 
           {
@@ -1012,7 +1019,7 @@ function Get-ArgumentsFromHastable()
    $paramsFinal= @() 
    foreach($param in $params) 
    {
-      if ( -not (Get-StringIsNullOrWhiteSpace $param) )
+      if ( -not (Test-String -IsNullOrWhiteSpace $param) )
       {
          $paramsFinal += $param
       }
@@ -1220,7 +1227,7 @@ function Update-Bios()
  {
     $details=Read-StringHashtable $updatefile
 
-    if ( !($details.ContainsKey("Version")) -or !($details.ContainsKey("Command"))  ) 
+    if ( -not($details.ContainsKey("Version")) -or  -not($details.ContainsKey("Command"))  ) 
     {
        write-error "Update configuration file is missing Version or Command settings"
     } 
@@ -1682,7 +1689,7 @@ function Write-HostSection()
  $charlength=65
  $output=""
  
- if ( Get-StringHasData $Start )
+ if ( Test-String -HasData $Start )
  {
     $output="***** $Start *****"
     $len=$charlength-($output.Length)
@@ -1694,7 +1701,7 @@ function Write-HostSection()
  }
  else
  {
-    if ( Get-StringHasData $End )
+    if ( Test-String -HasData $End )
     {
        write-host "Section -$($End)- finished"
     }
@@ -1705,7 +1712,7 @@ function Write-HostSection()
  write-host $output
  
  #Add a single empty line if no name was given
- if ( Get-StringHasData $End )
+ if ( Test-String -HasData $End )
  {
     write-host "   "
  }
@@ -1953,7 +1960,7 @@ function Remove-File()
 
      $modelfolder=Get-ModelFolder $model
 
-     if ( Get-StringIsNullOrWhiteSpace $modelfolder ) 
+     if ( Test-String -IsNullOrWhiteSpace $modelfolder ) 
      {
         #When we are here, we are pretty sure we can communicate with the machine, but no model folder was found        
 

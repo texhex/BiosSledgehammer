@@ -36,17 +36,17 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
 Suppose you get a workitem like this: 
 
-> For the Windows 10 rollout, we need you to support ten different hardware models and all of them need to be updated to the newest BIOS version. Some devices require a TPM firmware update to use security features that depend on TPM 2.0. And of course, you need to update the BIOS settings on all devices (Secure Boot, Fast Boot etc.) to meet Microsoft recommendations. Oh, and a new BIOS password for devices would be a big plus because we currently have twenty different passwords in use. 
+> For the Windows 10 rollout, we need you to support ten different hardware models and all of them need to be updated to the newest BIOS version. Some devices require a TPM firmware update to use the security features that depend on TPM 2.0. You also need to update the BIOS settings for all devices (Secure Boot, Fast Boot etc.) to meet Microsoft recommendations. Oh, and a new BIOS password would be a big plus because we currently have twenty different passwords in use. 
 
 You can now waste precious life time to try to script this, or you can just use BIOS Sledgehammer:
 * You can support several BIOS passwords for your devices, it will simply try all passwords you specify until the correct one is found
 * You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade (the BIOS version parsing works from a rather old 2570p up to a 1040 G3).
 * Define which TPM firmware and/or specification version (1.2 or 2.0) the device should have. Firmware checks are in place so BIOS Sledgehammer won’t try to flash “Update 6.40 to 7.41” on a device that has firmware 6.41
-* The BIOS password can be set individual per model or you just set all devices to the same password. All passwords are stored encrypted (HPQPswd tool). 
+* The BIOS password can be set individual per model or you just set all devices to the same password. All passwords are stored encrypted (using *HPQPswd64.exe*). 
 * BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
 * You can use it directly from MDT/SCCM, it will detect if a OSD is active and store the log(s) in the same path the task sequence uses. If desired, it can also be executed visible to see what it does.    
     
-If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view the [MDT or SCCM](#sccmmdt) information or download it from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
+If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view how to use it in [MDT or SCCM](#sccmmdt) or download it directly from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
 
 ## <a name="requirements">System requirements</a>
@@ -54,7 +54,11 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 * PowerShell 4.0 or higher
 * Windows 7 64-bit or Windows 10 64-bit - Windows 8 should also work, but wasn't tested
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) 4.0.15.1 stored in the folder ``\BCU-4.0.15.1``
-* [BIOS Update](http://www.hp.com/drivers) files for the models you want to support
+* The computer must be supported by BCU; most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
+ * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
+provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
+desktops, notebooks, and workstations.* 
+* [BIOS Update files](http://www.hp.com/drivers) for the models you want to support
 * [TPM Update files](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291) (Advisory with download link) if a TPM update is desired
 
 ## <a name="process">Process</a>
@@ -63,12 +67,12 @@ When starting BiosSledgehammer.ps1, the following will happen:
 
 * A log file ``BiosSledgehammer.ps1.log-XX.txt`` is created, where XX is sequentially increased value with each run. See [Logfile](#logfile) for details.
 * It checks if the environment is ready (64-bit OS, required folders found, device is from HP etc.).
-* A check is made if communication between BCU (*BiosConfigUtility64.exe*) and the BIOS through WMI is possible by reading the value of *Universally Unique Identifier (UUID)*.
+* A check is made if communication between BCU (*BiosConfigUtility64.exe*) and the BIOS through WMI is possible by reading the value of the setting *Universally Unique Identifier (UUID)* from the BIOS.
+* A search is performed below the [Models folder](#modelsfolder) to locate the matching folder for the current model. First an exact match for the model (e.g. if the current model is a *HP EliteBook Folio 1040 G1*, a folder named *HP EliteBook Folio 1040 G1* is expected). If this yields no result, a partially search is performed - a sub folder named *1040 G1* will match. All configuration is then read from this folder only. 
 * It tries to figure out the password the device is using by going through all files in the [PwdFiles folder](#pwdfilesfolder) and trying to change the value of *Asset Tracking Number* to a random value (it will be reverted to the original value at the end). An empty password is always tried first.  
-* A search is performed below the [Models folder](#modelsfolder) to locate the matching folder for the current model (this is a partial search, so a sub folder named *1040 G1* will match the model *HP EliteBook Folio 1040 G1*). All configuration is then read from this folder only. 
 * If the file **BIOS-Update.txt** is found, it is read and checked if a BIOS update is required. If so, the BIOS update files are locally copied and the update is performed. Any **.log* file generated by the update tool is attached to the BIOS Sledgehammer log file.  Finally, a restart is requested because the actual update is performed during POST. See [BIOS Update](#biosupdate) for more details.
 * If the file **TPM-Update.txt** exists, it is read and checked if a TPM update is required. This happens by checking if the TPM specification version (1.2 or 2.0) or the TPM firmware are below the configured versions. If so, the TPM updates files are locally copied and executed. Any **.log* file generated by the update tool is attached to the BIOS Sledgehammer log file.  Finally, a restart is requested because the actual update is performed during POST. See [TPM Update](#tpmupdate) for more details.
-* If the file **BIOS-Password.txt** is found, it is checked if the device is already set to use this password. The password is not specified directly (clear), but using a *.bin file name that stores the password encrypted. If the passwords differ, the configured *.bin file is read from the [PwdFiles folder](#pwdfilesfolder) and the password is changed. See [BIOS Password](#biospassword) for more details.
+* If the file **BIOS-Password.txt** is found, it is checked if the device is already set to use this password. The password is not specified directly (clear), but by using a *.bin file name that stores the password encrypted. If the passwords differ, the configured *.bin file is read from the [PwdFiles folder](#pwdfilesfolder) and the password is changed. See [BIOS Password](#biospassword) for more details.
 * If the file **BIOS-Settings.txt** exists, it is read and each entry is the name of a BIOS setting that needs to be changed. Each entry will be performed as single change (not all in a batch) to detect faulty settings more easily. See [BIOS Settings](#biossettings) for more details.
 
 Return codes (exit code):
@@ -79,7 +83,7 @@ Return codes (exit code):
 
 ## <a name="configformat">Configuration files format</a>
 
-BIOS Sledgehammer uses several configuration files that all follow the same ``NAME==VALUE`` syntax. There are saved as *.txt files to make it easy to change them with a text editor. 
+BIOS Sledgehammer uses several configuration files that all follow the same ``NAME==VALUE`` syntax. There are saved as *.txt files. 
 
 ```
 # This is a comment and ignored
@@ -90,11 +94,11 @@ BIOS Sledgehammer uses several configuration files that all follow the same ``NA
 # The general format is NAME==VALUE
 Version==1.08
 
-# Leading or trailing white spaces are ignored so this is the same as the line before
- Version == 1.08
+# Leading or trailing white spaces are ignored 
+ Version2 == 3.7
 
 
-# Empty line are ignored, add as many as you wish
+# Empty line are ignored, add as many as you see fit
 ```
 
 ## <a name="logfile">Logfile</a>
@@ -103,7 +107,21 @@ Each time BIOS Sledgehammer is executed, a new logfile with the pattern ``BiosSl
 
 * By default the logfile is saved to ``C:\Windows\Temp\``.
 
-* If it is executed in a task sequence by MDT or SCCM, the task sequence variable ``LogPath`` is used: ``C:\MININT\SMSOSD\OSDLOGS\`` or ``C:\Windows\Temp\DeploymentLogs\``.
+* If it is executed in a task sequence by MDT or SCCM, the task sequence variable ``LogPath`` is used: ``C:\miniNT\SMSOSD\OSDLOGS\`` or ``C:\Windows\Temp\DeploymentLogs\``.
+
+## <a name="modelsfolder">*Models* folder</a>
+
+It is expected that each model (type) of hardware you want to support has a separate sub folder below ``\Models``. The model (type) is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to know the model. 
+
+The sub folder will contain all settings files together with the source files for any updates. Please note that BIOS Sledgehammer does not support “sharing” update files between several models, each model requires its own set of files. That’s because sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models. 
+
+First an exact match for the model is performed, e.g. if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder of this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
+
+Where this partially search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder ``HP ProDesk 600 G1`` and this folder will match all these form factors.
+
+However, there are also cases where one family supports different form factors, and one of the form factors differs. For example, the *ProDesk 600 G2* comes in *TWR*, *MT*, *SFF* and *DM* form factors. The desktop mini (*DM*) has different hardware so it requires other settings. To support this, just create two folders: The first will match only the *DM*, so create a folder ``HP ProDesk 600 G2 DM``. For all other form factors, a partially matching folder named ``HP ProDesk 600 G2`` can be used. The *DM* will use his "private" folder, all other form factors will use the second folder.  
+
+If you do not want to change anything for a given model, simply create an empty folder. If no model folder at all is found, an error is generated. 
 
 
 ## <a name="pwdfilesfolder">*PwdFiles* folder</a>
@@ -114,18 +132,6 @@ The order, in which they are tried, is determined by sorting the files by name: 
 
 To create a password file, execute ``HPQPswd64.exe`` (found in the BCU folder) and save the file to the ``\PwdFiles`` folder as *.BIN file.  
 
-
-## <a name="modelsfolder">*Models* folder</a>
-
-It is expected that each model (type) of hardware you want to support, has a separate sub folder below ``\Models``. The model (type) is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to know the model. 
-
-The sub folder will contain all settings files together with the source files for any updates. Please note that BIOS Sledgehammer does not support “sharing” update files between several models, each model requires its own set of files. That’s because sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models. 
-
-To locate the model folder, a partial search with the current model is used. If you execute it on a ``HP EliteBook Folio 1040 G1``, the folder can be called exactly like that, or, if you are lazy, ``1040 G1``. 
-
-Where this partial search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder ``HP ProDesk 600 G1`` and this folder will match all these form factors.
-
-If you do not want to change anything for a given model, simply create an empty folder. If no model folder at all is found, an error is generated. 
 
 ## <a name="biosupdate">BIOS Update</a>
 
@@ -257,7 +263,9 @@ By default, MDT/SCCM will run all scripts hidden to hide sensitive information. 
 
 If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder). 
 
-This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This waym, you can have a quick look at the results.
+This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This way, you can have a quick look at the results.
+
+**IMPORTANT** When using the RunVisible.bat, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.  
 
 It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.      
 
@@ -268,7 +276,9 @@ Any constructive contribution is very welcome!
 If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose (``.\BiosSledgehammer.ps1 -Verbose``) and attach the logfile to [new issue](https://github.com/texhex/BiosSledgehammer/issues/new).
 
 ## <a name="license">License</a>
-Copyright © 2016 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
+``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2016 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
+
+All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
 
 
 
