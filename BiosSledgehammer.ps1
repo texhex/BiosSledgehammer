@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.40.1"
+$scriptversion="2.41.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -40,7 +40,7 @@ if ( $DebugMode )
 {
   $VerbosePreference_BeforeStart=$VerbosePreference
   $VerbosePreference="Continue"
-  cls
+  Clear-Host
 }
 #----DEBUG----
 
@@ -501,14 +501,14 @@ function Set-BiosValue()
 
        if ( ($bcuResult.Returncode -eq 18) -and ($bcuResult.Message="skip") ) 
        {
-          if (-Not $Silent) { write-host "  Done (was already set)." }
+          if (-Not $Silent) { write-host "  Done (was already set)" }
           $result=0
        } 
        else 
        {        
           if ($bcuResult.Returncode -eq 0) 
           {
-            if (-Not $Silent) { write-host "  Done." }
+            if (-Not $Silent) { write-host "  Done" }
             $result=1
           }
           else
@@ -785,28 +785,52 @@ param(
   [ValidateNotNullOrEmpty()]
   [string]$Model
 )
-  $result=""
+  $result=$null
   
   Write-HostSection "Locate Model Folder"
+  write-Host "Searching [$MODELS_PATH]"
+  write-Host "      for [$Model] ..."
 
-  write-host "Searching [$MODELS_PATH]..."
-  write-host "  Searching for [$model] (partitial matches allowed)"
-  
-  $model=$model.ToLower()
+  #get all folders
   $folders=Get-ChildItem -Path $MODELS_PATH -Directory -Force
-   
+
+  #First try is to locate a folder matching EXACTLY the model name  
+  write-host "  Searching for exactly matching folder for this model..."
   foreach ($folder in $folders) 
   {
-    $name=$folder.Name.ToLower()
-    
-    #Note: This search is case insensitve and partial matches are accepted
-    #if ( ($model.Contains($name)) )
-    if ( Test-String $model -Contains $name )
+    $name=$folder.Name.ToUpper()
+
+    if ( $name -eq $model.ToUpper() )
     {
-      $result=$folder.FullName
-      write-host "Matching folder found: [$result]"
-      break
+       $result=$folder.FullName
+       write-host "    Matching folder found: [$result]"
+       break
     }
+  }
+  if ( $result -eq $null ) {  write-host "    No folder found" }
+
+
+  #Second try if the first one didn't yield any results
+  if ( $result -eq $null )
+  {
+     write-host "  Searching for partially matching folder..."
+     
+     foreach ($folder in $folders) 
+     {
+        $name=$folder.Name
+        
+        if ( Test-String $model -Contains $name )
+        {
+           $result=$folder.FullName
+           write-host "    Matching folder found: [$result]"
+           break
+        }
+     }
+  }
+
+  if ( $result -ne $null )
+  {
+     Write-Host "Model folder is [$result]"
   }
 
   Write-HostSection -End "Model Folder"
@@ -1134,8 +1158,9 @@ function Copy-FolderForExec()
  if ( -not (Test-Path $SourceFolder) ) 
  {
     write-error "Folder [$SourceFolder] not found!"
-    $exception=New-Object System.IO.DirectoryNotFoundException "Folder [$SourceFolder] not found!"
-    throw $exception
+    #$exception=New-Object System.IO.DirectoryNotFoundException "Folder [$SourceFolder] not found!"
+    #throw $exception
+    throw New-Exception -FileNotFound "Folder [$SourceFolder] not found!"
  }
  else
  {
@@ -1150,8 +1175,9 @@ function Copy-FolderForExec()
        }
        catch
        {
-         $exception=New-Object System.InvalidOperationException "Unable to clear folder [$dest]"
-         throw $exception
+         #$exception=New-Object System.InvalidOperationException "Unable to clear folder [$dest]"
+         #throw $exception
+         throw New-Exception -InvalidOperation "Unable to clear folder [$dest]"
        }
     }
 
@@ -1167,8 +1193,9 @@ function Copy-FolderForExec()
     }
     catch
     {
-      $exception=New-Object System.InvalidOperationException "Unable to copy from [$source] to [$dest]"
-      throw $exception
+      #$exception=New-Object System.InvalidOperationException "Unable to copy from [$source] to [$dest]"
+      #throw $exception
+      throw New-Exception -InvalidOperation "Unable to copy from [$source] to [$dest]"
     }
 
     write-verbose "Copy done"
@@ -1184,8 +1211,9 @@ function Copy-FolderForExec()
        }
        catch
        {
-         $exception=New-Object System.InvalidOperationException "Unable to delete [$DeleteFilter] from [$dest]"
-         throw $exception
+         #$exception=New-Object System.InvalidOperationException "Unable to delete [$DeleteFilter] from [$dest]"
+         #throw $exception
+         throw New-Exception -InvalidOperation "Unable to delete [$DeleteFilter] from [$dest]"
        }
     }
 
@@ -1871,7 +1899,7 @@ function Remove-File()
     #First try if we are able to communicate with the BIOS
     if ( Test-BiosCommunication ) 
     {
-        write-host "Communication works."
+        write-host "Communication with BIOS using BCU works, will continue."
 		
 		$can_start=$True
     }
@@ -1944,34 +1972,35 @@ function Remove-File()
    }
    write-host " "
 
-   $foundPwdFile=Test-BiosPasswordFiles -PwdFilesFolder $PWDFILES_PATH
-   
-   if ( ($foundPwdFile -eq $null) ) 
+
+   #First try to locate the model folder
+   $modelfolder=Get-ModelFolder $model
+
+   if ( Test-String -IsNullOrWhiteSpace $modelfolder ) 
    {
-      write-error "Unable to find BIOS password!"
-   } 
-   else 
+      #When we are here, we are pretty sure we can communicate with the machine, but no model folder was found        
+      Write-error "The model specifc folder was not found in [$MODELS_PATH]. This device ($Model) is not supported by BIOS Sledgehammer."
+
+      #let returncode as is, which means we exit with an fatal error  
+   }
+   else
    {
-     #Copy the password file locally 
-     #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
-     #So never set $CurrentPasswordFile to a file on the source
-     $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
-     
-
-     $modelfolder=Get-ModelFolder $model
-
-     if ( Test-String -IsNullOrWhiteSpace $modelfolder ) 
-     {
-        #When we are here, we are pretty sure we can communicate with the machine, but no model folder was found        
-
-        Write-error "The model specifc folder was not found in [$MODELS_PATH]. This model ($Model) is not supported by BIOS Sledgehammer."
-
-        #let returncode as is, which means we exit with an fatal error  
-     }
-     else
-     {
-        #Model specifc folder found and stored in $modelfolder
-
+      #Model specifc folder found and stored in $modelfolder
+      
+      #Now search for the password
+      $foundPwdFile=Test-BiosPasswordFiles -PwdFilesFolder $PWDFILES_PATH
+      
+      if ( ($foundPwdFile -eq $null) ) 
+      {
+         write-error "Unable to find BIOS password!"
+      } 
+      else
+      {
+        #Copy the password file locally 
+        #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
+        #So never set $CurrentPasswordFile to a file on the source
+        $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
+        
         #BIOS Update
         $biosupdated=$false
         if ( $BIOSDetails.Parsed ) 
