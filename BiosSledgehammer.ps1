@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.41.0"
+$scriptversion="2.41.3"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -94,9 +94,6 @@ Set-Variable CurrentPasswordFile "" -Force
 #Path to model files
 Set-Variable MODELS_PATH "$PSScriptRoot\Models" –option ReadOnly -Force
 
-#Common BIOS value names
-Set-Variable ASSET_NAME "Asset Tracking Number" –option ReadOnly -Force
-Set-Variable BIOS_VERSION "System BIOS Version" –option ReadOnly -Force
 
 #Common exit code
 Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 –option ReadOnly -Force
@@ -232,55 +229,97 @@ catch
 function Get-BiosValue()
 {
  param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True,ParameterSetName="SingleValue")]
   [ValidateNotNullOrEmpty()]
-  [string]$name,
+  [string]$Name,
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True,ParameterSetName="NameArray")]
+  [array]$Names,
+
+  [Parameter(Mandatory=$False,ParameterSetName="SingleValue")]
+  [Parameter(Mandatory=$False,ParameterSetName="NameArray")]
   [switch]$Silent=$False
  )
 
- if (-not ($Silent)) { write-host "Reading BIOS setting [$name]..." }
+ $result=$null
 
- $result=""
+ switch ($PsCmdlet.ParameterSetName)
+ {  
+   "SingleValue"
+   {
+      if (-not ($Silent)) { write-host "Reading BIOS setting [$Name]..." }
 
- try
- {
-     #Try to get a single value
-     $output=&$BCU_EXE -getvalue $name | Out-String
+      try
+      {
+         #Try to get a single value
+         $output=&$BCU_EXE -getvalue $Name | Out-String
 
-     write-verbose "Read BIOS value: Result from BCU ============="
-     write-verbose $output.Trim()
-     write-verbose "=============================================="
+         write-verbose "Read BIOS value: Result from BCU ============="
+         write-verbose $output.Trim()
+         write-verbose "=============================================="
 
-     [xml]$xml = $output
+         [xml]$xml = $output
      
-     #This is the actual value
-     $result = $xml.BIOSCONFIG.SETTING.VALUE.InnerText
+         #This is the actual value
+         $result = $xml.BIOSCONFIG.SETTING.VALUE.InnerText
 
-     #This should be zero to indicate everything is OK
-     $returncode= $xml.BIOSCONFIG.SETTING.returnCode
+         #This should be zero to indicate everything is OK
+         $returncode= $xml.BIOSCONFIG.SETTING.returnCode
 
-     write-verbose "Value: $result"
-     write-verbose "Return code: $returncode"
+         write-verbose "Value: $result"
+         write-verbose "Return code: $returncode"
 
-     if ($returncode -ne 0) 
+         if ($returncode -ne 0) 
+         {
+            if (-not ($Silent)) { write-host "    Get-BiosValue failed. Return code was $returncode" }
+            $result=$null
+         }
+         else
+         {
+            if (-not ($Silent)) { write-host "    Setting read: [$result]" }
+         }
+     }
+     catch
      {
-       if (-not ($Silent)) { write-host "    Get-BiosValue failed. Return code was $returncode" }
+       if ( -not $Silent ) 
+       { 
+          write-host "    Get-BiosValue failed! Error:" 
+          write-host $error[0] 
+       }
+       else
+       {
+          #even if we are silent, we will at least write the information with verbose
+          write-verbose "    Get-BiosValue failed! Error:" 
+          write-verbose $error[0] 
+       }
        $result=$null
      }
-     else
-     {
-       if (-not ($Silent)) { write-host "    Setting read: [$result]" }
-     }
- }
- catch
- {
-   if (!($Silent)) { write-host "    Get-BiosValue failed! Error:" }
-   if (!($Silent)) { write-host $error[0] }
-   $result=$null
- }
+   }
 
+   "NameArray"
+   {
+     write-verbose "Reading BIOS setting using different setting names"
+
+     $result=$null
+
+     foreach($Name in $Names)
+     {
+        Write-Verbose "   Trying using setting name [$Name]..."
+        
+        $value=Get-BiosValue -Name $Name -Silent:$Silent
+
+        if ( $value -ne $null) 
+        {
+           #We have a result
+           $result=$value
+           break
+        }
+     }
+      
+   }
+
+ }
+ 
  return $result
 }
 
@@ -646,8 +685,10 @@ function Test-BiosPasswordFiles()
   [Parameter(Mandatory=$True)]
   [ValidateNotNullOrEmpty()]
   [string]$PwdFilesFolder
- )
+ )   
   
+  Set-Variable ASSET_NAME "Asset Tracking Number" –option ReadOnly -Force
+
   Write-HostSection -Start "Determine BIOS Password"
 
   $files=@()
@@ -667,7 +708,7 @@ function Test-BiosPasswordFiles()
   #Start testing	 
   write-host "Testing BIOS passwords..."
 
-  $assettag_old=get-biosvalue $ASSET_NAME
+  $assettag_old=get-biosvalue -Name $ASSET_NAME
   write-host "Original Asset Tag [$assettag_old]"
 
   $testvalue=Get-RandomString 14
@@ -735,7 +776,6 @@ function Test-Environment(){
              {
                 $Make=(Get-CimInstance Win32_ComputerSystem).Manufacturer
 
-                #if ( ($Make.StartsWith("HP","CurrentCultureIgnoreCase")) -or ($Make.StartsWith("Hewlett","CurrentCultureIgnoreCase")) )
                 if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
                 {
                    #All seems to be fine
@@ -761,8 +801,14 @@ function Test-BiosCommunication()
 {
   $result=$false
   
-  write-host "Trying to read UUID value to test BIOS communication..."
-  $UUID=Get-BiosValue -Name "Universally Unique Identifier (UUID)" -Silent
+  write-host "Trying to read UUID to test BIOS communication..."
+
+  #At least the ProDesk 600 G1 uses the name "Enter UUID"
+  #Newer models use "Universally Unique Identifier (UUID)"
+
+  $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID")
+
+  $UUID=Get-BiosValue -Names $UUIDNames -Silent
 
   if ( -not (Test-String -IsNullOrWhiteSpace $UUID) ) 
   {
@@ -770,11 +816,12 @@ function Test-BiosCommunication()
      $result=$true
   }
   else
-  {
-     write-host "  Failed"
+  {   
+    write-host "  Failed!"
   }
 
- return $result
+  
+  return $result
 }
 
 
@@ -803,7 +850,7 @@ param(
     if ( $name -eq $model.ToUpper() )
     {
        $result=$folder.FullName
-       write-host "    Matching folder found: [$result]"
+       write-host "    Matching folder: [$result]"
        break
     }
   }
@@ -822,7 +869,7 @@ param(
         if ( Test-String $model -Contains $name )
         {
            $result=$folder.FullName
-           write-host "    Matching folder found: [$result]"
+           write-host "    Matching folder: [$result]"
            break
         }
      }
@@ -876,6 +923,7 @@ function Copy-FileToTemp()
 #Special version for BIOS Version data
 #It replaces the first character of a BIOS Version "F" with "1" if necessary. This is needed for older models like 2570p or 6570b:
 #   http://h20564.www2.hp.com/hpsc/swd/public/detail?sp4ts.oid=5212930&swItemId=ob_173031_1&swEnvOid=4060#tab-history
+#Also checks if the version begins with "v" and removes it (e.g. ProDesk 600 G1)
 function ConvertTo-VersionFromBIOSVersion()
 {
  param(
@@ -886,12 +934,17 @@ function ConvertTo-VersionFromBIOSVersion()
  $Text=$Text.Trim() 
  $Text=$Text.ToUpper()
 
- #if ( $Text.StartsWith("F.") )
  if ( Test-String $Text -StartsWith "F." )
  {
     $Text=$Text.Replace("F.", "1.")
  }
 
+ #some models report "v" before the version
+ if ( Test-String $Text -StartsWith "V" )
+ {
+    $Text=$Text.Replace("V", "")
+ }
+ 
  [version]$curver=ConvertTo-Version -Text $Text -RespectLeadingZeros
 
  return $curver
@@ -910,6 +963,7 @@ function Get-BIOSVersionDetails()
  #N02 Ver. 02.07  01/11/2016
  #L83 Ver. 01.34 
  #SBF13 F.64
+ #L01 v02.53  10/20/2014
 
  write-verbose "Trying to parse BIOS data [$RawData]"
  
@@ -930,7 +984,7 @@ function Get-BIOSVersionDetails()
 
        #now we need to check if we have exactly two or more tokens
        #If exactly so, we have FAMILY VERSION
-       #If more, it can be FAMILY VER VERSION or FAMILY VER VERSION DATE
+       #If more, it can be FAMILY VER VERSION or FAMILY VER VERSION DATE or FAMILY vVERSION DATE
 
        if ( $tokens.Count -eq 2 ) 
        {
@@ -939,7 +993,6 @@ function Get-BIOSVersionDetails()
        else
        {
          #we have more than exactly two tokens. Check if the second part is "Ver."
-         #if ( $tokens[1].Trim().ToLower().StartsWith("ver") )
          if ( Test-String ($tokens[1].Trim()) -StartsWith "Ver" )
          {
             #Use third token as version
@@ -952,6 +1005,7 @@ function Get-BIOSVersionDetails()
        }
 
        write-verbose "   BIOS Version: $versionRaw"
+
 
        #use special ConvertTo-Version version that replace the F.XX that some models report
        [version]$curver=ConvertTo-VersionFromBIOSVersion -Text $versionraw
@@ -1884,6 +1938,7 @@ function Remove-File()
    Start-Sleep 15
  }
 
+ 
 
  $can_start=$false
  
@@ -1930,15 +1985,30 @@ function Remove-File()
 
    write-host "Collecting system information..."
 
-   $info=Get-CimInstance Win32_ComputerSystem
-   $Model=$info.Model
+   $Model=(Get-CimInstance Win32_ComputerSystem).Model
    $computername=$env:computername
 
    write-host " "
    write-host "  Name.........: $computername"
    write-host "  Model........: $Model"
    
-   $BIOSRaw=Get-BiosValue -name $BIOS_VERSION -Silent
+   ########################################
+   #Retrieve and parse BIOS version 
+
+   #We could use a direct call to BCU, but this does not work for old models
+   #because it includes the data like this "L01 v02.53  10/20/2014"
+   #This breaks the XML parsing from Get-BiosValue because BCU does not escape the slash
+      #For newer models, this is called "System BIOS Version". For older models, this is "BIOS Version & Date"
+      #$BIOSVersionNames=@("System BIOS Version", "BIOS Version & Date")
+      #$BIOSRaw=Get-BiosValue -Names $BIOSVersionNames -Silent   
+   
+   #So we get the data directly from Windows 
+   $BIOSRaw=(Get-CimInstance Win32_Bios).SMBIOSBIOSVersion
+  
+   #Teststruff
+   #L01 v02.53  10/20/2014
+   #68ISB Ver. F.53
+   #$BIOSRaw="L01 v02.53  10/20/2014"
 
    #replace $NULL in case we were unable to retireve the data
    if ( $BIOSRaw -eq $null ) 
@@ -1958,6 +2028,10 @@ function Remove-File()
       write-host "  BIOS Family..: $($BIOSDetails.Family)"
       write-host "  BIOS Version.: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
    }
+
+
+   ########################################
+   #Retrieve and parse TPM data
 
    $TPMDetails=Get-TPMDetails
    if ( !($TPMDetails.Parsed) ) 
