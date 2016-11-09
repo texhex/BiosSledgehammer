@@ -1,0 +1,37 @@
+# HP Compaq Pro 6300
+
+#Can't activate - error 20 AGAIN
+#Legacy Support==Disable
+
+Secure Boot==Enable
+
+#Can't activate any TPM setting. BCU fails with 20 - Setting does not exist? 
+#Reset of Embedded Security Device through OS==Enable
+#OS management of Embedded Security Device==Enable
+#Embedded Security Device==Device available
+#Embedded Security Activation Policy==No prompts
+
+Data Execution Prevention==Enable
+
+#Can't active this either...
+#Virtualization Technology (VTx)==Enable
+#Virtualization Technology Directed I/O (VTd)==Disable
+                                     
+Fast Boot==Disable
+
+SATA Emulation == AHCI
+
+Multi-Processor == Enable
+
+Hyper-Threading == Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Set it to your company name
+#Enter Ownership Tag == Property of ....
+
+
+
+
+
+

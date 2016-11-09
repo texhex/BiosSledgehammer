@@ -1,0 +1,28 @@
+# 840 G3 TPM Update
+
+# Manufacturer of the TPM (Optional) - The device must have this vendor or no update takes place
+Manufacturer==1229346816
+# 1229346816 is IFX
+
+# The TPM version we want this this device to have
+SpecVersion == 2.0
+
+# The Firmware version we want this device to have 
+FirmwareVersion == 7.41
+
+# Define the upgrade file to be used for each firmware version.
+# The firmware active on the device must match an entry here or no update can be performed
+6.40 == Firmware\TPM12_6.40.190.0_to_TPM20_7.41.2375.0.BIN
+6.41 == Firmware\TPM12_6.41.197.0_to_TPM20_7.41.2375.0.BIN
+7.40 == Firmware\TPM20_7.40.2098.0_to_TPM20_7.41.2375.0.BIN
+
+# Command to be used to perform the TPM firmware upgrade
+Command == TPMConfig64.exe
+
+# Arguments passed to COMMAND
+Arg1 == -s
+Arg2 == -f"@@FIRMWARE_FILE@@"
+Arg3 == -p"@@PASSWORD_FILE@@"
+
+
+

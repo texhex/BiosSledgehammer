@@ -1,4 +1,4 @@
-# 850 G1 
+# 1040 G1
 
 Boot Mode==UEFI Native (Without CSM)
 SecureBoot==Enable
@@ -18,15 +18,12 @@ Virtualization Technology for Directed I/O (VTd)==Disable
 LAN/WLAN Switching==Enable
 Fast Boot==Disable
 
+SATA Device Mode == AHCI
+Multi Core CPU == Enable
+Intel (R) HT Technology == Enable
+Intel Smart Connect Technology == Disable
+
 Asset Tracking Number == @@COMPUTERNAME@@
 
 #Ownership Tag == Property of ....
-
-Intel Smart Connect Technology==Disable
-
-Floppy boot == Enable
-
-SATA Device Mode == AHCI
-
-Multi Core CPU == Enable
 

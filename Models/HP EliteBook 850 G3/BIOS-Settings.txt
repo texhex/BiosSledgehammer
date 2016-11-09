@@ -1,7 +1,6 @@
-# Folio 1040 G3
+# 850 G3
 
 Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
-Enable MS UEFI CA key == Yes
 
 TPM State==Enable
 TPM Device==Available
@@ -15,12 +14,8 @@ Virtualization Technology for Directed I/O (VTd)==Disable
 LAN / WLAN Auto Switching==Enabled
 
 Fast Boot==Disable
-Turbo-boost==Enable
-Hyperthreading==Enable
-Multi-processor==Enable
 
 Asset Tracking Number == @@COMPUTERNAME@@
 
-#Ownership Tag == Property of ....
-
+#Ownership Tag == Property of .....
 

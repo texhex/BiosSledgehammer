@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.41.3"
+$scriptversion="2.43.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0

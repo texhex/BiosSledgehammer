@@ -1,0 +1,3 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp76501-77000/sp76966.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp76501-77000/sp76966.html

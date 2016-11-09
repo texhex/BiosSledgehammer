@@ -1,0 +1,20 @@
+# 6570b Update
+
+#The BIOS version the device should be on
+Version == F.66
+
+#Command to be executed for the BIOS update
+Command==hpqFlash64.exe
+
+# Silent
+Arg1 == -s
+
+# Password file (will be removed if empty password)
+Arg2 == -p"@@PASSWORD_FILE@@"
+
+# Do not restart automatically
+Arg3 == -r
+
+
+
+
