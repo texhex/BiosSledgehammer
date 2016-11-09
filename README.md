@@ -60,6 +60,7 @@ provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which 
 desktops, notebooks, and workstations.* 
 * [BIOS Update files](http://www.hp.com/drivers) for the models you want to support
 * [TPM Update files](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291) (Advisory with download link) if a TPM update is desired
+* Note: The BIOS and TPM files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>
 
@@ -80,6 +81,16 @@ Return codes (exit code):
 * 0 if everything was successful
 * 3010 (ERROR_SUCCESS_REBOOT_REQUIRED) if a restart is required because of a BIOS or TPM update
 * 666 if something didn't worked (Error)
+
+## <a name="install">Installation</a>
+
+BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#sccmmdt), a good place is a new sub-folder below ``\Scripts`` in the MDT share.
+
+You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](pwdfilesfolder)).
+
+The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#modelsfolder)). Those examples lack the required BIOS or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
+
+
 
 ## <a name="configformat">Configuration files format</a>
 
@@ -281,24 +292,3 @@ If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose 
 ``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2016 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
-
-
-
-<!--  
-TPM Information
-
-* [Dell: TPM 1.2 vs. 2.0 Features](http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11849.tpm-1-2-vs-2-0-features)
-* [Dell: Get TPM information using PowerShell](http://en.community.dell.com/techcenter/b/techcenter/archive/2015/12/09/retrieve-trusted-platform-module-tpm-version-information-using-powershell)
-* [Dell: How to change TPM Modes](http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0)
-* http://www.dell.com/support/article/de/de/debsdt1/SLN300906/en
-* http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291
- 
--->
-
-<!--
-If you deploy the devices you use in your enterprise automatically (e.g. MDT or SCCM), changes are good that somewhere in that automatic process you also have one step to automatically update the BIOS firmware. 
-
-This is normally plain easy: If model/type is of that type X, execute ``HPBIOSUPDREC64.exe -params X`` and you are done. Except if the BIOS you deployed was buggy. And HP fixed it already on newer devices. But your script didn’t check the installed BIOS version so you downgraded all devices to the faulty BIOS version. Woops. So, you create a new script, try to parse the BIOS version and roll it out. Just to note three weeks that another BIOS version is delivered that breaks your parsing and you can start over again....
-
-The upcoming change to Windows 10 increases this complexity by several magnitudes:
--->
