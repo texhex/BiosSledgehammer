@@ -30,7 +30,7 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 * BIOS Sledgehammer is **NOT** an official HP tool.                         
 * This is **NOT** sponsored or endorsed by HP.
 * HP was **NOT** involved in developing BIOS Sledgehammer.
-* Your computer can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
+* The device can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
 
 ## <a name="about">About</a>
 
@@ -40,7 +40,7 @@ Suppose you get a workitem like this:
 
 You can now waste precious life time to try to script this, or you can just use BIOS Sledgehammer:
 * You can support several BIOS passwords for your devices, it will simply try all passwords you specify until the correct one is found
-* You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade (the BIOS version parsing works from a rather old 2570p up to a 1040 G3).
+* You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade (the BIOS version parsing works from older devices like 6300 Pro up to a 1040 G3).
 * Define which TPM firmware and/or specification version (1.2 or 2.0) the device should have. Firmware checks are in place so BIOS Sledgehammer won’t try to flash “Update 6.40 to 7.41” on a device that has firmware 6.41
 * The BIOS password can be set individual per model or you just set all devices to the same password. All passwords are stored encrypted (using *HPQPswd64.exe*). 
 * BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
@@ -88,7 +88,7 @@ BIOS Sledgehammer is "installed" by copying it to a folder where the device, tha
 
 You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](pwdfilesfolder)).
 
-The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#modelsfolder)). Those examples lack the required BIOS or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
+The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#modelsfolder). Those examples lack the required BIOS or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
 
 
 
