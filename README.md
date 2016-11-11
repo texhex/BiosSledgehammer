@@ -169,7 +169,7 @@ Arg3 == -b
 Arg4 == -p"@@PASSWORD_FILE@@"
 ```
 
-Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update exe. This is supported by BIOS Sledgehammer by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt``. Models that only offer one BIOS family (this is the majority) do not need these entries. Here's an example:
+Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update process. This can be done by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt``. Models that only offer one BIOS family (this is the majority) do not need these entries:
 ```
 # 6570b Update
 
