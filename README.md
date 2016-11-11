@@ -168,6 +168,34 @@ Arg3 == -b
 # Password file (parameter will be removed if device has no BIOS password)
 Arg4 == -p"@@PASSWORD_FILE@@"
 ```
+
+Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update exe. This is supported by BIOS Sledgehammer by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt``. Models that only offer one BIOS family (this is the majority) do not need these entries. Here's an example:
+```
+# 6570b Update
+
+# The BIOS version the device should be on
+Version == F.66
+
+# This model supports different BIOS families - define the update files for each of them
+68ICE==68ICE.CAB
+68ICF==68ICF.CAB
+
+# Command to be executed for the BIOS update
+Command==hpqFlash64.exe
+
+# Silent
+Arg1 == -s
+
+# Password file (will be removed if empty password)
+Arg2 == -p"@@PASSWORD_FILE@@"
+
+# Firmware file for BIOS family
+Arg3 == -f@@FIRMWARE_FILE@@
+
+# Do not restart automatically
+Arg4 == -r
+```
+
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``BIOS-<VERSION>``. If the desired BIOS version is 1.37, the BIOS files need to be stored in ``\BIOS-1.37\``. Given that the current model folder is ``\Models\HP EliteBook 850 G1``, the entire path would be ``\Models\HP EliteBook 850 G1\BIOS-1.37``. 
 
 The source folder is then copied to %TEMP% (to avoid any network issues) and the update process is started from there. Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 

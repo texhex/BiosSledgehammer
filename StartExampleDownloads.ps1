@@ -1,5 +1,5 @@
 ﻿<#
- Start Example Downloads v1.02
+ Start Example Downloads v1.03
  Copyright © 2015-2016 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
@@ -339,9 +339,9 @@ if ( Get-UserConfirm )
     #check if the UNPACK_FOLDER exists and if it's empty. If so, delete it
     if ( Test-Path $UNPACK_FOLDER )
     {
-        $folders=Get-ChildItem -Path $UNPACK_FOLDER -Directory
-
-        if ( -not ($folders -is [array]) )
+        $count=(Get-ChildItem -Path $UNPACK_FOLDER -Directory | Measure-Object).Count
+       
+        if ( $count -eq 0 )
         {
             #Folder is empty
             $ignored=Remove-Item -Path $UNPACK_FOLDER -Force

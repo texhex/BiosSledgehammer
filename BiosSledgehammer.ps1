@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.43.0"
+$scriptversion="2.44.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1317,7 +1317,7 @@ function Update-Bios()
     {       
        $versionDesiredText=$details["version"]
 
-       #use special ConvertTo-Version version that replace the F.XX that some versions report
+       #use special ConvertTo-Version version 
        [version]$versionDesired=ConvertTo-VersionFromBIOSVersion -Text $versionDesiredText
 
        if ( $versionDesired -eq $null ) 
@@ -1351,29 +1351,43 @@ function Update-Bios()
 
             if ( $localfolder -ne $null )
             {
+               #check if we need to pass a firmware file based on the BiOS Family
+               $firmwarefile=""
+               $biosFamily=$BiosDetails.Family
+
+               write-host "   BIOS family is [$biosFamily]"
+               if ( $details.ContainsKey($biosFamily) )
+               {
+                  #yes, we have an entry
+                  $firmwarefile=$details[$biosFamily]
+                  write-host "   Found entry for BIOS family, will use firmare file [$firmwarefile]"
+               }               
+
                # Get the parameters together.
-               # The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-               $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile
+               $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile -FirmwareFile $firmwarefile
                $ExeFile="$localfolder\$($details["command"])"               
 
                #run "manage-bde.exe C: -pause" before?
 
                #HPBiosUpdRec64.exe might restart itself as a service in order to perform the update...               
+               #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
                $returnCode=Start-ProcessAndWaitForExit -ExeName $ExeFile -Parameter $params
                
+               #always try to grab the log file
                $ignored=Write-HostFirstLogFound $localfolder
 
                if ( $returnCode -eq $null )
                {
                   write-error "Running BIOS update command failed!"
+                  $result=$null
                }
                else
                {                  
                   write-host "BIOS update success, return code $returnCode"
+                  $result=$true
                }
+               #update done
 
-               #We always return TRUE because even a failed command might indicate that the BIOS was installed
-               $result=$true
             }          
          }
        }
@@ -2081,77 +2095,77 @@ function Remove-File()
         {
           $biosupdated=Update-Bios -Modelfolder $modelfolder -PasswordFile $CurrentPasswordFile -BIOSDetails $BIOSDetails
         }
-        
-        #debug only
-        #$biosupdated=$false
 
-        if ( $biosupdated ) 
+        if ( $biosupdated -eq $null) 
         {
-           #A BIOS update was done. Stop and continue later on
-           $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
-           $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-        }
-        else 
+           write-error "BIOS Update failed!"
+        }        
+        else
         {
-           #TPM Update
-           $tpmupdated=$false
-           if ( $TPMDetails.Parsed )
+           if ( $biosupdated ) 
            {
-              $tpmupdated=Update-TPM -Modelfolder $modelfolder -PasswordFile $CurrentPasswordFile -TPMDetails $TPMDetails
-           }
-
-           #debug
-           #$tpmupdated=$false
-
-           if ( $tpmupdated )
-           {
-              $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
+              #A BIOS update was done. Stop and continue later on
+              $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
               $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
            }
-           else
+           else 
            {
-              #BIOS Password update
-              $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
-
-              if ( $updatedPasswordFile -ne $null )
+              #TPM Update
+              $tpmupdated=$false
+              if ( $TPMDetails.Parsed )
               {
-                 #File has changed - remove old password file
-                 $ignored=Remove-File -Filename $CurrentPasswordFile
-                 $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                 $tpmupdated=Update-TPM -Modelfolder $modelfolder -PasswordFile $CurrentPasswordFile -TPMDetails $TPMDetails
               }
 
-              #Apply BIOS Settings
-              $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
 
-              if ( ($settingsApplied -lt 0) )
+              if ( $tpmupdated )
               {
-                 write-error "Error applying BIOS settings!"
+                 $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                 $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
               }
               else
               {
-                 <#
-                   Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
-                   does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
-                   value as before. 
-                 
-                 if ( $settingsApplied -ge 1 )
+                 #BIOS Password update
+                 $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                 if ( $updatedPasswordFile -ne $null )
                  {
-                    $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
-                    $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                    #File has changed - remove old password file
+                    $ignored=Remove-File -Filename $CurrentPasswordFile
+                    $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                 }
+
+                 #Apply BIOS Settings
+                 $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                 if ( ($settingsApplied -lt 0) )
+                 {
+                    write-error "Error applying BIOS settings!"
                  }
                  else
                  {
-                    #no changes for BIOS setting
-                    $returncode=0
-                 }
-                 #>
+                     <#
+                       Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
+                       does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
+                       value as before. 
                  
-                 $returncode=0
+                     if ( $settingsApplied -ge 1 )
+                     {
+                        $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                        $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                     }
+                     else
+                     {
+                        #no changes for BIOS setting
+                        $returncode=0
+                     }
+                     #>
+                 
+                   $returncode=0
+                 }
               }
            }
-
         }
-
         
         #FINALLY!! It's over!
      }     
