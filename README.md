@@ -183,15 +183,14 @@ Version == F.66
 # Command to be executed for the BIOS update
 Command==hpqFlash64.exe
 
+# Arguments to pass to COMMAND
+
 # Silent
 Arg1 == -s
-
 # Password file (will be removed if empty password)
 Arg2 == -p"@@PASSWORD_FILE@@"
-
 # Firmware file for BIOS family
 Arg3 == -f"@@FIRMWARE_FILE@@"
-
 # Do not restart automatically
 Arg4 == -r
 ```
