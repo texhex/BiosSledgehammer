@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.44.0"
+$scriptversion="2.44.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1352,24 +1352,29 @@ function Update-Bios()
             if ( $localfolder -ne $null )
             {
                #check if we need to pass a firmware file based on the BiOS Family
-               $firmwarefile=""
+               $firmwareFile=""
                $biosFamily=$BiosDetails.Family
 
                write-host "   BIOS family is [$biosFamily]"
                if ( $details.ContainsKey($biosFamily) )
                {
-                  #yes, we have an entry
-                  $firmwarefile=$details[$biosFamily]
-                  write-host "   Found entry for BIOS family, will use firmare file [$firmwarefile]"
+                  #Entry exists
+                  $firmwareFile=$details[$biosFamily]
+                  write-host "   Found firmware file entry for the current BIOS family: [$firmwarefile]"
+                  
+                  $firmwarefile="$localfolder\$firmwareFile"
+                  write-host "   Full path to firmware file: [$firmwareFile]"
                }               
-
+    
                # Get the parameters together.
-               $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile -FirmwareFile $firmwarefile
+               $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile -FirmwareFile $firmwareFile
                $ExeFile="$localfolder\$($details["command"])"               
 
                #run "manage-bde.exe C: -pause" before?
 
-               #HPBiosUpdRec64.exe might restart itself as a service in order to perform the update...               
+               #HPBiosUpdRec64.exe/hpqFlash64.exe might restart itself as a service in order to perform the update,
+               #so we need to wait for it.
+
                #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
                $returnCode=Start-ProcessAndWaitForExit -ExeName $ExeFile -Parameter $params
                

@@ -169,7 +169,7 @@ Arg3 == -b
 Arg4 == -p"@@PASSWORD_FILE@@"
 ```
 
-Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update process. This can be done by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt``. Models that only offer one BIOS family (this is the majority) do not need these entries:
+Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update process. This can be done by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt`` and define the parameter for a firmware file together with the replacement value *@@FIRMWARE_FILE@@*. Models that only offer one BIOS family (this is the majority) do not need these entries. 
 ```
 # 6570b Update
 
@@ -190,7 +190,7 @@ Arg1 == -s
 Arg2 == -p"@@PASSWORD_FILE@@"
 
 # Firmware file for BIOS family
-Arg3 == -f@@FIRMWARE_FILE@@
+Arg3 == -f"@@FIRMWARE_FILE@@"
 
 # Do not restart automatically
 Arg4 == -r
@@ -242,7 +242,7 @@ The reason is that all TPM firmware is developed by 3rd parties so a change from
 
 The current TPM firmware version of the device is retrieved and it is checked if the settings file contains an entry for this firmware version. Given that the current device has TPM firmware 6.40, the update can be performed as an entry for this version exists (**6.40 == Firmware\TPM12....**). However, if the device would have firmware 6.22 the update would fail because no entry for this version exists. 
 
-As a TPM update also requires that BitLocker is completely turned off (as any BitLocker keys are lost during the upgrade), BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 because the required BitLocker PowerShell module does not exist. 
+The TPM update also requires that BitLocker is completely turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 because the required BitLocker PowerShell module does not exist. 
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 

@@ -17,7 +17,7 @@ Arg1 == -s
 Arg2 == -p"@@PASSWORD_FILE@@"
 
 # Firmware file for BIOS family
-Arg3 == -f@@FIRMWARE_FILE@@
+Arg3 == -f"@@FIRMWARE_FILE@@"
 
 # Do not restart automatically
 Arg4 == -r
