@@ -1,6 +1,6 @@
 <#
  BiosSledgehammer
- Copyright © 2015-2016 Michael 'Tex' Hex 
+ Copyright © 2015-2017 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.44.1"
+$scriptversion="2.45.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -53,9 +53,9 @@ Start-TranscriptTaskSequence -NewLog
 $banner=@"
 
             _
-    jgs   ./ |   
-         /  /    BIOS Sledgehammer 
-       /'  /     Version @@VERSION@@
+    jgs   ./ |   BIOS Sledgehammer Version @@VERSION@@
+         /  /    
+       /'  /     Copyright © 2015-2017 Michael 'Tex' Hex
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\   
@@ -79,7 +79,8 @@ $banner=$banner -replace "@@VERSION@@", $scriptversion
 write-host $banner
 
 #Configure which BCU versiun to use
-Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.15.1\BiosConfigUtility64.exe" –option ReadOnly -Force
+#Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.15.1\BiosConfigUtility64.exe" –option ReadOnly -Force
+Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" –option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
 

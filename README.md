@@ -5,7 +5,7 @@ Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
             _
     jgs   ./ |   BIOS Sledgehammer 
          /  /      
-       /'  /     Copyright © 2016 Michael 'Tex' Hex  
+       /'  /     Copyright © 2015-2017 Michael 'Tex' Hex  
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\     
@@ -53,9 +53,9 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 
 * PowerShell 4.0 or higher
 * Windows 7 64-bit or Windows 10 64-bit - Windows 8 should also work, but wasn't tested
-* [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) 4.0.15.1 stored in the folder ``\BCU-4.0.15.1``
+* [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]``
 * The computer must be supported by BCU; most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
- * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
+    * BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
 * [BIOS Update files](http://www.hp.com/drivers) for the models you want to support
@@ -316,6 +316,6 @@ Any constructive contribution is very welcome!
 If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose (``.\BiosSledgehammer.ps1 -Verbose``) and attach the logfile to [new issue](https://github.com/texhex/BiosSledgehammer/issues/new).
 
 ## <a name="license">License</a>
-``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2016-2017 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
+``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2017 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
