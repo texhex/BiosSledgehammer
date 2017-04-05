@@ -260,7 +260,7 @@ To set a BIOS password, you define the password file (containing the desired pas
 # Use our standard password
 PasswordFile == 01_W2f4x7t8NxD4xUH.bin
 ```
-:bangbang: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!   
+:exclamation: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!   
 
 This file has to be stored in the [PwdFiles folder](#pwdfilesfolder) (see the section how to create the files). If you want to use an empty password, just leave the value empty like this:
 ```
@@ -303,7 +303,7 @@ If you want to see what BIOS Sledgehammer is doing, run the provided batch file 
 
 This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This way, you can have a quick look at the results.
 
-:bangbang: :exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.  
+:exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.  
 
 It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.
 
