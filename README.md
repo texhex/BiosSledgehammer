@@ -317,7 +317,7 @@ As with any other configuration file, this file is stored in the model folder. F
 Boot Mode==UEFI Native (Without CSM)
 SecureBoot==Enable
 ```
-The file works exactly as described in [BIOS Settings](#biossettings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can executed BIOS Sledgehammer normally and change all other settings.    
+The file works exactly as described in [BIOS Settings](#biossettings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.    
 
 
 ## <a name="sccmmdt">Using it from MDT or SCCM</a>
