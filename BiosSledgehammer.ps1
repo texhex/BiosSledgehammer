@@ -84,20 +84,24 @@ Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe"
   #for testing if the arguments are correctly sent to BCU
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
 
-#For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally 
+#For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally
+#File will be deleted when the script finishes
 Set-Variable BCU_EXE "" -Force
 
 #Path to password files (need to have extension *.bin)
 Set-Variable PWDFILES_PATH "$PSScriptRoot\PwdFiles" –option ReadOnly -Force
-#Will store the currently used password file (copyied locally)
+
+#Will store the currently used password file (copied locally)
+#File will be deleted when the script finishes
 Set-Variable CurrentPasswordFile "" -Force
 
 #Path to model files
 Set-Variable MODELS_PATH "$PSScriptRoot\Models" –option ReadOnly -Force
 
-
 #Common exit code
 Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 –option ReadOnly -Force
+
+
 
 
 
@@ -2016,7 +2020,7 @@ function Remove-File()
    #Retrieve and parse BIOS version 
 
    #We could use a direct call to BCU, but this does not work for old models
-   #because it includes the data like this "L01 v02.53  10/20/2014"
+   #because it includes the data like this: "L01 v02.53  10/20/2014".
    #This breaks the XML parsing from Get-BiosValue because BCU does not escape the slash
       #For newer models, this is called "System BIOS Version". For older models, this is "BIOS Version & Date"
       #$BIOSVersionNames=@("System BIOS Version", "BIOS Version & Date")
@@ -2025,7 +2029,7 @@ function Remove-File()
    #So we get the data directly from Windows 
    $BIOSRaw=(Get-CimInstance Win32_Bios).SMBIOSBIOSVersion
   
-   #Teststruff
+   #Teststuff
    #L01 v02.53  10/20/2014
    #68ISB Ver. F.53
    #$BIOSRaw="L01 v02.53  10/20/2014"
@@ -2092,7 +2096,7 @@ function Remove-File()
       {
         #Copy the password file locally 
         #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
-        #So never set $CurrentPasswordFile to a file on the source
+        #           Never set $CurrentPasswordFile to a file on the source!
         $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
         
         #BIOS Update

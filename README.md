@@ -90,7 +90,7 @@ You still need to customize some files so it works in your environment. The firs
 
 The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#modelsfolder). Those examples lack the required BIOS or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
 
-:exclamation: **IMPORTANT!** The setting and downloaded files in ``\Models`` are just examples; please do not use them directly as is as there might be newer BIOS or TPM files, the settings provided might not match you environment etc. Please do not use them "as is" in production.   
+:exclamation: **IMPORTANT!** The setting and downloaded files in ``\Models`` are just examples; there might be newer BIOS or TPM files available from HP, the settings provided might not match you environment etc. Please do not use these examples "as is" in production.   
 
 ## <a name="configformat">Configuration files format</a>
 
