@@ -19,7 +19,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.45.0"
+$scriptversion="2.45.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -28,7 +28,7 @@ $scriptversion="2.45.0"
 Set-StrictMode -version 2.0
 
 #Require full level Administrator
-#requires –runasadministrator
+#requires -runasadministrator
 
 #Import Module with some helper functions
 Import-Module $PSScriptRoot\MPSXM.psm1 -Force

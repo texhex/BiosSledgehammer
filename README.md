@@ -58,8 +58,8 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
     * BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
-* [BIOS Update files](http://www.hp.com/drivers) for the models you want to support
-* [TPM Update files](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05381064) (January 2017 advisory with download link) if a TPM update is desired
+* BIOS Updates file for the models you want to support (search http://www.hp.com/drivers for "(Model) BIOS" to locate them) 
+* TPM Update files (See [January 2017 advisory](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.html)) if a TPM update is desired
 * Note: The BIOS and TPM files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>
@@ -90,7 +90,7 @@ You still need to customize some files so it works in your environment. The firs
 
 The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#modelsfolder). Those examples lack the required BIOS or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
 
-
+:exclamation: **IMPORTANT!** The setting and downloaded files in ``\Models`` are just examples; please do not use them directly as is as there might be newer BIOS or TPM files, the settings provided might not match you environment etc. Please do not use them "as is" in production.   
 
 ## <a name="configformat">Configuration files format</a>
 

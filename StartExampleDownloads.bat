@@ -9,7 +9,10 @@ REM We need to make sure to start the 64-bit PowerShell on a 64-bit machine.
 REM If we are running in WoW, C:\windows\sysnative is active, in any other case it is not 
 IF EXIST "%PS_EXE_SYSNATIVE%" SET PS_EXE=%PS_EXE_SYSNATIVE% 
  
-start "Start Downloads from HP" /wait %PS_EXE% -ExecutionPolicy Bypass -File "%~dp0StartExampleDownloads.ps1"
+echo.
+echo Starting script, please wait...
+echo.
+%PS_EXE% -ExecutionPolicy Bypass -File "%~dp0StartExampleDownloads.ps1"
 
 pause
 

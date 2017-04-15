@@ -1,0 +1,54 @@
+#850 G4
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options==Enable
+
+Enable MS UEFI CA key==Yes
+Ready BIOS for Device Guard Use==Do Nothing
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Intel Software Guard Extensions (SGX)==Software control
+
+Turbo-boost==Enable
+Hyperthreading==Enable
+Multi-processor==Enable
+
+Automatic BIOS Update Setting==Disable
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+        
+Fast Boot==Disable
+
+LAN / WLAN Auto Switching==Enabled
+
+Asset Tracking Number == @@COMPUTERNAME@@
+Ownership Tag == Property of ....
+
+
+#The following settings are not activated, but are included for reference.
+
+##From the TCG docs:
+##> [..] defines a mechanism by which a host application can alert the storage device to block attempts
+##  to authenticate the SID authority until a subsequent device power cycle occurs. This mechanism can be 
+##  used by BIOS/platform firmware to prevent a malicious entity from taking ownership of a SID credential 
+##  that is still set to its default value of MSID. 
+#Allow OPAL Hard Drive SID Authentication==Enable
+
+
+##This seems to be the options for the "Single device, single MAC address" using HP MAC Address Manager 
+##> [..] HP MAC Address Manager enables customers to use MAC addresses to manage computer assets in a 
+##  distributed environment by providing a unique platform MAC address to the network for device drivers 
+##  that are updated to support this HBMA protocol.
+##  ftp://ftp.hp.com/pub/softpaq/sp78501-79000/sp78634.html
+#Pre-boot HBMA Support==Enable
+#Windows HBMA Support==Enable
+#Single NIC Operation (Disable All Other NICs when HBMA is active on one NIC)==Enable
+
+
+

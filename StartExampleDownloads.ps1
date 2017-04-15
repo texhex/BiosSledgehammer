@@ -1,6 +1,6 @@
 ﻿<#
- Start Example Downloads v1.03
- Copyright © 2015-2016 Michael 'Tex' Hex 
+ Start Example Downloads v1.05
+ Copyright © 2015-2017 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
@@ -10,7 +10,7 @@
 #requires -version 4.0
 
 #Require full level Administrator
-#requires –runasadministrator
+#requires -runasadministrator
 
 #Guard against common code errors
 Set-StrictMode -version 2.0
@@ -61,55 +61,22 @@ function Test-FolderStructure()
   [ValidateNotNullOrEmpty()]
   [string]$SearchPath
 )
-    if ( -not (Test-Path "$SearchPath\Models" -PathType Container) )
+    if ( -not (Test-DirectoryExists "$SearchPath\Models") )
     {
-        throw New-Exception -FileNotFound "Path [$SearchPath\Models] does not exist"
+        throw New-Exception -DirectoryNotFound "Path [$SearchPath\Models] does not exist"
     }
 
-    if ( -not (Test-Path "$SearchPath\PwdFiles" -PathType Container) )
+    if ( -not (Test-DirectoryExists "$SearchPath\PwdFiles") )
     {
-        throw New-Exception -FileNotFound "Path [$SearchPath\PwdFiles] does not exist"
+        throw New-Exception -DirectoryNotFound "Path [$SearchPath\PwdFiles] does not exist"
     }
 
-    if ( -not (Test-Path "$SearchPath\BiosSledgehammer.ps1" -PathType Leaf) )
+    if ( -not (Test-FileExists "$SearchPath\BiosSledgehammer.ps1") )
     {
         throw New-Exception -FileNotFound "File [$SearchPath\BiosSledgehammer.ps1] does not exist"
     }
 
 }
-
-
-function Get-DirectoryPath()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Path
-)
-  return [System.IO.Path]::GetDirectoryName($Path)
-}
-
-
-function Get-FileName()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Path,
-
-  [Parameter(Mandatory=$false)]
-  [Switch]$WithoutExtension=$false
-)
-    if ( $WithoutExtension )
-    {        
-        return [System.IO.Path]::GetFileNameWithoutExtension($Path)
-    }
-    else
-    {
-        return [System.IO.Path]::GetFileName($Path)
-    }
-}
-
 
 function Remove-FileIfExists()
 {
@@ -118,7 +85,7 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$Path
 )
-    if ( Test-Path -Path $Path )
+    if ( Test-FileExists -Path $Path )
     {
         try
         {
@@ -168,28 +135,6 @@ param(
 }
 
 
-function Test-FileExists()
-{
-param(
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$Path,
-
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$File
-)
-    if ( $Path.EndsWith("\") )
-    {
-        return Test-Path -Path "$Path$File"
-    }
-    else
-    {
-        return Test-Path -Path "$Path\$File"
-    } 
-}
-
-
 function Invoke-AcquireHPFile()
 {
 param(
@@ -219,9 +164,9 @@ param(
         write-host "  Release Notes URL: $URL" 
     }
 
-    $filenNameOnly=Get-FileName($URL)
+    $destFilename="$DestinationPath\$(Get-FileName($URL))"
 
-    if ( Test-FileExists -Path $DestinationPath -File $filenNameOnly )
+    if ( Test-FileExists -Path $destFilename )
     {
         write-host "  File already exists"
     }
@@ -242,7 +187,7 @@ param(
             #We are expecting the file to be present in C:\SWSetup\SPxxxx
             $SPExtractedPath="$UNPACK_FOLDER\$SPName"
           
-            if ( -not (Test-Path -Path $SPExtractedPath) )
+            if ( -not (Test-DirectoryExists -Path $SPExtractedPath) )
             {
                 throw New-Exception -FileNotFound "Unable to locate unpack folder [$SPExtractedPath]"
             }
@@ -265,7 +210,8 @@ param(
             }
         }
         #copy SPXXXX to destination        
-        Copy-Item -Path $tempFile -Destination $DestinationPath -Force
+        #Copy-Item -Path $tempFile -Destination $DestinationPath -Force
+        Copy-FileToDirectory -Filename $tempFile -Directory $DestinationPath
 
         Remove-FileIfExists -Path $tempFile
         write-host "  File processed successfully"
@@ -287,7 +233,7 @@ param(
 
     #Set-Variable TEMP_DOWNLOAD_FOLDER "$(Get-TempFolder)\TempDownload" –option ReadOnly -Force
 
-    $destFolder=Get-DirectoryPath($SettingsFile)
+    $destFolder=Get-ContainingDirectory($SettingsFile)
 
     $settings=Read-StringHashtable $SettingsFile
 
@@ -337,7 +283,7 @@ if ( Get-UserConfirm )
 
     write-host "Cleaning up $UNPACK_FOLDER..."
     #check if the UNPACK_FOLDER exists and if it's empty. If so, delete it
-    if ( Test-Path $UNPACK_FOLDER )
+    if ( Test-DirectoryExists $UNPACK_FOLDER )
     {
         $count=(Get-ChildItem -Path $UNPACK_FOLDER -Directory | Measure-Object).Count
        
