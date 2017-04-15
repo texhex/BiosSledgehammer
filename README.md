@@ -3,8 +3,8 @@ Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
 
 ```
             _
-    jgs   ./ |   BIOS Sledgehammer 
-         /  /      
+    jgs   ./ |    
+         /  /    BIOS Sledgehammer  
        /'  /     Copyright © 2015-2017 Michael 'Tex' Hex  
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
@@ -59,7 +59,7 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
 * [BIOS Update files](http://www.hp.com/drivers) for the models you want to support
-* [TPM Update files](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05192291) (Advisory with download link) if a TPM update is desired
+* [TPM Update files](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05381064) (January 2017 advisory with download link) if a TPM update is desired
 * Note: The BIOS and TPM files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>

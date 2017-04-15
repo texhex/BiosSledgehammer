@@ -1,8 +1,8 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.17.0
+# Version 3.21.1
 # https://github.com/texhex/MPSXM
 #
-# Copyright © 2010-2016 Michael 'Tex' Hex 
+# Copyright © 2010-2017 Michael 'Tex' Hex 
 # Licensed under the Apache License, Version 2.0. 
 #
 # Import this module like this in case it is locatd in the same folder as your script
@@ -50,6 +50,11 @@ Set-StrictMode -version 2.0
 $ErrorActionPreference = 'Stop'
 
 
+#Next major version notes:
+# Get-StringIsNullOrWhiteSpace() should be deleted (replaced with Test-String)
+# Get-StringHasData() should be deleted (replaced with Test-String)
+# Get-RunningInISE() should be deleted (replaced with Test-InISE)
+# Add-RegistryValue() should be be deleted (replaced with Set-RegistryValue)
 
 function Get-CurrentProcessBitness()
 {
@@ -71,14 +76,14 @@ function Get-CurrentProcessBitness()
 #>
 [OutputType([bool])] 
 param (
-  [Parameter(ParameterSetName="64bit",Mandatory=$True)]
-  [switch]$Is64bit,
-
   [Parameter(ParameterSetName="32bit",Mandatory=$True)]
   [switch]$Is32bit,
 
   [Parameter(ParameterSetName="WoW",Mandatory=$True)]
-  [switch]$IsWoW
+  [switch]$IsWoW,
+
+  [Parameter(ParameterSetName="64bit",Mandatory=$True)]
+  [switch]$Is64bit
 )
 
   switch ($PsCmdlet.ParameterSetName)
@@ -144,11 +149,11 @@ function Get-OperatingSystemBitness()
 #>
 [OutputType([bool])] 
 param (
-  [Parameter(ParameterSetName="64bit",Mandatory=$True)]
-  [switch]$Is64bit,
-
   [Parameter(ParameterSetName="32bit",Mandatory=$True)]
-  [switch]$Is32bit
+  [switch]$Is32bit,
+
+  [Parameter(ParameterSetName="64bit",Mandatory=$True)]
+  [switch]$Is64bit
 )
 
   switch ($PsCmdlet.ParameterSetName)
@@ -451,11 +456,26 @@ Function Get-ComputerLastBootupTime(){<#
 
   .OUTPUTS
   DateTime (Kind = Local) that is the last bootup time of this computer
-#>    [OutputType([datetime])] #param(#) $obj = Get-CIMInstance Win32_OperatingSystem -Property "LastBootupTime"  return $obj.LastBootUpTime}#From: http://stackoverflow.com/a/25224840#      by kuujinbo (http://stackoverflow.com/users/604196/kuujinbo)Function Get-RunningInISE()
+#>    [OutputType([datetime])] #param(#) $obj = Get-CIMInstance Win32_OperatingSystem -Property "LastBootupTime"  return $obj.LastBootUpTime}Function Get-RunningInISE()
 {
 <#
   .SYNOPSIS
-  Returns if the current script is executed by Windows PowerShell ISE 
+  Returns if the current script is executed by Windows PowerShell ISE (uses Test-IsISE internally)
+
+  .OUTPUTS
+  $TRUE if running in ISE, FALSE otherise
+#>    [OutputType([bool])]    
+param()    
+    
+ return Test-IsISE
+}
+
+
+#From: http://stackoverflow.com/a/25224840#      by kuujinbo (http://stackoverflow.com/users/604196/kuujinbo)Function Test-IsISE()
+{
+<#
+  .SYNOPSIS
+  Returns if the current script is executed by Windows PowerShell ISE
 
   .OUTPUTS
   $TRUE if running in ISE, FALSE otherise
@@ -684,52 +704,6 @@ param(
 
  #display message box
  $ignored=[System.Windows.Forms.MessageBox]::Show($message, $Titel, 0, $type)
-}
-
-
-function Add-RegistryValue {
-<#
-  .SYNOPSIS
-  Adds a value to the given registry path. Right now only string values are supported.
-
-  .PARAMETER Path
-  The registry path, e.g. HKCU:\Software\TEMP\TSVARS
-
-  .PARAMETER Name
-  The name of the registry value 
-
-  .PARAMETER Value
-  The value 
-
-  .PARAMETER REG_SZ
-  The data will be written as REG_SZ
-
-  .OUTPUTS
-  None
-#>  
-param(
-  [Parameter(Mandatory=$True,Position=1)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Path,
-
-  [Parameter(Mandatory=$True,Position=2)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Name,
-
-  [Parameter(Mandatory=$True,Position=3)]
-  [ValidateNotNull()]
-  [string]$Value,
-
-  [Parameter(Mandatory=$True)]
-  [switch]$REG_SZ
-)
-
- if( !(Test-Path $Path) ) 
- {
-    $ignored=New-Item -Path $Path -Force 
- } 
-
- $ignored=New-ItemProperty -Path $path -Name $name -Value $value -PropertyType String -Force 
 }
 
 
@@ -1050,13 +1024,17 @@ function Get-QuickReference()
 {
 <#
   .SYNOPSIS
-  Returns a quick reference about the given function or all functions in the module (if you are on GitHub, this text was generated with it).
+  Returns a quick reference about the given function or all functions in the module. The text returned includes function name, call syntax and parameters extracted from the function itself. 
+  If you are on GitHub: the entire reference page was generated with it.
 
   .PARAMETER Name
   Name of the function or the module to generate a quick reference
 
   .PARAMETER Module
   Name specifies a module, a quick reference for all functions in the module should be generated 
+
+  .PARAMETER SortByNoun
+  If a module is given, the functions are sorted by verb (e.g. all Get-xxx together, all Set-xxx together). This can be changed to be sorted by Noun, the second part of a function.
 
   .PARAMETER Output
   If the output should be a string (default), CommonMark or the real objects
@@ -1073,7 +1051,11 @@ param (
   [System.String]$Output="String",
 
   [Parameter(Mandatory=$False)]
-  [switch]$Module
+  [switch]$Module,
+
+  [Parameter(Mandatory=$False)]
+  [switch]$SortByNoun
+
 )
  $qrList=@()
 
@@ -1182,7 +1164,55 @@ param (
    $qrList += $QuickRef
 
   } #foreach
-  
+
+
+  if ( $SortByNoun) 
+  {
+      #By default, get-help will return the functions names from a module sorted by Verb, but not the noun.
+      #Given that some functions deal with the same nouns, it makes more sense to sort them by noun, then by verb.
+      $objectCount=($qrList | Measure-Object).Count
+
+      if ( $objectCount -gt 1 )
+      {            
+         $dict=New-Dictionary -KeyType string -ValueType int
+
+         for ($i = 0; $i -lt $qrList.Count; $i++) 
+         {
+            #We first need to reverse verb-noun to noun-verb
+            $curFunction=$qrList[$i].Name
+            $posHyphen=$curFunction.IndexOf("-")
+            $sortName=""
+
+            if ( -not $posHyphen -ge 2)
+            {
+               #function doesn't use a hypen, use as is
+               $sortName=$curFunction
+            }
+            else
+            {
+               #Turn a function like "Get-Something" into "Something-Get"
+               $sortName=$curFunction.SubString($posHyphen+1)
+               $sortName+="-"
+               $sortName+=$curFunction.SubString(0,$posHyphen)        
+            }
+
+            $dict.Add($sortName, $i)
+         }
+
+         #Now sort the list based on the name
+         $sortedList=$dict.GetEnumerator() | Sort-Object -Property "Key"
+
+         #Create a new array with the original values in the new order
+         $qrListTemp=@()
+         foreach ($entry in $sortedList)
+         {
+           $qrListTemp +=$qrList[$entry.Value]
+         }
+
+         #Replace the current qrList with the objects from this list
+         $qrList=$qrListTemp
+      }
+  }
 
   #$qrList contains one or more objects we can use - check which output the caller wants
   switch ($Output)
@@ -1349,6 +1379,9 @@ function New-Exception()
   .PARAMETER FileNotFound
   The exception is thrown because a file can not be found/accessed 
 
+  .PARAMETER DirectoryNotFound
+  The exception is thrown because a directory can not be found/accessed 
+
   .OUTPUTS
   System.Exception
 #>
@@ -1365,6 +1398,9 @@ param (
 
   [Parameter(ParameterSetName="FileNotFoundException", Mandatory=$true)]
   [switch]$FileNotFound,
+
+  [Parameter(ParameterSetName="DirectoryNotFoundException", Mandatory=$true)]
+  [switch]$DirectoryNotFound,
   
   [Parameter(Mandatory=$false, Position=1)]
   [string]$Explanation,
@@ -1433,6 +1469,16 @@ param (
             
       $exception=New-Object System.IO.FileNotFoundException "$caller$Explanation"
     }
+    
+    "DirectoryNotFoundException"
+    {
+      if ( Test-String -IsNullOrWhiteSpace $Explanation)
+      { 
+         $Explanation="Attempted to access a path that is not on the disk."
+      }
+            
+      $exception=New-Object System.IO.DirectoryNotFoundException "$caller$Explanation"
+    }
 
   }
   
@@ -1440,5 +1486,768 @@ param (
 }
 
 
+function Test-Admin ()
+{
+<#
+   .SYNOPSIS
+   Determines if the current powershell is elevated (running with administrator privileges).
+   
+   .OUTPUTS
+   bool
+#>
+[OutputType([bool])] 
+    #Code copied from http://boxstarter.org/
+    #https://github.com/mwrock/boxstarter/blob/master/BoxStarter.Common/Test-Admin.ps1
+
+    $identity  = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object System.Security.Principal.WindowsPrincipal( $identity )
+    return $principal.IsInRole( [System.Security.Principal.WindowsBuiltInRole]::Administrator )
+}
+
+function ConvertTo-DateTimeString()
+{
+<#
+  .SYNOPSIS
+  Converts a DateTime to a string as definied by ISO 8601. The result will be in the format [2016-11-24 14:59:16.718+01:00] for local and [2016-11-19 14:24:09.718Z] for UTC values.
+
+  .PARAMETER DateTime
+  The DateTime to be converted to a string
+
+  .PARAMETER UTC
+  Convert the DateTime to UTC before converting it to a string.
+
+  .PARAMETER ForceUTC
+  Ignore the time zone/kind (Local, Unspecified, UTC) of the given DateTime and use it as if it were UTC already.
+
+  .PARAMETER HideMilliseconds
+  Do not include milliseconds in the result
+
+  .OUTPUTS
+  String
+#>
+[OutputType([String])]  
+param (
+  [Parameter(ParameterSetName="ForceUTC", Mandatory=$true, Position=1)]
+  [Parameter(ParameterSetName="ConvertUTC", Mandatory=$true, Position=1)]
+  [Parameter(ParameterSetName="Default", Mandatory=$true, Position=1)]    
+  [DateTime]$DateTime,
+  
+  [Parameter(ParameterSetName="ForceUTC", Mandatory=$false)]
+  [Parameter(ParameterSetName="ConvertUTC", Mandatory=$false)]
+  [Parameter(ParameterSetName="Default", Mandatory=$false)]   
+  [switch]$HideMilliseconds,
+
+  [Parameter(ParameterSetName="ConvertUTC", Mandatory=$true)]
+  [switch]$UTC,
+
+  [Parameter(ParameterSetName="ForceUTC", Mandatory=$true)]
+  [switch]$ForceUTC
+)
+  
+  switch ($PsCmdlet.ParameterSetName)
+  {  
+     "Default"
+     {
+       $dt=$DateTime
+     }
+
+     "ConvertUTC"
+     {
+        if ( $UTC )
+        {
+          $dt=$DateTime.ToUniversalTime()
+        }
+     }
+
+     "ForceUTC"
+     {
+        if ( $ForceUTC )
+        {
+          #$dt=[DateTime]::SpecifyKind($DateTime, "Utc")
+          $dt=ConvertTo-UTC $DateTime -ForceUTC
+        }
+     }
+  }
+
+  #More about ISO 8601: https://en.wikipedia.org/wiki/ISO_8601
+  #Also: https://xkcd.com/1179/
+  $FORMAT_FULL="yyyy'-'MM'-'dd HH':'mm':'ss'.'fffK" #K will be replaced with the timezone or Z if UTC
+  $FORMAT_SHORT="yyyy'-'MM'-'dd HH':'mm':'ssK"
+
+  $formatString=$FORMAT_FULL
+
+  if ( $HideMilliseconds )
+  {
+     $formatString=$FORMAT_SHORT
+     
+     #This could be used to set the milliseconds to zero.
+     ##New-TimeSpan does not allow to define Milliseconds, so we use the .NET constructor
+     #$timespan=New-Object System.TimeSpan(0,0,0,0,$dt.Millisecond)
+     #$dt=$dt - $timespan
+  }
+   
+  return $dt.ToString($formatString)
+}
 
 
+function ConvertFrom-DateTimeString()
+{
+<#
+  .SYNOPSIS
+  Converts a string (created by ConvertTo-DateTimeString() to a DateTime. If the given string contains a time zone (...+/-01:00),
+  the DateTime is converted to local time. If the given string is in UTC (...Z), no conversion will take place.
+
+  .PARAMETER DateTimeString
+  The string to be converted to a DateTime
+
+  .OUTPUTS
+  DateTime
+#>
+[OutputType([DateTime])]  
+param (
+  [Parameter(Mandatory=$true, Position=1)]
+  [string]$DateTimeString
+)
+
+  #More about ISO 8601: https://en.wikipedia.org/wiki/ISO_8601
+  #Also: https://xkcd.com/1179/
+  $FORMAT_FULL="yyyy'-'MM'-'dd HH':'mm':'ss'.'fffK" #K will be replaced with the timezone or Z if UTC
+  $FORMAT_SHORT="yyyy'-'MM'-'dd HH':'mm':'ssK"
+
+  $formatString=$FORMAT_SHORT
+
+  #We need to check if the string contains milliseconds or not so we can switch the format
+  if ( $DateTimeString.Length -ge 20 )
+  {
+     if ( $DateTimeString.Substring(19,1) -eq "." )
+     {
+        $formatString=$FORMAT_FULL      
+     }
+  }
+
+  #AssumeLocal - If no time zone is specified in the parsed string, the string is assumed to denote a local time.     
+  $dateTimeStyles=[System.Globalization.DateTimeStyles]::AssumeLocal
+  
+  #Check if the string ends with "Z", meaning UTC. In this case, we do not want it to be converted
+  if ( $DateTimeString.EndsWith("Z") )
+  {
+     $dateTimeStyles=[System.Globalization.DateTimeStyles]::AdjustToUniversal
+  }
+  
+  $dt=[DateTime]::ParseExact($DateTimeString, $formatString, [System.Globalization.CultureInfo]::InvariantCulture, $dateTimeStyles)
+ 
+  return $dt
+}
+
+
+function ConvertTo-UTC()
+{
+<#
+  .SYNOPSIS
+  Converts a given DateTime to a Coordinated Universal Time (UTC) DateTime. 
+
+  .PARAMETER DateTime
+  The DateTime to be converted to UTC. A DateTime without time zone (Kind=Unspecified) is assumed to be in local time. Values already in UTC will be returned as is. 
+
+  .PARAMETER ForceUTC
+  Ignore the time zone/kind (Local, Unspecified, UTC) of the given DateTime and return the same date and time as the input as UTC
+
+  .OUTPUTS
+  DateTime
+#>
+[OutputType([DateTime])]  
+param (
+  [Parameter(Mandatory=$true, Position=1)]
+  [DateTime]$DateTime,
+  
+  [Parameter(Mandatory=$false)]
+  [switch]$ForceUTC
+)
+
+  if ( $ForceUTC )
+  {
+     return [DateTime]::SpecifyKind($DateTime, [DateTimeKind]::Utc)
+  }
+  else
+  {
+     switch ($DateTime.Kind)
+     {  
+        "Utc"
+        {
+           #That's easy
+           return [DateTime]$DateTime
+        }
+
+        "Local"
+        {
+           return [DateTime]$DateTime.ToUniversalTime()
+        }
+
+        default #Unspecified
+        {
+           $dt=[DateTime]::SpecifyKind($DateTime, [DateTimeKind]::Local)
+           return [DateTime]$dt.ToUniversalTime()
+        }
+
+     }
+  }
+}
+
+
+function ConvertFrom-UTC()
+{
+<#
+  .SYNOPSIS
+  Converts a given Coordinated Universal Time (UTC) DateTime to local time.
+
+  .PARAMETER DateTime
+  The DateTime to be converted to local time from UTC. Inputs not in UTC will result in an exception.
+
+  .OUTPUTS
+  DateTime
+#>
+[OutputType([DateTime])]  
+param (
+  [Parameter(Mandatory=$true, Position=1)]
+  [DateTime]$DateTime
+)
+
+  if ( $DateTime.Kind -eq [DateTimeKind]::Utc )
+  {
+     return $DateTime.ToLocalTime()
+  }
+  else
+  {
+     throw New-Exception -InvalidArgument "The given DateTime object must be in UTC"
+  }
+}
+
+
+function Get-TrimmedString
+{
+<#
+  .SYNOPSIS
+   Removes white-space characters from the given string. By default, it removes all leading and trailing white-spaces chracters.
+
+  .PARAMETER String
+  The string to be trimmed
+
+  .PARAMETER StartOnly
+  Only remove leading white-space chracters
+
+  .PARAMETER EndOnly
+  Only remove trailing white-space chracters
+
+  .PARAMETER RemoveAll
+  Removes all white-space chracters from the string
+
+  .PARAMETER Equalize 
+  Removes all leading and trailing white-space characters, then replace any character considered to be a white-space with the standard white-space character (U+0020)
+
+  .PARAMETER RemoveDuplicates
+  Removes all leading and trailing white-space characters, then replace any white-space duplicates with 
+  one white-space (U+0020)
+
+
+  .OUTPUTS
+  string
+#>
+[OutputType([string])]  
+param (
+  #I have no idea why, but we need to reverse the order to make Get-Help return them in the correct order
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="RemoveAll")]
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="RemoveDuplicates")]  
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="Equalize")]
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="EndOnly")]
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="StartOnly")]
+  [Parameter(Mandatory=$false, Position=1, ParameterSetName="default")]    
+  [string]$String="", #not mandatory to allow passing an empty string
+
+  [Parameter(Mandatory=$true, ParameterSetName="StartOnly")]
+  [switch]$StartOnly,
+
+  [Parameter(Mandatory=$true, ParameterSetName="EndOnly")]
+  [switch]$EndOnly,
+
+  [Parameter(Mandatory=$true, ParameterSetName="Equalize")]
+  [switch]$Equalize,
+
+  [Parameter(Mandatory=$true, ParameterSetName="RemoveDuplicates")]
+  [switch]$RemoveDuplicates,
+
+  [Parameter(Mandatory=$true, ParameterSetName="RemoveAll")]
+  [switch]$RemoveAll
+)
+
+  switch ($PsCmdlet.ParameterSetName)
+  {  
+    "Default"
+    {    
+        return $String.Trim()
+    }
+
+    "StartOnly"
+    {
+        return $String.TrimStart()
+    }
+
+    "EndOnly"
+    {
+        return $String.TrimEnd()
+    }
+
+    "Equalize"
+    {
+        #Trim() uses internally the function Char.IsWhiteSpace so we should do the same
+        $sb = New-Object System.Text.StringBuilder
+        
+        $chars=$String.Trim().ToCharArray()
+        foreach ($char in $chars)
+        {
+           if ( [Char]::IsWhiteSpace($char) )
+           {
+                $sb.Append(" ") | Out-Null #ignore output from StringBuilder            
+           }
+           else
+           {
+                $sb.Append($char) | Out-Null  
+           }
+        }
+        
+        return $sb.ToString()
+    }
+
+    "RemoveAll"
+    {
+        #Change anything that is considered as white-space by .NET to " " (U0020)
+        $innerstring=Get-TrimmedString $String -Equalize
+        
+        #Now we can easily search for space and eliminate it
+        return $innerstring.Replace(" ","")
+    }
+
+    "RemoveDuplicates"
+    {        
+        $str=Get-TrimmedString $String -Equalize
+
+        while ( (Test-String $str -Contains "  ") )
+        {
+           $str=$str.Replace("  ", " ")
+        }
+
+        return $str
+    }
+
+  } #switch
+
+
+} #function 
+
+
+function Add-RegistryValue {
+<#
+  .SYNOPSIS
+  Adds a value to the given registry path. Uses [Set-RegistryValue] internally.
+
+  .PARAMETER Path
+  The registry path, e.g. HKCU:\Software\TEMP\TSVARS
+
+  .PARAMETER Name
+  The name of the registry value 
+
+  .PARAMETER Value
+  The value 
+
+  .PARAMETER REG_SZ
+  The data will be written as REG_SZ
+
+  .OUTPUTS
+  None
+#>  
+param(
+  [Parameter(Mandatory=$True,Position=1)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path,
+
+  [Parameter(Mandatory=$True,Position=2)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Name,
+
+  [Parameter(Mandatory=$True,Position=3)]
+  [ValidateNotNull()]
+  [string]$Value,
+
+  [Parameter(Mandatory=$True)]
+  [switch]$REG_SZ
+)
+
+ if( !(Test-Path $Path) ) 
+ {
+    $ignored=New-Item -Path $Path -Force 
+ } 
+
+ $ignored=New-ItemProperty -Path $path -Name $name -Value $value -PropertyType String -Force 
+}
+
+
+function Set-RegistryValue
+{
+<#
+  .SYNOPSIS
+  Writes a registry value in the given registry path. 
+
+  .PARAMETER Path
+  The registry path, e.g. HKCU\Software\MPSXM\
+
+  .PARAMETER Name
+  The name of the registry value. If not defined, the (default) value is used
+
+  .PARAMETER Value
+  The value to be written
+
+  .PARAMETER Type
+  The data type used in the registry (REG_xx). If not specified, the type of the given value will be used to assign DWord, QWord or String.
+
+  .OUTPUTS
+  None
+#>  
+param(
+  [Parameter(Mandatory=$true,Position=1)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path,
+
+  [Parameter(Mandatory=$false)]
+  [string]$Name,
+
+  [Parameter(Mandatory=$true)]
+  [ValidateNotNull()]
+  $Value,
+
+  [Parameter(Mandatory=$false)]
+  [Microsoft.Win32.RegistryValueKind]$Type=[Microsoft.Win32.RegistryValueKind]::Unknown
+)
+
+ #Normal registry path just use ROOT\Path e.g. HKCU\Software\MPSXM. PowerShell (because it uses a provider) uses ROOT:\Path
+ #Check if the fifth character is a ":" and if not, add it so PowerShell knows we want to write to the registry
+ if ( ($Path.Substring(4,1) -eq ":") )
+ {
+    $regPath=$Path    
+ }
+ else
+ {
+    $regPath=$Path.Insert(4,":")
+ }
+
+ #Create the path if it does not exist
+ if( -not (Test-Path $regPath -PathType Container) ) 
+ {
+    $ignored=New-Item -Path $regPath -Force 
+ } 
+
+ #check if value name was given. If not, write to (default)
+ if ( Test-String -IsNullOrWhiteSpace $Name )
+ {
+   #default values only support string, so we always convert to string
+   $ignored=Set-Item -Path $regPath -Value $value.ToString()
+ }
+ else
+ {
+   if ( $Type -eq [Microsoft.Win32.RegistryValueKind]::Unknown )
+   {
+     #type was not given, figure it out ourselves
+     #"String, ExpandString, Binary, DWord, MultiString, QWord, Unknown".
+     if ( $Value -is [int]) 
+     {
+        $Type=[Microsoft.Win32.RegistryValueKind]::DWord
+     }
+     elseif ( $Value -is [long])
+     {
+        $Type=[Microsoft.Win32.RegistryValueKind]::QWord
+     }
+     else
+     {
+       $Type=[Microsoft.Win32.RegistryValueKind]::String
+     }
+   }
+   
+   $ignored=New-ItemProperty -Path $regPath -Name $name -Value $value -PropertyType $Type -Force 
+ }
+}
+
+
+
+function Get-RegistryValue
+{
+<#
+  .SYNOPSIS
+  Reads a registry value.
+
+  .PARAMETER Path
+  The registry path, e.g. HKCU\Software\MPSXM\
+
+  .PARAMETER Name
+  The name of the registry value to be read. If not defined, the (default) value is used
+
+  .PARAMETER DefaultValue
+  The value to return if name does not exist. If not defined, $null is returned if Name does not exist
+
+  .OUTPUTS
+  Varies
+#>  
+param(
+  [Parameter(Mandatory=$true,Position=1)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path,
+
+  [Parameter(Mandatory=$false)]
+  [string]$Name,
+
+  [Parameter(Mandatory=$false)]
+  $DefaultValue=$null
+)
+
+ #Normal registry path just use ROOT\Path e.g. HKCU\Software\MPSXM. PowerShell (because it uses a provider) uses ROOT:\Path
+ #Check if the fifth character is a ":" and if not, add it so PowerShell knows we want to write to the registry
+ if ( ($Path.Substring(4,1) -eq ":") )
+ {
+    $regPath=$Path    
+ }
+ else
+ {
+    $regPath=$Path.Insert(4,":")
+ } 
+ 
+ if( -not (Test-Path $regPath -PathType Container) ) 
+ {
+   #Path does not exist, return default value
+   return $DefaultValue
+ }
+ else
+ {
+    #This commands read ALL values from the path. No idea if this is bad or can be ignored.
+    $regVals=Get-ItemProperty -Path $regPath
+    if( -not $regVals )
+    {
+       return $DefaultValue
+    }
+    else
+    {
+       #Was a name given? If not, use (default)
+       if ( Test-String -IsNullOrWhiteSpace $Name)
+       {
+          $Name="(default)"
+       }   
+
+        $regValue=Get-Member -InputObject $regVals -Name $Name
+        if( -not $regValue )
+        {
+           return $DefaultValue
+        }
+        else
+        {
+           #return the real value
+           return $regVals.$Name
+        }       
+    }
+ }
+
+}
+
+
+function Get-FileName()
+{
+<#
+  .SYNOPSIS
+  Returns the filename (with or without the extension) from a path string
+
+  .PARAMETER Path
+  The string path containing a filename, e.g. C:\Path\MyFile.txt
+
+  .PARAMETER WithoutExtension
+  Return the filename without extension (MyFile.txt would be returned as MyFile)
+
+  .OUTPUTS
+  String
+#>  
+[OutputType([string])]  
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path,
+
+  [Parameter(Mandatory=$false)]
+  [Switch]$WithoutExtension=$false
+)
+    if ( $WithoutExtension )
+    {        
+        return [System.IO.Path]::GetFileNameWithoutExtension($Path)
+    }
+    else
+    {
+        return [System.IO.Path]::GetFileName($Path)
+    }
+}
+
+
+function Get-ContainingDirectory()
+{
+<#
+  .SYNOPSIS
+  Returns the directory containing the item defined in the path string
+
+  .PARAMETER Path
+  The string path e.g. C:\Path\MyFile.txt
+
+  .OUTPUTS
+  String
+#>  
+[OutputType([string])]  
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path
+)
+
+  #The problem with this function is that it returns different results depending on if the path ends with "\" or not
+  
+  #When $Directory ends with "\", the return is the $Directory without "\"
+  #If not, the return is the containing directory
+  
+  #Hence, we make sure the $Directory does not end with "\"
+  $folder=Join-Path -Path $Path -ChildPath "\" #first add it in case the input was broken, e.g. ends with two "\"
+  $folder=$folder.TrimEnd("\")
+
+  return [System.IO.Path]::GetDirectoryName($folder)
+}
+
+
+function Test-DirectoryExists()
+{
+<#
+  .SYNOPSIS
+  Returns if a the given directory exists
+
+  .PARAMETER Path
+  The string path of a directory, e.g. C:\Windows
+
+  .OUTPUTS
+  boolean
+#>  
+[OutputType([bool])]  
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path
+)
+  return Test-Path -Path $Path -PathType Container
+}
+
+function Test-FileExists()
+{
+<#
+  .SYNOPSIS
+  Returns if a the given file exists
+
+  .PARAMETER Path
+  The string path of the fiel , e.g. C:\Temp\MyFile.txt"
+
+  .OUTPUTS
+  boolean
+#>  
+[OutputType([bool])]  
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Path
+)
+  return Test-Path -Path $Path -PathType Leaf
+}
+
+function Copy-FileToDirectory()
+{
+<#
+  .SYNOPSIS
+  Copies a file to a directory, overwritting any existing copy
+
+  .PARAMETER Filename
+  The full path to a file, e.g. C:\Temp\Testfile.txt
+
+  .PARAMETER Directory
+  Path to the destination directory, e.g. C:\Windows\Temp
+#>  
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Filename,
+
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Directory
+)
+
+ if ( -not (Test-FileExists $Filename) )
+ {
+    throw New-Exception -FileNotFound "The file [$Filename] does not exist"
+ } 
+ 
+ $dest=Join-Path -Path $Directory -ChildPath "\"
+
+ if ( -not (Test-DirectoryExists $dest) )
+ {
+    throw New-Exception -DirectoryNotFound "The destination directory [$dest] does not exist"
+ }
+
+ $ignored=Copy-Item -Path $Filename -Destination $dest -Force
+}
+
+
+function ConvertTo-Array()
+{
+<#
+  .SYNOPSIS
+  Convert a single value or a list of objects to an array; this way (Array).Count or a ForEach() loop always works. An input of $null will result in an array with length 0.
+
+  .PARAMETER InputObject
+  A single object, a list of objects or $null
+#>  
+ param(
+  [Parameter(Mandatory=$false,ValueFromPipeline=$True)]
+  $InputObject
+)
+
+    #if it's null, return an empty array
+    if ( $InputObject -eq $null )  
+    {      
+        $empty=@()
+        
+        #This rather strange syntax is needed because we want to return an empty array. 
+        #Thank Ansgar Wiechers for the solution: http://stackoverflow.com/a/18477004
+        return ,$empty        
+    }    
+    else
+    {
+        #get the number of objects in the list      
+        $count=($InputObject| Measure-Object).Count
+        $array=@()
+        
+        if ( $count -le 0 )
+        {
+            #same as above regarding empty array return
+            return ,$array
+        }
+        elseif ( $count -eq 1 )
+        {
+            #this extra step is required because elements with count 1 sometimes can not be retrieved by foreach
+            $array+=$InputObject
+            return ,$array
+        }
+        else
+        {
+            foreach($item in $InputObject)
+            {          
+                $array+=$item
+            }
+            return $array
+        }
+    }
+}

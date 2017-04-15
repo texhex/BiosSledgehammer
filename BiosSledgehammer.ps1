@@ -53,8 +53,8 @@ Start-TranscriptTaskSequence -NewLog
 $banner=@"
 
             _
-    jgs   ./ |   BIOS Sledgehammer Version @@VERSION@@
-         /  /    
+    jgs   ./ |   
+         /  /    BIOS Sledgehammer Version @@VERSION@@
        /'  /     Copyright © 2015-2017 Michael 'Tex' Hex
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
