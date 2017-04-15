@@ -15,11 +15,14 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$False)]
-  [switch]$WaitAtEnd=$False
+  [switch]$WaitAtEnd=$False,
+
+  [Parameter(Mandatory=$False)]
+  [switch]$ActivateUEFIBoot=$False
 )
 
 #Script version
-$scriptversion="2.45.1"
+$scriptversion="2.45.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -78,8 +81,8 @@ $banner=@"
 $banner=$banner -replace "@@VERSION@@", $scriptversion
 write-host $banner
 
-#Configure which BCU versiun to use
-#Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.15.1\BiosConfigUtility64.exe" –option ReadOnly -Force
+#Configure which BCU versiun to use 
+#Version 2.45 and upwards: BCU 4.0.21.1
 Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" –option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
@@ -332,15 +335,15 @@ function Get-BiosValue()
 function Set-BiosPassword()
 {
  param(
-  [Parameter(Mandatory=$True)]
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
   [string]$ModelFolder,
-
-  [Parameter(Mandatory=$True)]
+  
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
   [string]$PwdFilesFolder,
 
-  [Parameter(Mandatory=$False)]
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
   [string]$CurrentPasswordFile=""
  )
 
@@ -349,7 +352,7 @@ function Set-BiosPassword()
  Write-HostSection -Start "Set BIOS Password"
  
  write-host "Reading BIOS Password from [$settingsFile]..."
- if ( -not (Test-Path $settingsFile) ) 
+ if ( -not (Test-FileExists $settingsFile) ) 
  {
     write-host "File does not exist, BIOS password will not be changed"
  } 
@@ -372,7 +375,7 @@ function Set-BiosPassword()
       {
          $newPasswordFile_FullPath="$PwdFilesFolder\$newPasswordFile"
 
-         if ( Test-Path $newPasswordFile_FullPath )
+         if ( Test-FileExists $newPasswordFile_FullPath )
          {
             $newPasswordFile_Exists=$true   
          }
@@ -624,66 +627,6 @@ function Set-BiosValuesHashtable(){
 }
 
 
-function Update-BiosSettings()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$ModelFolder,
-  
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$PasswordFile=""
- )
-
- $result=-1
- Write-HostSection -Start "BIOS Settings"
-
- $settingsfile="$modelfolder\BIOS-Settings.txt"
- write-host "Reading BIOS settings information from [$settingsfile]..."
-
- if ( -not (Test-Path $settingsfile) )
- {
-    Write-Host "File does not exist, ignoring BIOS settings"
-    $result=0
- }
- else
- {
-    #Try to read the setting file
-    $settings=Read-StringHashtable $settingsfile
-
-    if (  ($settings.Count -lt 1) ) 
-    {
-       Write-Warning "Setting file ($settingsfile) is empty"
-    } 
-    else
-    {
-       #Inform which password we use
-       write-host "Using password file [$PasswordFile]" 
-
-       #Apply settings
-       $changeresult=Set-BiosValuesHashtable -Hastable $settings -Passwordfile $PasswordFile
-
-       if ( $changeresult -lt 0 ) 
-       {
-          #Something went wrong applying our settings
-          write-error "Applying BIOS Setting failed!"
-       }
-       
-       if ( $changeresult -eq 1 )
-       {
-          #Since this message will appear each and every time, I'm unsure if it should remain or not
-          write-host "One or more BIOS setting(s) have been changed. A restart is recommended to activated them."
-       }
-
-       $result=$changeresult
-    }
- }
-
- Write-HostSection -End "BIOS Settings"
- return $result
-}
-
-
 function Test-BiosPasswordFiles() 
 {
  param(
@@ -761,19 +704,19 @@ function Test-Environment(){
    }
    else
    {
-       if ( !(Test-Path $BCU_EXE_SOURCE) ) 
+       if ( !(Test-FileExists $BCU_EXE_SOURCE) ) 
        {
           Write-Error "BiosConfigUtility not found: $BCU_EXE_SOURCE"
        }
        else
        {
-          if ( !(Test-Path $PWDFILES_PATH) ) 
+          if ( !(Test-DirectoryExists $PWDFILES_PATH) ) 
           {
              Write-Error "Folder for password files not found: $PWDFILES_PATH"
           }
           else 
           {
-             if ( !(Test-Path $MODELS_PATH) )
+             if ( !(Test-DirectoryExists $MODELS_PATH) )
              {
                 Write-Error "Folder for model specific files not found: $MODELS_PATH"
              }
@@ -806,7 +749,7 @@ function Test-BiosCommunication()
 {
   $result=$false
   
-  write-host "Trying to read UUID to test BIOS communication..."
+  write-host "Trying to read UUID to test BIOS communication..." -NoNewline
 
   #At least the ProDesk 600 G1 uses the name "Enter UUID"
   #Newer models use "Universally Unique Identifier (UUID)"
@@ -911,14 +854,18 @@ function Copy-PasswordFileToTemp()
 function Copy-FileToTemp()
 {
  param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
   [ValidateNotNullOrEmpty()]
   [string]$SourceFilename
  )
 
- $filenameonly=Split-Path -Leaf $SourceFilename
- $newfullpath="$env:temp\$filenameonly"
+ $filenameonly=Get-FileName $SourceFilename
+
+ #This line can cause issues later on. On some system this will be a path with "~1" in it and this can cause Remove-Item do freak out. 
+ #$newfullpath="$env:temp\$filenameonly"
  
+ $newfullpath="$(Get-TempFolder)\$filenameonly"
+
  Copy-Item -Path $SourceFilename -Destination $newfullpath -Force
 
  return $newfullpath
@@ -1214,7 +1161,7 @@ function Copy-FolderForExec()
 
  $result=$null  
 
- if ( -not (Test-Path $SourceFolder) ) 
+ if ( -not (Test-DirectoryExists $SourceFolder) ) 
  {
     write-error "Folder [$SourceFolder] not found!"
     #$exception=New-Object System.IO.DirectoryNotFoundException "Folder [$SourceFolder] not found!"
@@ -1226,7 +1173,7 @@ function Copy-FolderForExec()
     $dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
 
     #If it exists, kill it
-    if ( (Test-Path $dest) )
+    if ( (Test-DirectoryExists $dest) )
     {
        try
        {
@@ -1234,8 +1181,6 @@ function Copy-FolderForExec()
        }
        catch
        {
-         #$exception=New-Object System.InvalidOperationException "Unable to clear folder [$dest]"
-         #throw $exception
          throw New-Exception -InvalidOperation "Unable to clear folder [$dest]"
        }
     }
@@ -1270,8 +1215,6 @@ function Copy-FolderForExec()
        }
        catch
        {
-         #$exception=New-Object System.InvalidOperationException "Unable to delete [$DeleteFilter] from [$dest]"
-         #throw $exception
          throw New-Exception -InvalidOperation "Unable to delete [$DeleteFilter] from [$dest]"
        }
     }
@@ -1282,19 +1225,143 @@ function Copy-FolderForExec()
 }
 
 
-function Update-Bios()
+
+function Update-BiosSettings()
 {
  param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ModelFolder,
+  
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [string]$PasswordFile=""
+ )
+
+ $settingsfile="$modelfolder\BIOS-Settings.txt"
+
+ $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -Displaytext "BIOS Settings" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile 
+
+ return $result
+}
+
+function Set-UEFIBootMode()
+{
+ param(
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ModelFolder,
+  
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [string]$PasswordFile=""
+ )
+
+ $settingsfile="$modelfolder\Activate-UEFIBoot.txt"
+
+ $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -Displaytext "Activate UEFI Boot Mode" -PasswordFile $PasswordFile
+
+ return $result
+}
+
+
+function Update-BiosSettingsEx()
+{
+ param(
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ConfigFileFullPath,
+
+  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Displaytext,
+
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [switch]$IgnoreNonExistingConfigFile,
+  
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [string]$PasswordFile=""
+
+ )
+
+    Write-HostSection -Start $Displaytext
+    write-host "Reading BIOS settings from [$ConfigFileFullPath]..."
+
+    $configFileExists=Test-FileExists $ConfigFileFullPath
+
+    $result=-1
+    #Define we can change settings or not
+    $change_settings=$false
+
+    if ( $configFileExists ) 
+    {
+        $change_settings=$true
+    }
+    else
+    {
+        if ( $IgnoreNonExistingConfigFile )
+        {
+            Write-Host "File does not exist, ignoring BIOS settings"
+            $result=0               
+        } 
+        else
+        {
+            write-error "Setting file ($ConfigFileFullPath) does not exist!"
+            $result=-1
+        }
+    }
+
+
+    if ( $change_settings )
+    {
+        #Try to read the setting file
+        $settings=Read-StringHashtable $ConfigFileFullPath
+
+        if (  ($settings.Count -lt 1) ) 
+        {
+           Write-Warning "Setting file ($ConfigFileFullPath) is empty"
+        } 
+        else
+        {
+           #Inform which password we use
+           write-host "Using password file [$PasswordFile]" 
+
+           #Apply settings
+           $changeresult=Set-BiosValuesHashtable -Hastable $settings -Passwordfile $PasswordFile
+
+           if ( $changeresult -lt 0 ) 
+           {
+              #Something went wrong applying our settings
+              write-error "Applying BIOS Setting failed!"
+           }
+       
+           if ( $changeresult -eq 1 )
+           {
+              #Since this message will appear each and every time, I'm unsure if it should remain or not
+              write-host "One or more BIOS setting(s) have been changed. A restart is recommended to activated them."
+           }
+
+           $result=$changeresult
+        }
+     }
+
+    Write-HostSection -End $Displaytext
+    return $result
+}
+
+
+function Update-BiosFirmware()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
   [string]$ModelFolder,
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$PasswordFile="",
-
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
-  $BiosDetails
+  $BiosDetails,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$False)]
+  [string]$PasswordFile=""
  )
  
  #HPQFlash requires oledlg.dll which is by default not included in WinPE (see http://tookitaway.co.uk/tag/hpbiosupdrec/)
@@ -1306,7 +1373,7 @@ function Update-Bios()
  Write-HostSection "BIOS Update"
  write-host "Reading BIOS update information from [$updatefile]..."
 
- if ( !(Test-Path $updatefile) ) 
+ if ( !(Test-FileExists $updatefile) ) 
  {
     write-host "File does not exist, ignoring BIOS update."
  } 
@@ -1495,16 +1562,16 @@ function Get-TPMDetails()
 function Update-TPM()
 {
  param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
   [string]$ModelFolder,
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$PasswordFile="",
-
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
   [ValidateNotNullOrEmpty()]
-  $TPMDetails
+  $TPMDetails,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$False)]
+  [string]$PasswordFile=""
  )
 
  Write-HostSection "TPM Update"
@@ -1514,7 +1581,7 @@ function Update-TPM()
    
  write-host "Reading TPM update information from [$updatefile]..."
 
- if ( -not (Test-Path $updatefile) ) 
+ if ( -not (Test-FileExists $updatefile) ) 
  {
     write-host "File does not exist, ignoring TPM update."
  } 
@@ -1632,7 +1699,7 @@ function Update-TPM()
                    $firmwarefileTest="$sourcefolder\$firmwarefile"
 
                    #Check if it exists
-                   if ( ! (Test-Path $firmwarefileTest) )
+                   if ( ! (Test-FileExists $firmwarefileTest) )
                    {
                       Write-error "TPM firmware update file [$firmwarefileTest] does not exist!"
                    }
@@ -1931,11 +1998,12 @@ function Remove-File()
 
  if ( $Filename -ne "" )
  {
-   if ( (Test-Path $Filename) ) 
+   if ( (Test-FileExists $Filename) ) 
    {
      try 
      {
-   	    Remove-Item -Path $Filename -Force
+        #When using just -Path, sometimes this fails - See http://stackoverflow.com/questions/11586310/having-issue-removing-a-file-in-powershell
+   	    Remove-Item -LiteralPath $Filename -Force
      }
      catch
      {
@@ -2094,91 +2162,122 @@ function Remove-File()
       } 
       else
       {
+
         #Copy the password file locally 
         #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
         #           Never set $CurrentPasswordFile to a file on the source!
         $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
         
-        #BIOS Update
-        $biosupdated=$false
-        if ( $BIOSDetails.Parsed ) 
-        {
-          $biosupdated=Update-Bios -Modelfolder $modelfolder -PasswordFile $CurrentPasswordFile -BIOSDetails $BIOSDetails
-        }
 
-        if ( $biosupdated -eq $null) 
+        
+        #Now we have everything ready to make changes to this system
+        #If ActivateUEFIBoot is set, we only perform this change and nothing else
+
+        if ( $ActivateUEFIBoot )
         {
-           write-error "BIOS Update failed!"
-        }        
+            ########################
+            #Switch UEFI Boot mode
+
+            $uefiModeSwitched=Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+            if ( ($uefiModeSwitched -lt 0) )
+            {
+                write-error "Error switching UEFI Boot Mode!"
+            }
+            else
+            {
+                $returncode=0
+            }
+
+        }
         else
         {
-           if ( $biosupdated ) 
-           {
-              #A BIOS update was done. Stop and continue later on
-              $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
-              $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-           }
-           else 
-           {
-              #TPM Update
-              $tpmupdated=$false
-              if ( $TPMDetails.Parsed )
-              {
-                 $tpmupdated=Update-TPM -Modelfolder $modelfolder -PasswordFile $CurrentPasswordFile -TPMDetails $TPMDetails
-              }
+            ########################
+            #Normal process 
 
 
-              if ( $tpmupdated )
-              {
-                 $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                 $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-              }
-              else
-              {
-                 #BIOS Password update
-                 $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+            #BIOS Update
+            $biosupdated=$false
+            if ( $BIOSDetails.Parsed ) 
+            {
+              $biosupdated=Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile 
+            }
 
-                 if ( $updatedPasswordFile -ne $null )
-                 {
-                    #File has changed - remove old password file
-                    $ignored=Remove-File -Filename $CurrentPasswordFile
-                    $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                 }
+            if ( $biosupdated -eq $null) 
+            {
+               write-error "BIOS Update failed!"
+            }        
+            else
+            {
+               if ( $biosupdated ) 
+               {
+                  #A BIOS update was done. Stop and continue later on
+                  $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
+                  $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+               }
+               else 
+               {
+                  #TPM Update
+                  $tpmupdated=$false
+                  if ( $TPMDetails.Parsed )
+                  {
+                     $tpmupdated=Update-TPM -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                  }
 
-                 #Apply BIOS Settings
-                 $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
 
-                 if ( ($settingsApplied -lt 0) )
-                 {
-                    write-error "Error applying BIOS settings!"
-                 }
-                 else
-                 {
-                     <#
-                       Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
-                       does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
-                       value as before. 
-                 
-                     if ( $settingsApplied -ge 1 )
+                  if ( $tpmupdated )
+                  {
+                     $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                     $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                  }
+                  else
+                  {
+                     #BIOS Password update
+                     $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                     if ( $updatedPasswordFile -ne $null )
                      {
-                        $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
-                        $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                        #File has changed - remove old password file
+                        $ignored=Remove-File -Filename $CurrentPasswordFile
+                        $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                     }
+
+                     #Apply BIOS Settings
+                     $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                     if ( ($settingsApplied -lt 0) )
+                     {
+                        write-error "Error applying BIOS settings!"
                      }
                      else
                      {
-                        #no changes for BIOS setting
-                        $returncode=0
-                     }
-                     #>
+                         <#
+                           Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
+                           does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
+                           value as before. 
                  
-                   $returncode=0
-                 }
-              }
-           }
+                         if ( $settingsApplied -ge 1 )
+                         {
+                            $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                            $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                         }
+                         else
+                         {
+                            #no changes for BIOS setting
+                            $returncode=0
+                         }
+                         #>
+                 
+                       $returncode=0
+                     }
+                  }
+               }
+            }
+     
         }
+
         
-        #FINALLY!! It's over!
-     }     
+     }  #MAIN PROCESS
     }
  }
 
@@ -2187,9 +2286,8 @@ function Remove-File()
 $ignored=Remove-File -Filename $CurrentPasswordFile
 $ignored=Remove-File -Filename $BCU_EXE
 
-write-host "BIOS Sledgehammer finished."
-write-host "Thank you, please come again!"
-
+write-host "BIOS Sledgehammer finished. Thank you, please come again!"
+write-host "Return code is $returncode"
 
 if ( $DebugMode ) 
 {

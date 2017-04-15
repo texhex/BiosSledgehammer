@@ -1,0 +1,24 @@
+#ProDesk 600 G2
+
+#UEFI Boot Mode
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+Enable MS UEFI CA key==Yes
+
+TPM Device==Available
+TPM State==Enable
+#If the setting is set to "F1 to Boot" when no BIOS password is defined, this value can not be set with error 32769
+TPM Activation Policy==No prompts
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+
+Fast Boot==Disable
+
+Hyperthreading==Enable
+Multi-processor==Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ....
+

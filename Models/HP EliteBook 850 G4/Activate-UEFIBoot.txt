@@ -1,0 +1,5 @@
+#850 G4
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+
+

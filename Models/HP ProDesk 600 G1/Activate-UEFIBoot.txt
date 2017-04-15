@@ -1,0 +1,6 @@
+#ProDesk 600 G1
+
+Legacy Support==Disable
+Secure Boot==Enable
+
+
