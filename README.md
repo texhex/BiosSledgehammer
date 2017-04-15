@@ -59,7 +59,7 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
 * BIOS Updates file for the models you want to support (search http://www.hp.com/drivers for "(Model) BIOS" to locate them) 
-* TPM Update files (See [January 2017 advisory](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.html)) if a TPM update is desired
+* TPM Update files (See [January 2017 advisory](http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.exe)) if a TPM update is desired
 * Note: The BIOS and TPM files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>
