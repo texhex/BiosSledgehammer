@@ -57,7 +57,7 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 * Windows 7 64-bit or Windows 10 64-bit - Windows 8 should also work, but wasn't tested
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]``
 * The computer must be supported by BCU; most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
-    * BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
+    * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
 * BIOS Updates file for the models you want to support (search http://www.hp.com/drivers for "(Model) BIOS" to locate them) 
