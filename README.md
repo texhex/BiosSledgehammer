@@ -251,7 +251,7 @@ The TPM update also requires that BitLocker is completely turned off (as any Bit
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
-**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``TPM-<VERSION>``. If the desired TPM firmware version is 7.41, the TPM files need to be stored in ``\TPM-7.41\``. Given that the current model folder is *\Models\HP EliteBook Folio 1040 G3*, the entire path would be *\Models\HP EliteBook Folio 1040 G3\TPM-7.41*. 
+**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``TPM-<VERSION>``. If the desired TPM firmware version is 7.41, the TPM files need to be stored in ``\TPM-7.41\``. Given that the current model folder is *\Models\HP EliteBook Folio 1040 G3*, the entire path would be ``\Models\HP EliteBook Folio 1040 G3\TPM-7.41``. 
 
 Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
 
