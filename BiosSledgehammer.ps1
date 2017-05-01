@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.45.2"
+$scriptversion="2.46.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1059,7 +1059,7 @@ function Get-ArgumentsFromHastable()
 }
 
 
-function Start-ProcessAndWaitForExit()
+function Invoke-ExeAndWaitForExit()
 {
  param(
   [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
@@ -1079,22 +1079,14 @@ function Start-ProcessAndWaitForExit()
  try
  {
     write-host "Starting..."
-    $output=&$ExeName $Parameter
-    $result=-1
-    try
-    {
-      $result=$LASTEXITCODE
-    }
-    catch {}
 
-    if ( $output -eq $null)
-    {
-      $output=""
-    }
-    
+    #We can not use this command because this will not return the exit code. 
+    #Also, most HP update tools do not return anything to stdout at all.
+    #$output=&$ExeName $Parameter
 
+    $runResult=Start-Process $ExeName -Wait -PassThru -ArgumentList $Parameter
+    $result=$runResult.ExitCode         
     write-host "  Done, return code is $result"
-    write-verbose "Output: $output"
     
     #now check if the EXE is still running in the background
     #We need to remove the extension because get-process does not list .EXE
@@ -1170,7 +1162,10 @@ function Copy-FolderForExec()
  }
  else
  {
-    $dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
+    #When using $env:temp, we might get a path with "~" in it
+    #Remove-Item does not like these path, no idea why...
+    #$dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
+    $dest=Join-Path -Path $(Get-TempFolder) -ChildPath (Split-Path $SourceFolder -Leaf)
 
     #If it exists, kill it
     if ( (Test-DirectoryExists $dest) )
@@ -1181,7 +1176,7 @@ function Copy-FolderForExec()
        }
        catch
        {
-         throw New-Exception -InvalidOperation "Unable to clear folder [$dest]"
+         throw New-Exception -InvalidOperation "Unable to clear folder [$dest]: $($error[0])"
        }
     }
 
@@ -1215,7 +1210,7 @@ function Copy-FolderForExec()
        }
        catch
        {
-         throw New-Exception -InvalidOperation "Unable to delete [$DeleteFilter] from [$dest]"
+         throw New-Exception -InvalidOperation "Unable to delete [$DeleteFilter] from [$dest]: $($error[0])"
        }
     }
 
@@ -1448,7 +1443,7 @@ function Update-BiosFirmware()
                #so we need to wait for it.
 
                #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-               $returnCode=Start-ProcessAndWaitForExit -ExeName $ExeFile -Parameter $params
+               $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params
                
                #always try to grab the log file
                $ignored=Write-HostFirstLogFound $localfolder
@@ -1557,6 +1552,115 @@ function Get-TPMDetails()
 
  return $TPMData 
 }
+
+
+function Invoke-BitLockerDecryption()
+{
+    write-host "Checking BitLocker status..."
+
+    $bitLockerActive=$false
+
+    #we better save this all with a try-catch
+    try
+    {
+        #Because we do not know if we can access the BitLocker module, we try to figure it out using CIM/WMI
+        $encryptableVolumes=Get-CIMInstance "Win32_EncryptableVolume" -Namespace "root/CIMV2/Security/MicrosoftVolumeEncryption"
+                      
+        $systemdrive=$env:SystemDrive
+        $systemdrive=$systemdrive.ToUpper()
+
+        if ( $encryptableVolumes -ne $null) 
+        {
+            foreach($drivestatus in $encryptableVolumes)
+            {
+                #write-host "Drive status: $($drivestatus.DriveLetter)"
+
+                if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
+                {
+                    if ( $drivestatus.ProtectionStatus -eq 1 )
+                    {
+                        $bitLockerActive=$true
+                        write-verbose "BitLocker is active for system drive ($systemdrive)!"
+                    }
+                }
+            }
+        }
+
+
+        if ( $bitLockerActive )
+        {
+            write-host "BitLocker is active for the system drive, starting automatic decryption process..."
+
+            #Check if we can auto descrypt the volume by using the BitLocker module
+            $module_avail=Get-ModuleAvailable "BitLocker"
+
+            if ( $module_avail )
+            {                            
+                $header="Automatic BitLocker Decryption"
+                $text="To perform the update, BitLocker needs to be fully decrypted"
+                $footer="You have 20 seconds to press CTRL+C to prevent this."
+
+                Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true                          
+                Start-Sleep -Seconds 20
+
+                write-host "Starting decryption (this might take some time)..."
+                $ignored=Disable-BitLocker -MountPoint $systemdrive
+
+                #Now wait for the decryption to complete
+                Do
+                {
+                    $bitlocker_status=Get-BitLockerVolume -MountPoint $systemdrive
+
+                    $percentage=$bitlocker_status.EncryptionPercentage
+                    $volumestatus=$bitlocker_status.VolumeStatus
+
+                    #We can not check for .ProtectionStatus because this turns to OFF as soon as the decyryption starts
+                    #if ( $bitlocker_status.ProtectionStatus -ne "Off" )
+                              
+                    #During the process, the status is "DecryptionInProgress"
+                    if ( $volumestatus -ne "FullyDecrypted" )
+                    {
+                        write-host "  Decryption runing, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
+                        Start-Sleep -Seconds 15
+                    }
+                    else
+                    {
+                        write-host "  Decryption finished!"
+                                 
+                        #Just to be sure
+                        Start-Sleep -Seconds 5
+
+                        $bitLockerActive=$false
+                        break
+                    }
+
+                } while ($true)
+
+            }
+        } 
+        else
+        {
+            write-host "BitLocker is not in use for the system drive"
+        }
+    }
+    catch
+    {
+        write-error "BitLocker Decryption error: $($error[0])"
+        $bitLockerActive=$true #just to be sure
+    }
+
+
+    #We return TRUE if no BitLocker is in use
+    if ( -not $bitLockerActive )
+    {
+        return $true
+    }
+    else
+    {
+        return $false
+    }
+}
+
 
 
 function Update-TPM()
@@ -1671,22 +1775,68 @@ function Update-TPM()
                 write-host "  Active firmware version matches or is newer"
              }
 
-             write-host "Final result:"
+             write-host "Update check result:"
              write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
              write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
 
-             if ( ! ($updateBecauseTPMSpec -and $updateBecauseFirmware) )
+             if ( -not ($updateBecauseTPMSpec -and $updateBecauseFirmware) )
              {
                 write-host "TPM update not required"
              }
              else
              {
-                write-host "TPM update will be performed..."
+                write-host "TPM update required"
 
-                #We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
-                $firmmwareVersiontext=$TPMDetails.VersionText
+                <#
+                 We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
                 
-                if ( ! ($settings.ContainsKey($firmmwareVersiontext)) )
+                 However, we have a problem with the 6.41 firmware that is included in the firmware pack for 7.61 and upwards:
+                 https://github.com/texhex/BiosSledgehammer/issues/9
+                 
+                 There are TWO firmware files for 6.41: 
+                 6.41.197 - Used for devices that come with TPM 1.2
+                 6.41.198 - Used for devices that are TPM 2.0 by default and are factory-downgraded to 1.2
+
+                 The problem is that Win32_TPM (WMI class) does NOT list the build, only MAJOR.MINOR.
+
+                 Hence we need to perform a double try in this special case.
+                #>
+
+                $firmmwareVersionText=$TPMDetails.VersionText                
+                Write-host "Searching firmware file entry for [$firmmwareVersionText]"
+
+                $firmwareFile_A=""
+                $firmwareFile_B=""
+                #$execTwoTimes=$false
+                
+                $firmwareEntryFound=$false
+
+                #First check for a drirect match, e.g. if the TPM firmware is 6.40, search for 6.40==XXXXX
+                if ( $settings.ContainsKey($firmmwareVersionText) )
+                {
+                    write-verbose "Single entry found"
+                    $firmwareFile_A=$settings[$firmmwareVersionText]
+
+                    $firmwareEntryFound=$true
+                }
+                else
+                {
+                    #If nothing was found, check if this is a special update process so we expect VERSION.A and VERSION.B
+                    #We expect two entries in this case, a single entry is a failure
+                    if ( ($settings.ContainsKey("$firmmwareVersionText.A")) -and ($settings.ContainsKey("$firmmwareVersionText.B")) )
+                    {
+                        write-verbose "Two entries for this firmware found."
+                        
+                        $firmwareFile_A=$settings["$firmmwareVersionText.A"]
+                        $firmwareFile_B=$settings["$firmmwareVersionText.B"]
+                        #$execTwoTimes
+
+                        $firmwareEntryFound=$true
+                    }
+                }
+
+                                
+                if ( -not $firmwareEntryFound )
                 {
                    write-warning "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
                 }
@@ -1694,146 +1844,126 @@ function Update-TPM()
                 {
                    $sourcefolder="$ModelFolder\TPM-$firmwareVersionDesiredText"
 
-                   #Get the firmware update file 
-                   $firmwarefile=$settings[$firmmwareVersiontext]
-                   $firmwarefileTest="$sourcefolder\$firmwarefile"
-
-                   #Check if it exists
-                   if ( ! (Test-FileExists $firmwarefileTest) )
+                   #Check if the files noted in settings do exist
+                   $firmwareFilesExist=$False
+                   
+                   $testExistensFirmwareFullPath="$sourcefolder\$firmwareFile_A"                  
+                   if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
                    {
-                      Write-error "TPM firmware update file [$firmwarefileTest] does not exist!"
+                        write-error "Firmware file [$testExistensFirmwareFullPath] does not exist!"
                    }
                    else
                    {
-                      write-host "Checking BitLocker status..."
-                      #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
-                      #The user might not be using the TPM chip, but I think the TPM update simply checks if its ON 
-                      #or not. If it detects BitLocker, it fails.                       
-                      $BitLockerActive=$false
+                        #Check if File_B exist if the variable is filled
+                        if ( Test-String -HasData $firmwareFile_B )
+                        {
+                            $testExistensFirmwareFullPath="$sourcefolder\$firmwareFile_B"
 
-                      #Because we do not know if we can access the BitLocker module, we try to figure it out using CIM/WMI
-                      $encryptableVolumes=Get-CIMInstance "Win32_EncryptableVolume" -Namespace "root/CIMV2/Security/MicrosoftVolumeEncryption"
-                      
-                      $systemdrive=$env:SystemDrive
-                      $systemdrive=$systemdrive.ToUpper()
-
-                      if ( $encryptableVolumes -ne $null) 
-                      {
-                         foreach($drivestatus in $encryptableVolumes)
-                         {
-                           if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
-                           {
-                              if ( $drivestatus.ProtectionStatus -eq 1 )
-                              {
-                                 $BitLockerActive=$true
-                                 write-verbose "BitLocker is active for system drive ($systemdrive)!"
-                              }
-                           }
-                         }
-                      }
-
-
-                      if ( $BitLockerActive )
-                      {
-                         write-host "BitLocker is active for the system drive!"
-                         write-host "A TPM update can not be performed while BitLocker is active"
-
-                         #Check if we can auto descrypt the volume by using the BitLocker module
-                         $module_avail=Get-ModuleAvailable "BitLocker"
-
-                         if ( $module_avail )
-                         {                            
-                            $header="Automatic BitLocker Decryption"
-                            $text="To update the TPM, BitLocker for $Systemdrive needs to be decrypted"
-                            $footer="You have 20 seconds to press CTRL+C to prevent this."
-
-                            Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true                          
-                            Start-Sleep -Seconds 20
-
-                            write-host "Starting decryption (this might take some time)..."
-                            $ignored=Disable-BitLocker -MountPoint $systemdrive
-
-                            #Now wait for the decryption to complete
-                            Do
+                            #Check if file B exists
+                            if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
                             {
-                              $bitlocker_status=Get-BitLockerVolume -MountPoint $systemdrive
-
-                              $percentage=$bitlocker_status.EncryptionPercentage
-                              $volumestatus=$bitlocker_status.VolumeStatus
-
-                              #We can not check for .ProtectionStatus because this turns to OFF as soon as the decyryption starts
-                              #if ( $bitlocker_status.ProtectionStatus -ne "Off" )
-                              
-                              #During the process, the status is "DecryptionInProgress
-                              if ( $volumestatus -ne "FullyDecrypted" )
-                              {
-                                 write-host "  Decryption runing, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
-                                 Start-Sleep -Seconds 15
-                              }
-                              else
-                              {
-                                 write-host "  Decryption finished!"
-                                 
-                                 #Just to be sure
-                                 Start-Sleep -Seconds 5
-
-                                 $BitLockerActive=$false
-                                 break
-                              }
-
-                            } while ($true)
-
-                         }
-                      } 
-                      else
-                      {
-                        write-host "BitLocker is not activated"
-                      }
-
-                      
-                      #Check if bitlocker is still active
-                      if ($BitLockerActive)
-                      {
-                         Write-Error "BitLocker is active, TPM update not possible"
-                      }
-                      else
-                      {                         
-                         $localfolder=$null
-                         try
-                         {
-                           $localfolder=Copy-FolderForExec -SourceFolder $sourcefolder -DeleteFilter "*.log"                        
-                         }
-                         catch
-                         {
-                           write-host "Preparing local folder failed: $($error[0])"
-                         }
-
-                         if ( $localfolder -ne $null )
-                         {
-                            $firmwareupdatefile="$localfolder\$firmwarefile"
-                            write-host "Firmware update file (locally): $firmwareupdatefile"
-                         
-                            #Concat the data for execution 
-                            $params=Get-ArgumentsFromHastable -Hashtable $settings -PasswordFile $PasswordFile -FirmwareFile $firmwareupdatefile
-                            $ExeFile="$localfolder\$($settings["command"])"               
-                        
-                            $returnCode=Start-ProcessAndWaitForExit -ExeName $ExeFile -Parameter $params                        
-                         
-                            $ignored=Write-HostFirstLogFound $localfolder
-
-                            if ( $returnCode -eq $null )
-                            {
-                               write-error "Running TPM update command failed!"
+                                 write-error "Firmware file [$testExistensFirmwareFullPath] does not exist!"
                             }
                             else
                             {
-                               write-host "TPM update success, return code $returnCode"
+                                $firmwareFilesExist=$true
+                            }
+                            
+                        }
+                        else
+                        {
+                            #FileB is not filled, hence all is fine
+                            $firmwareFilesExist=$true
+                        }
+                   }
+                   
+                   
+
+                   #Check if it exists
+                   if ( $firmwareFilesExist )
+                   {
+
+                      write-host "Matching firmware file(s) found, will continue" 
+
+                      #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
+                      #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
+
+
+                      $BitLockerDecrypted=Invoke-BitLockerDecryption
+                      
+                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                      #$BitLockerDecrypted=$true
+                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                      
+                      #Check if bitlocker is still active
+                      if (-not $BitLockerDecrypted)
+                      {
+                            Write-Error "BitLocker is in use, TPM update not possible"
+                      }
+                      else
+                      {                              
+                            #Real update process starts here. We might need to do this two times in case two firmwares were found
+                            $returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -Hashtable $settings -PasswordFile $PasswordFile
+
+                            if ( $returnCode -eq $null )
+                            {
+                                #In this case, no second execution will be done because something completly failed. 
+                                write-error "TPM update failed!"
+                            }
+                            else
+                            {
+                                #If it's not null, we have two options:
+
+                                #Only a single firmware file exist: Assume any return code is OK
+                                #Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
+                                $updateSuccess=$false
+
+                                if ( -not (Test-String -HasData $firmwareFile_B) )
+                                {
+                                    $updateSuccess=$true
+                                }
+                                else
+                                {
+                                    #Two firmware files were found. Check the return code of our first run. 
+                                    if ( $returnCode -ne 275 )
+                                    {
+                                        #Different return code than 275, most likely the command was a success
+                                        $updateSuccess=$true
+                                    }
+                                    else
+                                    {
+                                        #Return code was 275 - repeat with firmwareFile_B
+                                        $returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -Hashtable $settings -PasswordFile $PasswordFile
+
+                                        if ( $returnCode -eq $null )
+                                        {
+                                            #Well, that didn't worked...
+                                            write-error "TPM update failed!"
+                                        }
+                                        else
+                                        {
+                                            $updateSuccess=$true
+                                        }
+                                    }                                                                        
+                                }
+
+
+                                if ( $updateSuccess -eq $true )
+                                {
+                                    write-host "TPM update success!"
+                                }
+                                else
+                                {
+                                    
+                                    write-error "Running TPM update command failed!"
+                                }
+
+                                
                             }
 
-                            #all done
+                            #always set result to TRUE so we return a 3010 code
                             $result=$true
-                         }
-
+                                                 
                       }
                    }
                 }
@@ -1846,6 +1976,58 @@ function Update-TPM()
 
  Write-HostSection -End "TPM Update"
  return $result
+}
+
+
+function Invoke-TPMUpdateExe()
+{
+ param(
+  [Parameter(Mandatory=$True)]
+  [ValidateNotNullOrEmpty()]
+  [hashtable]$Hashtable,
+
+  [Parameter(Mandatory=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$SourcePath,
+
+  [Parameter(Mandatory=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$FirmwareFile,
+
+  [Parameter(Mandatory=$False)]
+  [string]$PasswordFile=""
+)
+
+    write-host "Preparing launch of TPM update for [$(Get-FileName $FirmwareFile)]..."
+    
+    $returnCode=$null
+    $localfolder=$null
+
+    try
+    {
+        $localfolder=Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"                        
+    }
+    catch
+    {
+        write-error "Preparing local folder failed: $($error[0])"
+    }
+
+    if ( $localfolder -ne $null )
+    {
+        $firmwareupdatefile="$localfolder\$FirmwareFile"
+        write-host "Firmware update file (locally): $firmwareupdatefile"
+                         
+        #Concat the data for execution 
+        $params=Get-ArgumentsFromHastable -Hashtable $Hashtable -PasswordFile $PasswordFile -FirmwareFile $firmwareupdatefile
+        $ExeFile="$localfolder\$($Hashtable["command"])"               
+                        
+        $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params                        
+        
+        #write log to output                 
+        $ignored=Write-HostFirstLogFound $localfolder
+    }
+
+    return $returnCode
 }
 
 
@@ -2286,8 +2468,8 @@ function Remove-File()
 $ignored=Remove-File -Filename $CurrentPasswordFile
 $ignored=Remove-File -Filename $BCU_EXE
 
-write-host "BIOS Sledgehammer finished. Thank you, please come again!"
-write-host "Return code is $returncode"
+write-host "BIOS Sledgehammer finished, return code $returncode."
+write-host "Thank you, please come again!"
 
 if ( $DebugMode ) 
 {
