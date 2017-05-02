@@ -1,0 +1,3 @@
+
+SPaqURL==ftp://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.exe
+NoteURL==ftp://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.html
