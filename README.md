@@ -253,10 +253,27 @@ Once this is all set and done, the source folder is copied to %TEMP% (to avoid a
 
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``TPM-<VERSION>``. If the desired TPM firmware version is 7.41, the TPM files need to be stored in ``\TPM-7.41\``. Given that the current model folder is *\Models\HP EliteBook Folio 1040 G3*, the entire path would be ``\Models\HP EliteBook Folio 1040 G3\TPM-7.41``. 
 
-Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
+Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
 
+## <a name="tpmspecialnotice">TPM Update - Special handling</a>
+
+BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
+
+ * 6.41.**197** is used for devices that have a TPM 1.2 by default
+ * 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
+
+The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. This means that it can not detect which exact firmware is current active and might choose the wrong file for the update. If the firmware file does not match exactly, the TPM will reject the new firmware (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
+
+To support this special case, it is possible to define two entries for the same firmware version like this:
+
+```
+6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
+6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
+```
+
+In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a "Wrong firmware file", the second firmware file is tried.
 
 ## <a name="biospassword">BIOS Password</a>
 
