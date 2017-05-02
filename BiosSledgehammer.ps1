@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.46.0"
+$scriptversion="2.46.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1508,7 +1508,6 @@ function Write-HostFirstLogFound()
 function Get-TPMDetails()
 {
   write-verbose "Trying to get TPM data..."
-
   <# 
     More about TPM Data:
     http://en.community.dell.com/techcenter/b/techcenter/archive/2015/12/09/retrieve-trusted-platform-module-tpm-version-information-using-powershell
@@ -1573,8 +1572,6 @@ function Invoke-BitLockerDecryption()
         {
             foreach($drivestatus in $encryptableVolumes)
             {
-                #write-host "Drive status: $($drivestatus.DriveLetter)"
-
                 if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
                 {
                     if ( $drivestatus.ProtectionStatus -eq 1 )
@@ -1636,6 +1633,10 @@ function Invoke-BitLockerDecryption()
 
                 } while ($true)
 
+            }
+            else
+            {
+                write-error "Unable to decrypt the volume, BitLocker PowerShell module not found"
             }
         } 
         else
@@ -1775,7 +1776,7 @@ function Update-TPM()
                 write-host "  Active firmware version matches or is newer"
              }
 
-             write-host "Update check result:"
+             write-host "Update required result:"
              write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
              write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
 
@@ -1785,7 +1786,7 @@ function Update-TPM()
              }
              else
              {
-                write-host "TPM update required"
+                write-host "TPM update required!"
 
                 <#
                  We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
@@ -1803,19 +1804,19 @@ function Update-TPM()
                 #>
 
                 $firmmwareVersionText=$TPMDetails.VersionText                
-                Write-host "Searching firmware file entry for [$firmmwareVersionText]"
+                Write-host "Searching firmware file entry for [$firmmwareVersionText]..."
 
                 $firmwareFile_A=""
                 $firmwareFile_B=""
-                #$execTwoTimes=$false
                 
                 $firmwareEntryFound=$false
 
                 #First check for a drirect match, e.g. if the TPM firmware is 6.40, search for 6.40==XXXXX
                 if ( $settings.ContainsKey($firmmwareVersionText) )
                 {
-                    write-verbose "Single entry found"
                     $firmwareFile_A=$settings[$firmmwareVersionText]
+                    write-host "Firmware file found:"
+                    write-host "  [$firmwareFile_A]"
 
                     $firmwareEntryFound=$true
                 }
@@ -1824,12 +1825,13 @@ function Update-TPM()
                     #If nothing was found, check if this is a special update process so we expect VERSION.A and VERSION.B
                     #We expect two entries in this case, a single entry is a failure
                     if ( ($settings.ContainsKey("$firmmwareVersionText.A")) -and ($settings.ContainsKey("$firmmwareVersionText.B")) )
-                    {
-                        write-verbose "Two entries for this firmware found."
-                        
+                    {                                                
                         $firmwareFile_A=$settings["$firmmwareVersionText.A"]
                         $firmwareFile_B=$settings["$firmmwareVersionText.B"]
-                        #$execTwoTimes
+
+                        write-host "Two firmware files found:"
+                        write-host "  [$firmwareFile_A]"
+                        write-host "  [$firmwareFile_B]"
 
                         $firmwareEntryFound=$true
                     }
@@ -1883,12 +1885,10 @@ function Update-TPM()
                    if ( $firmwareFilesExist )
                    {
 
-                      write-host "Matching firmware file(s) found, will continue" 
+                      #write-host "Matching firmware file(s) found, will continue" 
 
                       #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
                       #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
-
-
                       $BitLockerDecrypted=Invoke-BitLockerDecryption
                       
                       #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
@@ -1915,7 +1915,6 @@ function Update-TPM()
                                 #If it's not null, we have two options:
 
                                 #Only a single firmware file exist: Assume any return code is OK
-                                #Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
                                 $updateSuccess=$false
 
                                 if ( -not (Test-String -HasData $firmwareFile_B) )
@@ -1924,7 +1923,7 @@ function Update-TPM()
                                 }
                                 else
                                 {
-                                    #Two firmware files were found. Check the return code of our first run. 
+                                    #Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
                                     if ( $returnCode -ne 275 )
                                     {
                                         #Different return code than 275, most likely the command was a success
@@ -1933,6 +1932,8 @@ function Update-TPM()
                                     else
                                     {
                                         #Return code was 275 - repeat with firmwareFile_B
+                                        write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
+                                        
                                         $returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -Hashtable $settings -PasswordFile $PasswordFile
 
                                         if ( $returnCode -eq $null )
@@ -1998,7 +1999,7 @@ function Invoke-TPMUpdateExe()
   [string]$PasswordFile=""
 )
 
-    write-host "Preparing launch of TPM update for [$(Get-FileName $FirmwareFile)]..."
+    write-host "--- Preparing launch of TPM update executable for [$(Get-FileName $FirmwareFile)] ---"
     
     $returnCode=$null
     $localfolder=$null
@@ -2015,7 +2016,7 @@ function Invoke-TPMUpdateExe()
     if ( $localfolder -ne $null )
     {
         $firmwareupdatefile="$localfolder\$FirmwareFile"
-        write-host "Firmware update file (locally): $firmwareupdatefile"
+        write-host "Firmware file used is [$firmwareupdatefile]"
                          
         #Concat the data for execution 
         $params=Get-ArgumentsFromHastable -Hashtable $Hashtable -PasswordFile $PasswordFile -FirmwareFile $firmwareupdatefile
@@ -2026,6 +2027,8 @@ function Invoke-TPMUpdateExe()
         #write log to output                 
         $ignored=Write-HostFirstLogFound $localfolder
     }
+
+    write-host "--- TPM update executable finished ---"
 
     return $returnCode
 }
