@@ -264,7 +264,7 @@ BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware
  * 6.41.**197** is used for devices that have a TPM 1.2 by default
  * 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
 
-The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. This means that it can not detect which exact firmware is current active and might choose the wrong file for the update. If the firmware file does not match exactly, the TPM will reject the new firmware (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
+The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. Therefore, it can not be detected which exact firmware is current active leading to the wrong firmware file for the update. If the firmware file does not match exactly, the TPM will reject the new firmware (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
 
 To support this special case, it is possible to define two entries for the same firmware version like this:
 
@@ -273,7 +273,7 @@ To support this special case, it is possible to define two entries for the same 
 6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 ```
 
-In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a "Wrong firmware file", the second firmware file is tried.
+In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a "Wrong firmware file" error, the second firmware file is tried.
 
 ## <a name="biospassword">BIOS Password</a>
 
