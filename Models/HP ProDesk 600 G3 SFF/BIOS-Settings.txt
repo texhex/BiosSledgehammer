@@ -1,4 +1,4 @@
-#ProDesk 600 G3
+#ProDesk 600 G3 SFF
 
 Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
 UEFI Boot Options==Enable

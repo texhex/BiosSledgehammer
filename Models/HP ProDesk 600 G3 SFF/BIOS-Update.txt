@@ -1,7 +1,7 @@
-# BIOS Update ProDesk 600 G3
+# BIOS Update ProDesk 600 G3 SFF (P07 Family)
 
 #The BIOS version the device should be on
-Version == 2.02
+Version == 2.04
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe

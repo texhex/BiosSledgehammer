@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.46.1"
+$scriptversion="2.46.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -81,7 +81,7 @@ $banner=@"
 $banner=$banner -replace "@@VERSION@@", $scriptversion
 write-host $banner
 
-#Configure which BCU versiun to use 
+#Configure which BCU version to use 
 #Version 2.45 and upwards: BCU 4.0.21.1
 Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" –option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
@@ -1072,13 +1072,13 @@ function Invoke-ExeAndWaitForExit()
 
  $result=-1
   
- write-host "About to start: "
+ write-host "About to launch: "
  write-host "  $ExeName"
  write-host "  $Parameter"
  
  try
  {
-    write-host "Starting..."
+    write-verbose "Starting exe..."
 
     #We can not use this command because this will not return the exit code. 
     #Also, most HP update tools do not return anything to stdout at all.
@@ -1092,7 +1092,7 @@ function Invoke-ExeAndWaitForExit()
     #We need to remove the extension because get-process does not list .EXE
     $execheck=[io.path]::GetFileNameWithoutExtension($ExeFile)
     
-    write-host "Waiting 15 seconds before checking if the process is still running..."
+    write-host "  Waiting 15 seconds before checking if the process is still running..."
     Start-Sleep -Seconds 15
 
     Do
@@ -1105,7 +1105,7 @@ function Invoke-ExeAndWaitForExit()
        }
        else
        {
-          write-host "   [$execheck] is no longer running, please allow 5 seconds for cleanup..."
+          write-host "   [$execheck] is no longer running, waiting 5 seconds to allow cleanup..."
           Start-Sleep -Seconds 5
           break
        }                                                                                
@@ -1117,7 +1117,7 @@ function Invoke-ExeAndWaitForExit()
  catch
  {
     $result=$null
-    write-error "Running command failed! Error: $($error[0])"
+    write-error "Launching failed! Error: $($error[0])"
  }
 
  return $result               
@@ -1393,17 +1393,17 @@ function Update-BiosFirmware()
        }
        else
        {
-         write-host "   Current BIOS Version: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
-         write-host "   Desired BIOS Version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
+         write-host "Current BIOS Version: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
+         write-host "Desired BIOS Version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
 
          if ( $versionDesired -le $BIOSDetails.Version ) 
          {
-            write-host "   BIOS update is not necessary"
+            write-host "BIOS update not required"
             $result=$false
          }
          else
          {
-            write-host "   *** BIOS update is required ***"
+            write-host "BIOS update required!"
 
             $updatefolder="$ModelFolder\BIOS-$versionDesiredText"
             $localfolder=$null
@@ -1418,19 +1418,19 @@ function Update-BiosFirmware()
 
             if ( $localfolder -ne $null )
             {
-               #check if we need to pass a firmware file based on the BiOS Family
+               #check if we need to pass a firmware file based on the BIOS Family
                $firmwareFile=""
                $biosFamily=$BiosDetails.Family
 
-               write-host "   BIOS family is [$biosFamily]"
+               write-host "BIOS family is [$biosFamily]"
                if ( $details.ContainsKey($biosFamily) )
                {
                   #Entry exists
                   $firmwareFile=$details[$biosFamily]
-                  write-host "   Found firmware file entry for the current BIOS family: [$firmwarefile]"
+                  write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"
                   
                   $firmwarefile="$localfolder\$firmwareFile"
-                  write-host "   Full path to firmware file: [$firmwareFile]"
+                  write-host "  Full path to firmware file: [$firmwareFile]"
                }               
     
                # Get the parameters together.
@@ -1455,7 +1455,7 @@ function Update-BiosFirmware()
                }
                else
                {                  
-                  write-host "BIOS update success, return code $returnCode"
+                  write-host "BIOS update success"
                   $result=$true
                }
                #update done
@@ -1951,7 +1951,7 @@ function Update-TPM()
 
                                 if ( $updateSuccess -eq $true )
                                 {
-                                    write-host "TPM update success!"
+                                    write-host "TPM update success"
                                 }
                                 else
                                 {

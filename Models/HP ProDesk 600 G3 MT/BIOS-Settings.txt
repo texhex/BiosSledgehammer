@@ -1,0 +1,37 @@
+#ProDesk 600 G3 MT
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options==Enable
+Enable MS UEFI CA key==Yes
+Ready BIOS for Device Guard Use==Do Nothing
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Automatic BIOS Update Setting==Disable
+
+Fast Boot==Disable
+Hyperthreading==Enable
+Multi-processor==Enable
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+      
+Verbose Boot Messages==Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ....
+
+##From the TCG docs:
+##> [..] defines a mechanism by which a host application can alert the storage device to block attempts
+##  to authenticate the SID authority until a subsequent device power cycle occurs. This mechanism can be 
+##  used by BIOS/platform firmware to prevent a malicious entity from taking ownership of a SID credential 
+##  that is still set to its default value of MSID. 
+#Allow OPAL Hard Drive SID Authentication==Enable
+
+
+
+
