@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.46.2"
+$scriptversion="2.46.3"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1574,7 +1574,8 @@ function Invoke-BitLockerDecryption()
             {
                 if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
                 {
-                    if ( $drivestatus.ProtectionStatus -eq 1 )
+                    # .ProtectionStatus will also be 0 if BitLocker was just suspended, so we can not use this property
+                    if ( $drivestatus.EncryptionMethod -ne 0 )
                     {
                         $bitLockerActive=$true
                         write-verbose "BitLocker is active for system drive ($systemdrive)!"
