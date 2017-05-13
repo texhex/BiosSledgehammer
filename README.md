@@ -16,8 +16,8 @@ Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
    \|        |___________________/- = - -= =_- =_-=_- -=_=-=_=_= -|
     |        |                   `` -------...___________________.'
     |________|      
-      \    /     This is *NOT* an official HP tool.
-      |    |     This is *NOT* sponsored or endorsed by HP.                         
+      \    /     This is *NOT* sponsored/endorsed by HP or Intel.
+      |    |     This is *NOT* an official HP or Intel tool.
     ,-'    `-,   
     |        |   Use at your own risk. 
     `--------'    
@@ -27,8 +27,8 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
 ## <a name="warning">Disclaimer</a> 
 
-* BIOS Sledgehammer is **NOT** an official HP tool.                         
-* This is **NOT** sponsored or endorsed by HP.
+* BIOS Sledgehammer is **NOT** an official HP or Intel tool.                         
+* This is **NOT** sponsored or endorsed by HP or Intel.
 * HP was **NOT** involved in developing BIOS Sledgehammer.
 * The device can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
 
@@ -128,11 +128,13 @@ Each time BIOS Sledgehammer is executed, a new logfile with the pattern ``BiosSl
 
 ## <a name="modelsfolder">*Models* folder</a>
 
-It is expected that each model (type) of hardware you want to support has a separate sub folder below ``\Models``. The model (type) is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to know the model. 
+It is expected that each model (type) of hardware you want to support has a separate sub folder below ``\Models``. The model is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to know the model. 
 
-The sub folder will contain all settings files together with the source files for any updates. Please note that BIOS Sledgehammer does not support "sharing" update files between several models, each model requires its own set of files. That’s because sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models. 
+The sub folder for each model will contain all settings files together with source files for any updates. For example, if you execute BIOS Sledgehammer on a *HP EliteBook 820 G1* and a folder called ``\Models\HP EliteBook 820 G1\`` exists, the settings files need to be stored as ``\Models\HP EliteBook 820 G1\(FILENAME).txt``, e.g. ``\Models\HP EliteBook 820 G1\BIOS-Update.txt``. 
 
-First an exact match for the model is performed, e.g. if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder of this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
+Any update files need to be stored as seperate folder below that path. For example, if ``\Models\HP EliteBook 820 G1\BIOS-Update.txt`` defines that a BIOS update to 1.39 is required, the BIOS update files need to be stored in the folder ``\Models\HP EliteBook 820 G1\BIOS-1.39\``. Please note that BIOS Sledgehammer does not support "sharing" update files between several models as sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models. 
+
+To locate a matching model folder, an exact match for current model is performed first. This means, if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder by this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
 
 Where this partially search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder ``HP ProDesk 600 G1`` and this folder will match all these form factors.
 
@@ -152,7 +154,7 @@ To create a password file, execute ``HPQPswd64.exe`` (found in the BCU folder) a
 
 ## <a name="biosupdate">BIOS Update</a>
 
-The settings for a BIOS update need to be stored in the file ``BIOS-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called ``\Models\HP EliteBook 850 G1``, the entire path is ``\Models\HP EliteBook 850 G1\BIOS-Update.txt``;. Here is an example file for this device:
+The settings for a BIOS update are read from the file ``BIOS-Update.txt`` in the matching [model folder](#modelsfolder). Example file:
 
 ```
 # 850 G1 BIOS Update
@@ -209,7 +211,7 @@ If anything goes wrong during the process, an error is generated.
 
 ## <a name="tpmupdate">TPM Update</a>
 
-The settings for a TPM update need to be stored in the file ``TPM-Update.txt`` for the given model. For example, if you execute it on a *HP EliteBook Folio 1040 G3* and the [model folder](#modelsfolder) is called ``\Models\HP EliteBook Folio 1040 G3\``, the entire file path is ``\Models\HP EliteBook Folio 1040 G3\TPM-Update.txt``. Here is an example file for this device:
+The settings for a TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#modelsfolder). Example file: 
 
 ```
 # 1040 G3 TPM Update
@@ -264,21 +266,43 @@ BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware
  * 6.41.**197** is used for devices that have a TPM 1.2 by default
  * 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
 
-The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. Therefore, it can not be detected which exact firmware is currently active; if the firmware file specified for the update does not match exactly, the TPM will reject the update (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
+The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. 
 
-To support this special case, it is possible to define two entries for the same firmware version like this:
+If the firmware file specified for the update does not match exactly, the TPM will reject the update (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
+
+To support this special case, it is possible to define two entries for the same firmware version:
 
 ```
 6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
 6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 ```
 
-In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a "Wrong firmware file" error, the second firmware file is tried.
+In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a *Wrong firmware file* error, the second firmware file is tried.
+
+## <a name="meupdate">((PREVIEW for v3)) Management Engine (ME) Update</a>
+
+Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro), a method for remote out-of-band management; this allows access to the device even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME).
+
+In 2017-05 a severe security vulnerability was found in the ME ([INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689)) that could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
+
+BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. 
+
+To do so, the file ``ME- VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). This file does not need to have any settings.
+```
+# If this file exists, the Intel-SA-00075 detection tool will be run.
+# See https://downloadcenter.intel.com/download/26755
+
+```
+xxxxxxxxxx
+
+:warning: **WARNING!** The updates tools for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. However, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be exchanged in this case. Please pay extra caution when using ME firmware updates and alwas do a test run on a spare machine. 
+
+   
+
 
 ## <a name="biospassword">BIOS Password</a>
 
-To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#modelsfolder). For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called ``\Models\HP EliteBook 850 G1\``, the entire file path is ``\Models\HP EliteBook 850 G1\BIOS-Password.txt``. Here is an example:
-
+To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#modelsfolder). Example file:
 ```
 # Use our standard password
 PasswordFile == 01_W2f4x7t8NxD4xUH.bin
@@ -296,7 +320,7 @@ Regarding BIOS passwords, please note the following:
 
 ## <a name="biossettings">BIOS Settings</a>
 
-The configuration for BIOS settings need to be stored in the file ``BIOS-Settings.txt`` for the given model. For example, if you execute it on a *HP EliteBook 850 G1* and the [model folder](#modelsfolder) is called ``\Models\HP EliteBook 850 G1\``, the entire file path is ``\Models\HP EliteBook 850 G1\BIOS-Settings.txt``. Here is an example:
+The configuration of the BIOS are read from the file ```BIOS-Settings.txt`` in the matching [model folder](#modelsfolder). Example file: 
 ```
 # 850 G1 
 LAN/WLAN Switching == Enable
@@ -324,10 +348,7 @@ Some Windows 10 security features (e.g. Device Guard) require that the computer 
 
 With Windows 10 1703, you can in-place switch to UEFI boot mode (see this [demo](https://technet.microsoft.com/en-us/windows/mt782786) for details). This is a two step process by first executing [MBR2GPT.exe](https://technet.microsoft.com/en-us/itpro/windows/deploy/mbr-to-gpt), which prepares Windows to use UEFI boot mode, and then changing the BIOS settings to start in UEFI mode.
 
-For the later, you can use BIOS Sledgehammer with the ``-ActivateUEFIBoot`` switch. When this switched is used, only the file ``Activate-UEFIBoot.txt`` will be applied. 
-
-As with any other configuration file, this file is stored in the model folder. For example, if you execute it on a *HP EliteBook 850 G2* and the [model folder](#modelsfolder) is called `` \Models\HP EliteBook 850 G2\``, the entire file path is ``\Models\HP EliteBook 850 G2\Activate-UEFIBoot.txt``. Here is an example:
-
+For the later, you can use BIOS Sledgehammer with the ``-ActivateUEFIBoot`` switch. When this switched is used, only the file ``Activate-UEFIBoot.txt`` will be applied which is read from the matching [model folder](#modelsfolder). Example: 
 ```
 # 850 G2
 
