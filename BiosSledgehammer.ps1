@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="2.46.3"
+$scriptversion="3.0.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -69,8 +69,8 @@ $banner=@"
    \|        |___________________/- = - -= =_- =_-=_- -=_=-=_=_= -|
     |        |                   ``````-------...___________________.'
     |________|   
-      \    /     This is *NOT* an official HP tool.  
-      |    |     This is *NOT* sponsored or endorsed by HP.     
+      \    /     This is *NOT* sponsored/endorsed by HP or Intel.  
+      |    |     This is *NOT* an official HP or Intel tool.
     ,-'    ``-,   
     |        |   Use at your own risk.
     ``--------'   
@@ -86,6 +86,10 @@ write-host $banner
 Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" –option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
+
+#Configute which ISA00075 version to use
+Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" –option ReadOnly -Force
+
 
 #For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally
 #File will be deleted when the script finishes
@@ -106,6 +110,150 @@ Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 –option ReadOnly -Force
 
 
 
+
+function Test-Environment()
+{
+ $result=$false
+
+ if ( !(OperatingSystemBitness -Is64bit) ) 
+ {
+   Write-error "A 64-bit Windows is required"
+ }
+ else
+ {
+   if ( (Get-CurrentProcessBitness -IsWoW) )
+   {
+      write-error "This can not be run as a WoW (32-bit) process"
+   }
+   else
+   {
+       if ( !(Test-FileExists $BCU_EXE_SOURCE) ) 
+       {
+          Write-Error "BiosConfigUtility not found: $BCU_EXE_SOURCE"
+       }
+       else
+       {
+          if ( !(Test-DirectoryExists $PWDFILES_PATH) ) 
+          {
+             Write-Error "Folder for password files not found: $PWDFILES_PATH"
+          }
+          else 
+          {
+             if ( !(Test-DirectoryExists $MODELS_PATH) )
+             {
+                Write-Error "Folder for model specific files not found: $MODELS_PATH"
+             }
+             else
+             {
+                $Make=(Get-CimInstance Win32_ComputerSystem).Manufacturer
+
+                if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
+                {
+                   #All seems to be fine
+                   $result=$true
+                }
+                else
+                {
+                   Write-Error "Unsupported manufacturer [$Make]"
+                }
+
+             }
+          }
+       }
+    }
+  }
+
+
+ return $result
+}
+
+
+function Test-BiosCommunication()
+{
+  $result=$false
+  
+  write-host "Trying to read UUID to test BIOS communication..." -NoNewline
+
+  #At least the ProDesk 600 G1 uses the name "Enter UUID"
+  #Newer models use "Universally Unique Identifier (UUID)"
+
+  $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID")
+
+  $UUID=Get-BiosValue -Names $UUIDNames -Silent
+
+  if ( -not (Test-String -IsNullOrWhiteSpace $UUID) ) 
+  {
+     write-host "  Success"
+     $result=$true
+  }
+  else
+  {   
+    write-host "  Failed!"
+  }
+
+  
+  return $result
+}
+
+
+function Get-ModelFolder()
+{
+param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Model
+)
+  $result=$null
+  
+  Write-HostSection "Locate Model Folder"
+  write-Host "Searching [$MODELS_PATH]"
+  write-Host "      for [$Model] ..."
+
+  #get all folders
+  $folders=Get-ChildItem -Path $MODELS_PATH -Directory -Force
+
+  #First try is to locate a folder matching EXACTLY the model name  
+  write-host "  Searching for exactly matching folder for this model..."
+  foreach ($folder in $folders) 
+  {
+    $name=$folder.Name.ToUpper()
+
+    if ( $name -eq $model.ToUpper() )
+    {
+       $result=$folder.FullName
+       write-host "    Matching folder: [$result]"
+       break
+    }
+  }
+  if ( $result -eq $null ) {  write-host "    No folder found" }
+
+
+  #Second try if the first one didn't yield any results
+  if ( $result -eq $null )
+  {
+     write-host "  Searching for partially matching folder..."
+     
+     foreach ($folder in $folders) 
+     {
+        $name=$folder.Name
+        
+        if ( Test-String $model -Contains $name )
+        {
+           $result=$folder.FullName
+           write-host "    Matching folder: [$result]"
+           break
+        }
+     }
+  }
+
+  if ( $result -ne $null )
+  {
+     Write-Host "Model folder is [$result]"
+  }
+
+  Write-HostSection -End "Model Folder"
+  return $result
+}
 
 
 function ConvertTo-DescriptionFromBCUReturncode()
@@ -584,7 +732,8 @@ function Set-BiosValue()
 
 
 # -1 = Error, 0 = OK but no changes, 1 = at least one setting was changed
-function Set-BiosValuesHashtable(){
+function Set-BiosValuesHashtable()
+{
  param(
   [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
   [ValidateNotNullOrEmpty()]
@@ -686,189 +835,6 @@ function Test-BiosPasswordFiles()
   Write-HostSection -End "Determine BIOS Password"
 
   return $matchingPwdFile
-}
-
-
-function Test-Environment(){
- $result=$false
-
- if ( !(OperatingSystemBitness -Is64bit) ) 
- {
-   Write-error "A 64-bit Windows is required"
- }
- else
- {
-   if ( (Get-CurrentProcessBitness -IsWoW) )
-   {
-      write-error "This can not be run as a WoW (32-bit) process"
-   }
-   else
-   {
-       if ( !(Test-FileExists $BCU_EXE_SOURCE) ) 
-       {
-          Write-Error "BiosConfigUtility not found: $BCU_EXE_SOURCE"
-       }
-       else
-       {
-          if ( !(Test-DirectoryExists $PWDFILES_PATH) ) 
-          {
-             Write-Error "Folder for password files not found: $PWDFILES_PATH"
-          }
-          else 
-          {
-             if ( !(Test-DirectoryExists $MODELS_PATH) )
-             {
-                Write-Error "Folder for model specific files not found: $MODELS_PATH"
-             }
-             else
-             {
-                $Make=(Get-CimInstance Win32_ComputerSystem).Manufacturer
-
-                if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
-                {
-                   #All seems to be fine
-                   $result=$true
-                }
-                else
-                {
-                   Write-Error "Unsupported manufacturer [$Make]"
-                }
-
-             }
-          }
-       }
-    }
-  }
-
-
- return $result
-}
-
-
-function Test-BiosCommunication()
-{
-  $result=$false
-  
-  write-host "Trying to read UUID to test BIOS communication..." -NoNewline
-
-  #At least the ProDesk 600 G1 uses the name "Enter UUID"
-  #Newer models use "Universally Unique Identifier (UUID)"
-
-  $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID")
-
-  $UUID=Get-BiosValue -Names $UUIDNames -Silent
-
-  if ( -not (Test-String -IsNullOrWhiteSpace $UUID) ) 
-  {
-     write-host "  Success"
-     $result=$true
-  }
-  else
-  {   
-    write-host "  Failed!"
-  }
-
-  
-  return $result
-}
-
-
-function Get-ModelFolder()
-{
-param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Model
-)
-  $result=$null
-  
-  Write-HostSection "Locate Model Folder"
-  write-Host "Searching [$MODELS_PATH]"
-  write-Host "      for [$Model] ..."
-
-  #get all folders
-  $folders=Get-ChildItem -Path $MODELS_PATH -Directory -Force
-
-  #First try is to locate a folder matching EXACTLY the model name  
-  write-host "  Searching for exactly matching folder for this model..."
-  foreach ($folder in $folders) 
-  {
-    $name=$folder.Name.ToUpper()
-
-    if ( $name -eq $model.ToUpper() )
-    {
-       $result=$folder.FullName
-       write-host "    Matching folder: [$result]"
-       break
-    }
-  }
-  if ( $result -eq $null ) {  write-host "    No folder found" }
-
-
-  #Second try if the first one didn't yield any results
-  if ( $result -eq $null )
-  {
-     write-host "  Searching for partially matching folder..."
-     
-     foreach ($folder in $folders) 
-     {
-        $name=$folder.Name
-        
-        if ( Test-String $model -Contains $name )
-        {
-           $result=$folder.FullName
-           write-host "    Matching folder: [$result]"
-           break
-        }
-     }
-  }
-
-  if ( $result -ne $null )
-  {
-     Write-Host "Model folder is [$result]"
-  }
-
-  Write-HostSection -End "Model Folder"
-  return $result
-}
-
-
-function Copy-PasswordFileToTemp()
-{
- param(
-  [Parameter(Mandatory=$false)]
-  [string]$SourcePasswordFile
- ) 
- $result=""
- 
- #A password file variable can be empty (=empty password), no error in this case
- if ( Test-String -HasData $SourcePasswordFile )
- {
-   $result=Copy-FileToTemp -SourceFilename $SourcePasswordFile
- }
-
- return $result
-}
-
-
-function Copy-FileToTemp()
-{
- param(
-  [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$SourceFilename
- )
-
- $filenameonly=Get-FileName $SourceFilename
-
- #This line can cause issues later on. On some system this will be a path with "~1" in it and this can cause Remove-Item do freak out. 
- #$newfullpath="$env:temp\$filenameonly"
- 
- $newfullpath="$(Get-TempFolder)\$filenameonly"
-
- Copy-Item -Path $SourceFilename -Destination $newfullpath -Force
-
- return $newfullpath
 }
 
 
@@ -1140,6 +1106,45 @@ function Get-VersionTextAndNumerical()
 }
 
 
+function Copy-PasswordFileToTemp()
+{
+ param(
+  [Parameter(Mandatory=$false)]
+  [string]$SourcePasswordFile
+ ) 
+ $result=""
+ 
+ #A password file variable can be empty (=empty password), no error in this case
+ if ( Test-String -HasData $SourcePasswordFile )
+ {
+   $result=Copy-FileToTemp -SourceFilename $SourcePasswordFile
+ }
+
+ return $result
+}
+
+
+function Copy-FileToTemp()
+{
+ param(
+  [Parameter(Mandatory=$True, ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$SourceFilename
+ )
+
+ $filenameonly=Get-FileName $SourceFilename
+
+ #This line can cause issues later on. On some system this will be a path with "~1" in it and this can cause Remove-Item do freak out. 
+ #$newfullpath="$env:temp\$filenameonly"
+ 
+ $newfullpath="$(Get-TempFolder)\$filenameonly"
+
+ Copy-Item -Path $SourceFilename -Destination $newfullpath -Force
+
+ return $newfullpath
+}
+
+
 function Copy-FolderForExec()
 {
  param(
@@ -1156,9 +1161,7 @@ function Copy-FolderForExec()
  if ( -not (Test-DirectoryExists $SourceFolder) ) 
  {
     write-error "Folder [$SourceFolder] not found!"
-    #$exception=New-Object System.IO.DirectoryNotFoundException "Folder [$SourceFolder] not found!"
-    #throw $exception
-    throw New-Exception -FileNotFound "Folder [$SourceFolder] not found!"
+    throw New-Exception -DirectoryNotFound "Folder [$SourceFolder] not found!"
  }
  else
  {
@@ -1218,7 +1221,6 @@ function Copy-FolderForExec()
     return $dest.TrimEnd("\")
  }
 }
-
 
 
 function Update-BiosSettings()
@@ -1370,7 +1372,7 @@ function Update-BiosFirmware()
 
  if ( !(Test-FileExists $updatefile) ) 
  {
-    write-host "File does not exist, ignoring BIOS update."
+    write-host "File does not exist, ignoring BIOS update"
  } 
  else
  {
@@ -1468,40 +1470,6 @@ function Update-BiosFirmware()
 
  Write-HostSection -End "BIOS Update"
  return $result
-}
-
-
-function Write-HostFirstLogFound()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Folder,
-
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$Filter="*.log"
- )
-
- write-host "Checking for first file matching [$filter] in [$folder]..."
-
- $logfiles=Get-ChildItem -Path $Folder -File -Filter $filter -Force 
-
- if ( $logfiles -eq $null )
- {
-    write-host "  No files found!"
- }
- else
- {
-   $filename=$logFiles[0].FullName
-
-   Write-HostSection "BEGIN :: $filename"   
-   
-   $content=Get-Content $filename -Raw
-   write-host $content
-
-   Write-HostSection "END :: $filename"
- }
-
 }
 
 
@@ -1664,7 +1632,6 @@ function Invoke-BitLockerDecryption()
 }
 
 
-
 function Update-TPM()
 {
  param(
@@ -1689,7 +1656,7 @@ function Update-TPM()
 
  if ( -not (Test-FileExists $updatefile) ) 
  {
-    write-host "File does not exist, ignoring TPM update."
+    write-host "File does not exist, ignoring TPM update"
  } 
  else
  {
@@ -1991,7 +1958,7 @@ function Invoke-TPMUpdateExe()
   [Parameter(Mandatory=$True)]
   [ValidateNotNullOrEmpty()]
   [string]$SourcePath,
-
+    
   [Parameter(Mandatory=$True)]
   [ValidateNotNullOrEmpty()]
   [string]$FirmwareFile,
@@ -1999,10 +1966,11 @@ function Invoke-TPMUpdateExe()
   [Parameter(Mandatory=$False)]
   [string]$PasswordFile=""
 )
-
-    write-host "--- Preparing launch of TPM update executable for [$(Get-FileName $FirmwareFile)] ---"
-    
     $returnCode=$null
+
+    
+    write-host "--- Preparing launch of TPM update executable for [$(Get-FileName $FirmwareFile)] ---"
+        
     $localfolder=$null
 
     try
@@ -2032,6 +2000,223 @@ function Invoke-TPMUpdateExe()
     write-host "--- TPM update executable finished ---"
 
     return $returnCode
+}
+
+
+function Invoke-MECheckAndUpdate()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ModelFolder
+ )
+
+ Write-HostSection "Management Engine (ME) Update"
+ $result=$false
+
+ $checkFile="$ModelFolder\ME-VulnerabilityScan.txt"
+ $updateSettingsFile="$ModelFolder\ME-Update.txt"
+    
+ write-host "Checking if [$checkFile] or"
+ write-host "            [$updateSettingsFile] exist..."
+
+ $performSecurityCheck=Test-FileExists $checkFile
+ $performUpdateIfNeeded=Test-FileExists $updateSettingsFile 
+
+ if ( -not ( $performSecurityCheck -or $performUpdateIfNeeded)  ) 
+ {
+    write-host "No ME setting file found, nothing to do"
+ } 
+ else
+ {    
+    write-host "Starting Intel SA-00075 discovery tool to get ME data..."
+
+    $tempFolder=Get-TempFolder
+    $runToolOK=$false
+  
+    #We use the XML output method, so the tool will generate a file called [DEVICENAME]_System_Summary.xml.
+    #We need to make sure that no other *_System_Summary.xml file exists
+    $xmlFilePattern="*_System_Summary.xml"
+ 
+    $ignored=Remove-Item -Path "$tempFolder\$xmlFilePattern" -Force -ErrorAction SilentlyContinue
+    #Remove-File -Filename "$tempFolder\$xmlFilePattern"
+
+    try
+    {
+        $runToolResult=&"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $tempFolder | out-string
+        $runToolOK=$true
+    }
+    catch
+    {
+        write-error "Launching [$ISA75DT_EXE_SOURCE] failed; error: $($error[0])"
+    }
+    
+    if ( -not $runToolOK )
+    {
+        write-error "Failed to run detection tool, aborting"
+    }
+    else
+    {
+        #Output console output to make sure we have something in the log even if the XML parsing fails
+        Write-HostOutputFromProgram -Name "Discovery Tool Output" -Content $runToolResult
+
+        write-host "Processing XML output ($tempFolder\$xmlFilePattern)..."
+        
+        #Read the XML output
+        $files=Get-ChildItem -Path $tempFolder -File -Filter $xmlFilePattern -Force 
+        if ( $files -eq $null )
+        {
+            write-error "XML file not found!"
+        }
+        else
+        {
+            $xmlFilename=$files[0].FullName            
+            $MEData=[PSObject]@{"Parsed"=$false; "VersionText"="0.0.0"; "FeatureLevel"="Unkown"; "Provisioned"="Unknown"; "VulnerableText"="Unknown"; "Vulnerable"=$false; "ExposedText"="Unknown"; "Exposed"=$false; "DriverInstalled"=$false }
+
+            try 
+            {
+                $xmlContent=Get-Content $xmlFilename -Raw
+                [xml]$xml = $xmlContent
+
+                $MEData.VersionText=$xml.System.ME_Firmware_Information.ME_Version
+                $MEData.Version=ConvertTo-Version -Text $MEData.VersionText
+
+                $MEData.FeatureLevel=$xml.System.ME_Firmware_Information.ME_SKU
+                $MEData.Provisioned=$xml.System.ME_Firmware_Information.ME_Provisioning_State
+
+                $MEData.VulnerableText=$xml.System.System_Status.System_Risk
+                $MEData.ExposedText=$xml.System.System_Status.System_Exposure
+
+                if ( $xml.System.ME_Firmware_Information.ME_Driver_Installed -eq "True" )
+                {
+                    $MEData.DriverInstalled=$true
+                }    
+
+                if ( $MEData.VulnerableText -eq "Vulnerable" )
+                {
+                    $MEData.Vulnerable=$true
+                }
+                
+                if ( $MEData.ExposedText -eq "Exposed" )
+                {
+                    $MEData.Exposed=$true
+                }
+               
+                $MEData.Parsed=$true
+                write-host "Reading finished"
+
+            }
+            catch
+            {
+                write-error "Unable to read; error: $($error[0])"
+            }
+
+            if ( $MEData.Parsed ) 
+            {
+
+                write-host "Management Engine information:"
+                write-host " "
+                write-host "  Firmware Version ..: $($MEData.VersionText)"
+                write-host "  Feature Level .....: $($MEData.FeatureLevel)"
+                write-host "  Provisioned .......: $($MEData.Provisioned)"
+                write-host " "
+
+                #Only add the following information if a security check is wanted
+                if ( $performSecurityCheck )
+                {
+
+                    write-host "  SA-75 Vulnerable ..: $($MEData.VulnerableText)"
+                    write-host "  Exposed ...........: $($MEData.ExposedText)"                              
+                    write-host "  Is ME vulnerable ..: $($MEData.Vulnerable)"
+                    write-host " "
+
+                    if ( $MEData.Vulnerable ) 
+                    {
+                        write-warning "The ME firmware is affected by the Intel-SA-00075 security vulnerability!"
+
+                        $header="Intel-SA-00075 affected"
+                        $text=@("This device is affected by SA-00075 security vulnerability.")
+                        $footer="An ME update is recommended"
+                    
+                        Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true
+                    }
+                }
+                
+                #Perform ME Update?
+                if ( $performUpdateIfNeeded )
+                {
+                    $settings=Read-StringHashtable $updateSettingsFile
+                    
+                    $versionDesiredText=$settings["version"]                   
+                    [version]$versionDesired=ConvertTo-Version -Text $versionDesiredText
+
+                    if ( $versionDesired -eq $null ) 
+                    {
+                        write-error "Unable to parse [$versionDesiredText] as a version"
+                    }
+                    else
+                    {
+                        write-host "Current ME firmware version: $(Get-VersionTextAndNumerical $MEData.VersionText $MEData.Version)"
+                        write-host "Desired ME firmware version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
+                    
+                        if ( $versionDesired -le $MEData.Version ) 
+                        {
+                            write-host "  ME firmware update not required"
+                            $result=$false
+                        }
+                        else
+                        {
+                            write-host "  ME update required!"
+
+                            $updatefolder="$ModelFolder\ME-$versionDesiredText"
+                            $localfolder=$null
+                            try
+                            {
+                                $localfolder=Copy-FolderForExec -SourceFolder $updatefolder -DeleteFilter "*.log"
+                            }
+                            catch
+                            {
+                                write-host "Preparing local folder failed: $($error[0])"
+                            }
+
+                            if ( $localfolder -ne $null )
+                            {              
+                                # Get the parameters together.
+                                $params=Get-ArgumentsFromHastable -Hashtable $settings 
+                                $ExeFile="$localfolder\$($settings["command"])"               
+
+                                #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+                                $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params
+               
+                                #always try to grab the log file
+                                #$ignored=Write-HostFirstLogFound $localfolder
+
+                                if ( $returnCode -eq $null )
+                                {
+                                    write-error "Running ME update command failed!"
+                                    $result=$null
+                                }
+                                else
+                                {                  
+                                    write-host "ME update success"
+                                    $result=$true
+                                }
+
+                            }
+
+                            #
+
+                        }
+                    }                                
+                }                
+            }                                
+        }
+    }
+ }
+
+ 
+ Write-HostSection -End "ME Update"
+ return $result
 }
 
 
@@ -2175,6 +2360,62 @@ function Write-HostPleaseRestart()
 }
 
 
+function Write-HostFirstLogFound()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Folder,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$Filter="*.log"
+ )
+
+ write-host "Checking for first file matching [$filter] in [$folder]..."
+
+ $logfiles=Get-ChildItem -Path $Folder -File -Filter $filter -Force 
+
+ if ( $logfiles -eq $null )
+ {
+    write-host "  No files found!"
+ }
+ else
+ {
+   $filename=$logFiles[0].FullName
+   
+   $content=Get-Content $filename -Raw
+
+   Write-HostOutputFromProgram -Name $filename -Content $content
+   #Write-HostSection ":: BEGIN :: $filename"         
+   #write-host $content
+   #Write-HostSection ":: END :: $filename"
+ }
+
+}
+
+
+function Write-HostOutputFromProgram()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Name,
+
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [string]$Content
+ )
+
+ if ( Test-String -IsNullOrWhiteSpace $content )
+ {
+    $Content=" (No content) "
+ }
+
+  Write-HostSection "::BEGIN:: $Name"   
+  Write-Host $Content
+  Write-HostSection "::END:: $Name"
+}
+
+#HINT: As we use -LiteralPath this function will NOT process wildcards like * or ?
 function Remove-File()
 {
  param(
@@ -2383,86 +2624,100 @@ function Remove-File()
 
 
             #BIOS Update
-            $biosupdated=$false
+            $biosUpdated=$false
             if ( $BIOSDetails.Parsed ) 
             {
-              $biosupdated=Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile 
+                $biosUpdated=Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile 
             }
 
-            if ( $biosupdated -eq $null) 
+            if ( $biosUpdated -eq $null) 
             {
-               write-error "BIOS Update failed!"
+                write-error "BIOS Update failed!"
             }        
             else
             {
-               if ( $biosupdated ) 
-               {
-                  #A BIOS update was done. Stop and continue later on
-                  $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
-                  $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-               }
-               else 
-               {
-                  #TPM Update
-                  $tpmupdated=$false
-                  if ( $TPMDetails.Parsed )
-                  {
-                     $tpmupdated=Update-TPM -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
-                  }
+                if ( $biosupdated ) 
+                {
+                    #A BIOS update was done. Stop and continue later on
+                    $ignored=Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
+                    $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                }
+                else 
+                {
+                    #ME update/check
+                    
+                    #We do this at this point because some BIOS version recommand an ME firmware update
+                    #e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html
+                    $mefwUpdated=$false                     
+                    $mefwUpdated=Invoke-MECheckAndUpdate -Modelfolder $modelfolder
 
+                    if ( $mefwUpdated )
+                    {
+                        $ignored=Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
+                        $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                    }
+                    else
+                    {
+                        #TPM Update
+                        $tpmUpdated=$false
 
-                  if ( $tpmupdated )
-                  {
-                     $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                     $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-                  }
-                  else
-                  {
-                     #BIOS Password update
-                     $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+                        if ( $TPMDetails.Parsed )
+                        {
+                            $tpmUpdated=Update-TPM -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                        }
 
-                     if ( $updatedPasswordFile -ne $null )
-                     {
-                        #File has changed - remove old password file
-                        $ignored=Remove-File -Filename $CurrentPasswordFile
-                        $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                     }
-
-                     #Apply BIOS Settings
-                     $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                     if ( ($settingsApplied -lt 0) )
-                     {
-                        write-error "Error applying BIOS settings!"
-                     }
-                     else
-                     {
-                         <#
-                           Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
-                           does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
-                           value as before. 
-                 
-                         if ( $settingsApplied -ge 1 )
-                         {
-                            $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                        if ( $tpmUpdated )
+                        {
+                            $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
                             $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-                         }
-                         else
-                         {
-                            #no changes for BIOS setting
-                            $returncode=0
-                         }
-                         #>
-                 
-                       $returncode=0
-                     }
-                  }
-               }
-            }
-     
-        }
+                        }
+                        else
+                        {                     
+                            #BIOS Password update
+                            $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
 
+                            if ( $updatedPasswordFile -ne $null )
+                            {
+                                #File has changed - remove old password file
+                                $ignored=Remove-File -Filename $CurrentPasswordFile
+                                $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                            }
+
+                            #Apply BIOS Settings
+                            $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                            if ( ($settingsApplied -lt 0) )
+                            {
+                                write-error "Error applying BIOS settings!"
+                            }
+                            else
+                            {
+                                 <#
+                                   Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
+                                   does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
+                                   value as before. 
+                 
+                                 if ( $settingsApplied -ge 1 )
+                                 {
+                                    $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                                    $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                                 }
+                                 else
+                                 {
+                                    #no changes for BIOS setting
+                                    $returncode=0
+                                 }
+                                 #>
+                 
+                                $returncode=0
+                          }
+                        }
+                    }
+                }
+            }     
+        }
         
+
      }  #MAIN PROCESS
     }
  }

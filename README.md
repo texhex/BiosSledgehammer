@@ -203,11 +203,58 @@ Arg3 == -f"@@FIRMWARE_FILE@@"
 Arg4 == -r
 ```
 
-**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``BIOS-<VERSION>``. If the desired BIOS version is 1.37, the BIOS files need to be stored in ``\BIOS-1.37\``. Given that the current model folder is ``\Models\HP EliteBook 850 G1``, the entire path would be ``\Models\HP EliteBook 850 G1\BIOS-1.37``. 
+**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``BIOS-<VERSION>``. If the desired BIOS version is ``1.37``, the folder name would be ``\BIOS-1.37\``.  
 
 The source folder is then copied to %TEMP% (to avoid any network issues) and the update process is started from there. Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
+
+
+## <a name="meissuecheck">((PREVIEW for v3)) Management Engine (ME) Vulnerability Check</a>
+
+Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME). 
+
+In 2017-05 a severe security vulnerability was found in the ME ([INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689)) that could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
+
+BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). No settings in this file are needed.
+```
+# If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
+# See https://downloadcenter.intel.com/download/26755
+```
+
+If the system is detected as vulnerable, check the [HPSBHF03557 Advisory]( http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware.
+
+
+## <a name="meupdate">((PREVIEW for v3)) Management Engine (ME) Update</a>
+
+Beside the special handling for the [Intel-SA-00075 vulnerability](#meissuecheck), BIOS Sledgehammer is also able to perform an Management Engine (ME) firmware update. 
+
+:warning: **WARNING!** The updates tool for the ME firmware from HP **DOES NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. However, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be replaced. Therefore, please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
+
+If possible, check if an BIOS update is available that also updates the ME firmware as this method is known to be much safer than the direct ME firmware update. However, some BIOS versions also recommend a ME firmware after an BIOS update (see [ProDesk 600 G2 v2.17]( https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)).
+
+The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#modelsfolder). Example:
+
+```
+# EliteBook 820 G1
+
+# The ME firmware version the device should have
+Version == 9.5.61.3012
+
+#Command to be executed for the ME update
+Command==CallInst.exe
+
+#Arguments for command
+Arg1 == /app Update.bat 
+Arg2 == /hide
+```
+
+*Version* defines which ME version the device should have. If the current firmware is older, the update is started using the settings *Command* and *ArgX*. A restart is requested after that because the new firmware will only be activated during POST, after the restart. 
+
+**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\TPM-9.5.61.3012\``. 
+
+If anything goes wrong during the process, an error is generated. 
+
 
 ## <a name="tpmupdate">TPM Update</a>
 
@@ -253,11 +300,12 @@ The TPM update also requires that BitLocker is completely turned off (as any Bit
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
-**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder called ``TPM-<VERSION>``. If the desired TPM firmware version is 7.41, the TPM files need to be stored in ``\TPM-7.41\``. Given that the current model folder is *\Models\HP EliteBook Folio 1040 G3*, the entire path would be ``\Models\HP EliteBook Folio 1040 G3\TPM-7.41``. 
+**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``. 
 
 Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
+
 
 ## <a name="tpmspecialnotice">TPM Update - Special handling</a>
 
@@ -279,26 +327,6 @@ To support this special case, it is possible to define two entries for the same 
 
 In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a *Wrong firmware file* error, the second firmware file is tried.
 
-## <a name="meupdate">((PREVIEW for v3)) Management Engine (ME) Update</a>
-
-Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro), a method for remote out-of-band management; this allows access to the device even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME).
-
-In 2017-05 a severe security vulnerability was found in the ME ([INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689)) that could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
-
-BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. 
-
-To do so, the file ``ME- VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). This file does not need to have any settings.
-```
-# If this file exists, the Intel-SA-00075 detection tool will be run.
-# See https://downloadcenter.intel.com/download/26755
-
-```
-xxxxxxxxxx
-
-:warning: **WARNING!** The updates tools for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. However, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be exchanged in this case. Please pay extra caution when using ME firmware updates and alwas do a test run on a spare machine. 
-
-   
-
 
 ## <a name="biospassword">BIOS Password</a>
 
@@ -317,6 +345,7 @@ PasswordFile ==
 Regarding BIOS passwords, please note the following:
 * Passwords need to meet minimum complexity rules (must contain upper and lower case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
+
 
 ## <a name="biossettings">BIOS Settings</a>
 
