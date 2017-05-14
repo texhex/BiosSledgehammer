@@ -54,15 +54,19 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 ## <a name="requirements">System requirements</a>
 
 * PowerShell 4.0 or higher
-* Windows 7 64-bit or Windows 10 64-bit - Windows 8 should also work, but wasn't tested
-* [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]``
-* The computer must be supported by BCU; most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
+* Windows 7 64-bit or Windows 10 64-bit 
+	* Windows 8 should also work, but wasn't tested
+* [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]`` and the device must be supported by it. Most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
     * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
-* BIOS Updates file for the models you want to support (search http://www.hp.com/drivers for "(Model) BIOS" to locate them) 
-* TPM Update files (See [January 2017 advisory](https://support.hp.com/en-us/document/c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.exe)) if a TPM update is desired
-* Note: The BIOS and TPM files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
+* BIOS updates file for the models you want to support
+	* Search http://www.hp.com/drivers for "(Model) BIOS" to locate them 
+* TPM update files if a TPM specification or TPM firmware update is desired 
+    * See [HP C05381064 advisory](https://support.hp.com/en-us/document/c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.exe)
+* [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
+    * For ME firmware files, see [HPSBHF03557 Advisory]( http://www8.hp.com/us/en/intelmanageabilityissue.html) or the driver download page from HP for the model
+* Note: Several BIOS, TPM and ME files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>
 
@@ -210,28 +214,13 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 If anything goes wrong during the process, an error is generated. 
 
 
-## <a name="meissuecheck">((PREVIEW for v3)) Management Engine (ME) Vulnerability Check</a>
-
-Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME). 
-
-In 2017-05 a severe security vulnerability was found in the ME ([INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689)) that could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
-
-BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). No settings in this file are needed.
-```
-# If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
-# See https://downloadcenter.intel.com/download/26755
-```
-
-If the system is detected as vulnerable, check the [HPSBHF03557 Advisory]( http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware.
-
-
 ## <a name="meupdate">((PREVIEW for v3)) Management Engine (ME) Update</a>
 
-Beside the special handling for the [Intel-SA-00075 vulnerability](#meissuecheck), BIOS Sledgehammer is also able to perform an Management Engine (ME) firmware update. 
+Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable. This can be done with BIOS Sledgehammer.   
+ 
+:warning: **WARNING!** The updates tool for the ME firmware from HP **DOES NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. If this happens, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be replaced. Therefore, please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
 
-:warning: **WARNING!** The updates tool for the ME firmware from HP **DOES NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. However, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be replaced. Therefore, please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
-
-If possible, check if an BIOS update is available that also updates the ME firmware as this method is known to be much safer than the direct ME firmware update. However, some BIOS versions also recommend a ME firmware after an BIOS update (see [ProDesk 600 G2 v2.17]( https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)).
+If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you are forced to use this in some cases.
 
 The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#modelsfolder). Example:
 
@@ -241,19 +230,32 @@ The settings for a ME update are read from the file ``ME-Update.txt`` in the mat
 # The ME firmware version the device should have
 Version == 9.5.61.3012
 
-#Command to be executed for the ME update
+# Command to be executed for the ME update
 Command==CallInst.exe
 
-#Arguments for command
-Arg1 == /app Update.bat 
+# CallInst.exe requires a whitespace for the first parameter, so we need to enclose it in double-quotes  
+Arg1 == "/app Update.bat" 
 Arg2 == /hide
 ```
 
-*Version* defines which ME version the device should have. If the current firmware is older, the update is started using the settings *Command* and *ArgX*. A restart is requested after that because the new firmware will only be activated during POST, after the restart. 
+*Version* defines which ME version the device should have. If the current firmware is older, the update is started using the settings *Command* and *ArgX*. A restart is requested after that because the new firmware will only be activated during POST, after an restart. 
 
-**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\TPM-9.5.61.3012\``. 
+**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\ME-9.5.61.3012\``. 
 
 If anything goes wrong during the process, an error is generated. 
+
+
+## <a name="meissuecheck">((PREVIEW for v3)) Management Engine (ME) Vulnerability Check</a>
+
+In 2017-05 a severe security vulnerability was found in the Management Engine (ME): [INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689) which could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
+
+BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). No settings in this file are needed.
+```
+# If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
+# See https://downloadcenter.intel.com/download/26755
+```
+
+If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#meupdate) process.
 
 
 ## <a name="tpmupdate">TPM Update</a>
@@ -349,7 +351,7 @@ Regarding BIOS passwords, please note the following:
 
 ## <a name="biossettings">BIOS Settings</a>
 
-The configuration of the BIOS are read from the file ```BIOS-Settings.txt`` in the matching [model folder](#modelsfolder). Example file: 
+The configuration of the BIOS are read from the file ``BIOS-Settings.txt`` in the matching [model folder](#modelsfolder). Example file: 
 ```
 # 850 G1 
 LAN/WLAN Switching == Enable
