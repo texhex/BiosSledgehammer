@@ -1,0 +1,6 @@
+# ZBook 15 G2 Activate UEFI Boot
+
+Boot Mode==UEFI Native (Without CSM)
+SecureBoot==Enable
+
+

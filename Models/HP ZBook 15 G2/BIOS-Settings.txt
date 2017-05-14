@@ -1,0 +1,37 @@
+# ZBook 15 G2 BIOS Settings
+
+
+Boot Mode==UEFI Native (Without CSM)
+SecureBoot==Enable
+
+Reset of TPM from OS==Enable
+OS Management of TPM==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Data Execution Prevention==Enable
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+
+# This makes sure that the user is not prompted when connecting his/her docking station
+Thunderbolt port==PCIe and DisplayPort
+			  
+LAN/WLAN Switching==Enable
+Fast Boot==Disable
+
+SATA Device Mode == AHCI
+Multi Core CPU == Enable
+Intel (R) HT Technology == Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+
+
+#Better leave these settings alone
+#NumLock on at boot == Disable
+#Opening the lid wakes the computer from standby == Enable
+#Turbo Boost support while on battery == Enable
+

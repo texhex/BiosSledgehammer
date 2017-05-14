@@ -1,0 +1,5 @@
+# Z440 Activate UEFI Boot
+
+Configure Legacy Support and Secure Boot==Disable Legacy Support and Enable Secure Boot
+
+

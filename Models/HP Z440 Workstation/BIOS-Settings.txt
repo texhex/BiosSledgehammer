@@ -1,0 +1,43 @@
+# Z440 Workstation
+
+
+#UEFI Boot Mode
+Configure Legacy Support and Secure Boot==Disable Legacy Support and Enable Secure Boot
+MS UEFI CA key==Enable
+
+TPM Device==Available
+TPM State==Enable
+
+#If the setting is set to "F1 to Boot" when no BIOS password is defined, this value can not be set with error 32769
+TPM Activation Policy==No prompts
+
+#Better leave this alone if the system is set to RAID mode
+#SATA Controller Mode==AHCI
+#sSATA Controller Mode==AHCI
+
+Data Execution Prevention==Enable
+
+#No idea what this is good for
+#Thunderbolt Mode
+#	Legacy Mode
+#	*Unique ID
+#	One Time Saved Key
+#	DP++ Only
+
+Virtualization Technology (VT-x)==Enable
+
+# Might cause issues with the GPU
+Intel VT for Directed I/O (VT-d)==Disable
+
+# Still buggy
+Intel TXT(LT) Support==Disable
+
+Intel Hyper-Threading Technology==Enable
+Active CPU Cores Per Processor==All cores per processor
+Turbo Mode==Enable
+Fast Boot==Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ....
+
