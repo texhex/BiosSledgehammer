@@ -1,4 +1,5 @@
-#850 G4 TPM Update
+#TPM FW 7.61 update
+
 
 # Manufacturer of the TPM (Optional) - The device must have this vendor or no update takes place
 Manufacturer==1229346816
@@ -12,18 +13,17 @@ FirmwareVersion == 7.61
 
 # Define the upgrade file to be used for each firmware version.
 # The firmware active on the device must match an entry here or no update can be performed
-
 6.40 == Firmware\TPM12_6.40.190.0_to_TPM20_7.61.2785.0.BIN
-6.41 == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
+
+# A special case is the 6.41 firmware because there are two files for this release
+# The 6.41.197 firmware is used for devices that are TPM 1.2 by default
+# The 6.41.198 firmware is used for devices that were downgraded from TPM 2.0 to TPM 1.2
+6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
+6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
+
 7.40 == Firmware\TPM20_7.40.2098.0_to_TPM20_7.61.2785.0.BIN
 7.41 == Firmware\TPM20_7.41.2375.0_to_TPM20_7.61.2785.0.BIN
 7.60 == Firmware\TPM20_7.60.2677.0_to_TPM20_7.61.2785.0.BIN
-
-#Note: 
-# The TPM 7.61 archive also contains an upgrade file from 6.41.198. This file is only 
-# applied when the TPM was downgraded from TPM 2.0 to TPM 1.2 and is therefore not listed. 
-# For full details, please see: https://github.com/texhex/BiosSledgehammer/issues/9 
-#  6.41.198 == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 
 
 # Command to be used to perform the TPM firmware upgrade

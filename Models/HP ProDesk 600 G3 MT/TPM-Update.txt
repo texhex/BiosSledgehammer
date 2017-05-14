@@ -1,3 +1,5 @@
+#TPM FW 7.61 update
+
 
 # Manufacturer of the TPM (Optional) - The device must have this vendor or no update takes place
 Manufacturer==1229346816
@@ -22,6 +24,7 @@ FirmwareVersion == 7.61
 7.40 == Firmware\TPM20_7.40.2098.0_to_TPM20_7.61.2785.0.BIN
 7.41 == Firmware\TPM20_7.41.2375.0_to_TPM20_7.61.2785.0.BIN
 7.60 == Firmware\TPM20_7.60.2677.0_to_TPM20_7.61.2785.0.BIN
+
 
 # Command to be used to perform the TPM firmware upgrade
 Command == TPMConfig64.exe
