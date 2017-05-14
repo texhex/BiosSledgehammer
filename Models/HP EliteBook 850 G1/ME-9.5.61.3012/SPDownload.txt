@@ -1,0 +1,6 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp80001-80500/sp80145.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp80001-80500/sp80145.html
+
+
+
