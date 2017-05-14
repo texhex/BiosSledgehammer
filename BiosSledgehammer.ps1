@@ -22,7 +22,7 @@ param(
 )
 
 #Script version
-$scriptversion="3.0.1"
+$scriptversion="3.0.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -948,146 +948,10 @@ function Get-BIOSVersionDetails()
 }
 
 
-function Get-ArgumentsFromHastable()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [hashtable]$Hashtable,
-
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$PasswordFile="",
-
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$FirmwareFile=""
- )
- 
-   $params=@()
-
-   #20 parameters max should be enough
-   For ($i=1; $i -lt 21; $i++) 
-   {
-      if ( ($Hashtable.ContainsKey("Arg$i")) )
-      {
-         $params += $Hashtable["Arg$i"]
-      }
-      else
-      {
-        break
-      }
-   }
-
-   #now check for replacement strings
-   #We need to use a for loop since a foreach will not change the array
-   for ($i=0; $i -lt $params.length; $i++) 
-   {
-       #if ( ($params[$i].Contains("@@PASSWORD_FILE@@")) )
-       if ( Test-String $params[$i] -Contains "@@PASSWORD_FILE@@" )
-       {
-          if ( $PasswordFile -eq "" ) 
-          {
-              #if no password is set, delete this paramter
-              $params[$i]=""
-          }
-          else
-          {
-              $params[$i]=$params[$i] -replace "@@PASSWORD_FILE@@", $PasswordFile    
-          }
-       }
-       
-       #if ( ($params[$i].Contains("@@FIRMWARE_FILE@@")) )
-       if ( Test-String $params[$i] -Contains "@@FIRMWARE_FILE@@" )
-       {
-          if ( $FirmwareFile -eq "" ) 
-          {
-              #if no firmware is set, delete this paramter
-              $params[$i]=""
-          }
-          else
-          {
-              $params[$i]=$params[$i] -replace "@@FIRMWARE_FILE@@", $FirmwareFile    
-          }
-       }
-
-   }
-
-   #finally copy the arguments together and leave any empty elements out
-   $paramsFinal= @() 
-   foreach($param in $params) 
-   {
-      if ( -not (Test-String -IsNullOrWhiteSpace $param) )
-      {
-         $paramsFinal += $param
-      }
-   }
-    
-   return $paramsFinal  
-}
 
 
-function Invoke-ExeAndWaitForExit()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$ExeName,
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [array]$Parameter=@()
- )
 
- $result=-1
-  
- write-host "About to launch: "
- write-host "  $ExeName"
- write-host "  $Parameter"
- 
- try
- {
-    write-verbose "Starting exe..."
-
-    #We can not use this command because this will not return the exit code. 
-    #Also, most HP update tools do not return anything to stdout at all.
-    #$output=&$ExeName $Parameter
-
-    $runResult=Start-Process $ExeName -Wait -PassThru -ArgumentList $Parameter
-    $result=$runResult.ExitCode         
-    write-host "  Done, return code is $result"
-    
-    #now check if the EXE is still running in the background
-    #We need to remove the extension because get-process does not list .EXE
-    $execheck=[io.path]::GetFileNameWithoutExtension($ExeFile)
-    
-    write-host "  Waiting 15 seconds before checking if the process is still running..."
-    Start-Sleep -Seconds 15
-
-    Do
-    {
-       $check=Get-Process "$execheck*" -ErrorAction SilentlyContinue
-       if ( $check )
-       {
-          write-host "   [$execheck] is still runing, waiting 10 seconds..."
-          Start-Sleep -Seconds 10
-       }
-       else
-       {
-          write-host "   [$execheck] is no longer running, waiting 5 seconds to allow cleanup..."
-          Start-Sleep -Seconds 5
-          break
-       }                                                                                
-     } while ($true)
-     
-     
-     write-host "Launching [$ExeName] finished"
- }
- catch
- {
-    $result=$null
-    write-error "Launching failed! Error: $($error[0])"
- }
-
- return $result               
-}
 
 
 function Get-VersionTextAndNumerical()
@@ -1145,82 +1009,7 @@ function Copy-FileToTemp()
 }
 
 
-function Copy-FolderForExec()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$SourceFolder,
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$DeleteFilter=""
- )
-
- $result=$null  
-
- if ( -not (Test-DirectoryExists $SourceFolder) ) 
- {
-    write-error "Folder [$SourceFolder] not found!"
-    throw New-Exception -DirectoryNotFound "Folder [$SourceFolder] not found!"
- }
- else
- {
-    #When using $env:temp, we might get a path with "~" in it
-    #Remove-Item does not like these path, no idea why...
-    #$dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
-    $dest=Join-Path -Path $(Get-TempFolder) -ChildPath (Split-Path $SourceFolder -Leaf)
-
-    #If it exists, kill it
-    if ( (Test-DirectoryExists $dest) )
-    {
-       try
-       {
-         Remove-Item $dest -Force -Recurse
-       }
-       catch
-       {
-         throw New-Exception -InvalidOperation "Unable to clear folder [$dest]: $($error[0])"
-       }
-    }
-
-    #Make sure the paths end with \
-    $source=Join-Path -Path $SourceFolder -ChildPath "\"  
-    $dest=Join-Path -Path $dest -ChildPath "\"
-
-    try
-    {
-      write-host "  Copy from [$source] "
-      write-host "         to [$dest] ..."
-      Copy-Item -Path $source -Destination $dest -Force -Recurse
-    }
-    catch
-    {
-      #$exception=New-Object System.InvalidOperationException "Unable to copy from [$source] to [$dest]"
-      #throw $exception
-      throw New-Exception -InvalidOperation "Unable to copy from [$source] to [$dest]"
-    }
-
-    write-verbose "Copy done"
-
-    #now check if we should delete something after copying it
-    if ( $DeleteFilter -ne "" )
-    {
-       Write-Verbose "Trying to delete [$DeleteFilter] in target folder"
-
-       try
-       {
-          $ignored=Remove-Item -Path "$dest\$DeleteFilter" -Force
-       }
-       catch
-       {
-         throw New-Exception -InvalidOperation "Unable to delete [$DeleteFilter] from [$dest]: $($error[0])"
-       }
-    }
-
-    #We return the destination path without the \
-    return $dest.TrimEnd("\")
- }
-}
 
 
 function Update-BiosSettings()
@@ -1407,6 +1196,38 @@ function Update-BiosFirmware()
          {
             write-host "BIOS update required!"
 
+            $updateFolder="$ModelFolder\BIOS-$versionDesiredText"
+
+            #check if we need to pass a firmware file based on the BIOS Family
+            $firmwareFile=""
+            $biosFamily=$BiosDetails.Family
+
+            write-host "BIOS family is [$biosFamily]"
+            if ( $details.ContainsKey($biosFamily) )
+            {
+                #Entry exists
+                $firmwareFile=$details[$biosFamily]
+                write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"
+                
+                #Possible bug that we do not longer pass the full path to the firmware file?  
+                #$firmwarefile="$localfolder\$firmwareFile"
+                #write-host "  Full path to firmware file: [$firmwareFile]"
+            } 
+
+            $returncode=Invoke-UpdateProgramRun -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
+     
+            if ( $returnCode -eq $null )
+            {
+               write-error "Running BIOS update failed!"
+               $result=$null
+            }
+            else
+            {                  
+               write-host "BIOS update success"
+               $result=$true
+            }
+
+            <#
             $updatefolder="$ModelFolder\BIOS-$versionDesiredText"
             $localfolder=$null
             try
@@ -1433,8 +1254,9 @@ function Update-BiosFirmware()
                   
                   $firmwarefile="$localfolder\$firmwareFile"
                   write-host "  Full path to firmware file: [$firmwareFile]"
-               }               
-    
+               }    
+               
+                     
                # Get the parameters together.
                $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile -FirmwareFile $firmwareFile
                $ExeFile="$localfolder\$($details["command"])"               
@@ -1460,9 +1282,9 @@ function Update-BiosFirmware()
                   write-host "BIOS update success"
                   $result=$true
                }
-               #update done
-
-            }          
+               #>
+              
+            #update done
          }
        }
     }
@@ -1871,7 +1693,8 @@ function Update-TPM()
                       else
                       {                              
                             #Real update process starts here. We might need to do this two times in case two firmwares were found
-                            $returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -Hashtable $settings -PasswordFile $PasswordFile
+                            #$returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -Hashtable $settings -PasswordFile $PasswordFile                          
+                            $returnCode=Invoke-UpdateProgramRun -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
 
                             if ( $returnCode -eq $null )
                             {
@@ -1902,7 +1725,8 @@ function Update-TPM()
                                         #Return code was 275 - repeat with firmwareFile_B
                                         write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
                                         
-                                        $returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -Hashtable $settings -PasswordFile $PasswordFile
+                                        #$returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -Hashtable $settings -PasswordFile $PasswordFile
+                                        $returnCode=Invoke-UpdateProgramRun -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
 
                                         if ( $returnCode -eq $null )
                                         {
@@ -1947,7 +1771,7 @@ function Update-TPM()
  return $result
 }
 
-
+<#
 function Invoke-TPMUpdateExe()
 {
  param(
@@ -2001,6 +1825,359 @@ function Invoke-TPMUpdateExe()
 
     return $returnCode
 }
+#>
+
+
+function Invoke-UpdateProgramRun()
+{
+ param(
+  [Parameter(Mandatory=$False)]
+  [string]$Name="",
+
+  [Parameter(Mandatory=$True)]
+  [ValidateNotNullOrEmpty()]
+  [hashtable]$Settings,
+
+  [Parameter(Mandatory=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$SourcePath,
+    
+  [Parameter(Mandatory=$False)]
+  [string]$FirmwareFile="",
+
+  [Parameter(Mandatory=$False)]
+  [string]$PasswordFile=""
+)
+
+    $result=$null
+
+    if ( Test-String -HasData $Name)
+    {
+        write-host "::: Preparing launch of update executable - $name :::"
+    }
+    else
+    {
+        write-host "::: Preparing launch of update executable :::"
+    }
+
+
+    $localFolder=$null
+    try
+    {
+        $localFolder=Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"
+    }
+    catch
+    {
+        write-host "Preparing local folder failed: $($error[0])"
+    }
+
+    if ( $localfolder -ne $null )
+    {              
+        #Get the parameters together.
+        #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+        $params=Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $FirmwareFile
+
+        #Get the exe file
+        $exeFileName=$Settings["command"]        
+        $exeFileLocalPath="$localFolder\$exeFileName"               
+
+        #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+        $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params
+               
+        #always try to grab the log file
+        $ignored=Write-HostFirstLogFound -Folder $localFolder
+    }
+
+    write-host "::: Launching update executable finished :::"
+    return $result
+}
+
+function Copy-FolderForExec()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$SourceFolder,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$DeleteFilter=""
+ )
+
+ $result=$null  
+
+ if ( -not (Test-DirectoryExists $SourceFolder) ) 
+ {
+    write-error "Folder [$SourceFolder] not found!"
+    throw New-Exception -DirectoryNotFound "Folder [$SourceFolder] not found!"
+ }
+ else
+ {
+    #When using $env:temp, we might get a path with "~" in it
+    #Remove-Item does not like these path, no idea why...
+    #$dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
+    $dest=Join-Path -Path $(Get-TempFolder) -ChildPath (Split-Path $SourceFolder -Leaf)
+
+    #If it exists, kill it
+    if ( (Test-DirectoryExists $dest) )
+    {
+       try
+       {
+         Remove-Item $dest -Force -Recurse
+       }
+       catch
+       {
+         throw New-Exception -InvalidOperation "Unable to clear folder [$dest]: $($error[0])"
+       }
+    }
+
+    #Make sure the paths end with \
+    $source=Join-Path -Path $SourceFolder -ChildPath "\"  
+    $dest=Join-Path -Path $dest -ChildPath "\"
+
+    try
+    {
+      write-host "Copy from [$source] "
+      write-host "       to [$dest] ..."
+      Copy-Item -Path $source -Destination $dest -Force -Recurse
+    }
+    catch
+    {
+      throw New-Exception -InvalidOperation "Unable to copy from [$source] to [$dest]"
+    }
+
+    write-verbose "Copy done"
+
+    #now check if we should delete something after copying it
+    if ( $DeleteFilter -ne "" )
+    {
+       Write-Host "Trying to delete [$DeleteFilter] in target folder"
+       try
+       {
+          $files=Get-ChildItem $dest -File -Include $deleteFilter -Recurse -Force 
+          foreach($file in $files)
+          {
+            write-host "  Deleting $($file.Fullname)"
+            Remove-File -Filename $file.Fullname
+          }
+                     
+       }
+       catch
+       {
+         throw New-Exception -InvalidOperation "Error while deleting from [$dest]: $($error[0])"
+       }
+    }
+
+    #We return the destination path without the \
+    return $dest.TrimEnd("\")
+ }
+}
+
+function Get-ArgumentsFromHastable()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [hashtable]$Hashtable,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$PasswordFile="",
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$FirmwareFile=""
+ )
+ 
+   $params=@()
+
+   #20 parameters max should be enough
+   For ($i=1; $i -lt 21; $i++) 
+   {
+      if ( ($Hashtable.ContainsKey("Arg$i")) )
+      {
+         $params += $Hashtable["Arg$i"]
+      }
+      else
+      {
+        break
+      }
+   }
+
+   #now check for replacement strings
+   #We need to use a for loop since a foreach will not change the array
+   for ($i=0; $i -lt $params.length; $i++) 
+   {
+       if ( Test-String $params[$i] -Contains "@@PASSWORD_FILE@@" )
+       {
+          if ( $PasswordFile -eq "" ) 
+          {
+              #if no password is set, delete this paramter
+              $params[$i]=""
+          }
+          else
+          {
+              $params[$i]=$params[$i] -replace "@@PASSWORD_FILE@@", $PasswordFile    
+          }
+       }
+       
+       if ( Test-String $params[$i] -Contains "@@FIRMWARE_FILE@@" )
+       {
+          if ( $FirmwareFile -eq "" ) 
+          {
+              #if no firmware is set, delete this paramter
+              $params[$i]=""
+          }
+          else
+          {
+              $params[$i]=$params[$i] -replace "@@FIRMWARE_FILE@@", $FirmwareFile    
+          }
+       }
+
+   }
+
+   #finally copy the arguments together and leave any empty elements out
+   $paramsFinal= @() 
+   foreach($param in $params) 
+   {
+      if ( -not (Test-String -IsNullOrWhiteSpace $param) )
+      {
+         $paramsFinal += $param
+      }
+   }
+    
+   return $paramsFinal  
+}
+
+function Invoke-ExeAndWaitForExit()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ExeName,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [array]$Parameter=@()
+ )
+
+ $result=-1
+  
+ write-host "About to launch: "
+ write-host "  $ExeName"
+ write-host "  $Parameter"
+ 
+ try
+ {
+    write-verbose "Starting exe..."
+
+    #Version 1
+    #We can not use this command because this will not return the exit code. 
+    #Also, most HP update tools do not return anything to stdout at all.
+    #$output=&$ExeName $Parameter
+
+    #Version 2, gets exit code but no standard output
+    #$runResult=Start-Process $ExeName -Wait -PassThru -ArgumentList $Parameter
+    #$result=$runResult.ExitCode         
+
+    #Version 3, hopefully the last...
+    $startInfo=New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName=$ExeName
+    $startInfo.Arguments=$Parameter
+    
+    $startInfo.UseShellExecute=$false #else redirected streams do not work
+    $startInfo.RedirectStandardError=$true
+    $startInfo.RedirectStandardOutput=$true
+        
+    $proc=New-Object System.Diagnostics.Process
+    $proc.StartInfo=$startInfo
+    $proc.Start() | Out-Null
+
+    #LAUNCH HERE
+    $proc.WaitForExit()
+    
+    $stdOutput=$proc.StandardOutput.ReadToEnd()
+    $stdErr=$proc.StandardError.ReadToEnd()
+    $result=$proc.ExitCode
+
+    write-host "  Done, return code is $result"
+
+    $stdOutput=Get-TrimmedString $stdOutput
+    $stdErr=Get-TrimmedString $stdErr
+    
+    write-host "--- Output ---"
+    if ( Test-String -HasData $stdOutput )
+    {        
+        write-host $stdOutput        
+    }
+    
+    if ( Test-String -HasData $stdErr )
+    {                
+        write-host "--- Error(s) ---"
+        write-host $stdErr        
+    }
+    write-host "--------------"
+
+    #now check if the EXE is still running in the background
+    #We need to remove the extension because get-process does not list .EXE
+    $execheck=[io.path]::GetFileNameWithoutExtension($ExeName)
+    
+    write-host "  Waiting 10 seconds before checking if the process is still running..."
+    Start-Sleep -Seconds 10
+
+    Do
+    {
+       $check=Get-Process "$execheck*" -ErrorAction SilentlyContinue
+       if ( $check )
+       {
+          write-host "   [$execheck] is still runing, waiting 10 seconds..."
+          Start-Sleep -Seconds 10
+       }
+       else
+       {
+          write-host "   [$execheck] is no longer running, waiting 5 seconds to allow cleanup..."
+          Start-Sleep -Seconds 5
+          break
+       }                                                                                
+     } while ($true)
+     
+     
+     write-host "  Start of [$ExeName] done"
+ }
+ catch
+ {
+    $result=$null
+    write-error "Starting failed! Error: $($error[0])"
+ }
+
+ return $result               
+}
+
+function Write-HostFirstLogFound()
+{
+ param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
+  [ValidateNotNullOrEmpty()]
+  [string]$Folder,
+
+  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [string]$Filter="*.log"
+ )
+
+ write-host "Checking for first file matching [$filter] in [$folder]..."
+
+ $logfiles=Get-ChildItem -Path $Folder -File -Include $filter -Recurse -Force 
+
+ if ( $logfiles -eq $null )
+ {
+    write-host "  No file found!"
+ }
+ else
+ {
+   $filename=$logFiles[0].FullName
+   
+   $content=Get-Content $filename -Raw
+
+   Write-HostOutputFromProgram -Name $filename -Content $content
+ }
+
+}
 
 
 function Invoke-MECheckAndUpdate()
@@ -2039,8 +2216,7 @@ function Invoke-MECheckAndUpdate()
     $xmlFilePattern="*_System_Summary.xml"
  
     $ignored=Remove-Item -Path "$tempFolder\$xmlFilePattern" -Force -ErrorAction SilentlyContinue
-    #Remove-File -Filename "$tempFolder\$xmlFilePattern"
-
+    
     try
     {
         $runToolResult=&"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $tempFolder | out-string
@@ -2169,43 +2345,22 @@ function Invoke-MECheckAndUpdate()
                             write-host "  ME update required!"
 
                             $updatefolder="$ModelFolder\ME-$versionDesiredText"
-                            $localfolder=$null
-                            try
+
+                            $result=Invoke-UpdateProgramRun -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile ""
+                            
+                            if ( $result -eq $null )
                             {
-                                $localfolder=Copy-FolderForExec -SourceFolder $updatefolder -DeleteFilter "*.log"
+                                write-error "Running ME update command failed!"
+                                $result=$null
                             }
-                            catch
-                            {
-                                write-host "Preparing local folder failed: $($error[0])"
-                            }
-
-                            if ( $localfolder -ne $null )
-                            {              
-                                # Get the parameters together.
-                                $params=Get-ArgumentsFromHastable -Hashtable $settings 
-                                $ExeFile="$localfolder\$($settings["command"])"               
-
-                                #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-                                $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params
-               
-                                #always try to grab the log file
-                                #$ignored=Write-HostFirstLogFound $localfolder
-
-                                if ( $returnCode -eq $null )
-                                {
-                                    write-error "Running ME update command failed!"
-                                    $result=$null
-                                }
-                                else
-                                {                  
-                                    write-host "ME update success"
-                                    $result=$true
-                                }
-
+                            else
+                            {                  
+                                write-host "ME update success"
+                                $result=$true
                             }
 
+                           
                             #
-
                         }
                     }                                
                 }                
@@ -2357,40 +2512,6 @@ function Write-HostPleaseRestart()
  )
 
  Write-HostFramedText -Heading "Restart required" -Text $Reason -Footer "Please restart the computer as soon as possible."
-}
-
-
-function Write-HostFirstLogFound()
-{
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Folder,
-
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$Filter="*.log"
- )
-
- write-host "Checking for first file matching [$filter] in [$folder]..."
-
- $logfiles=Get-ChildItem -Path $Folder -File -Filter $filter -Force 
-
- if ( $logfiles -eq $null )
- {
-    write-host "  No files found!"
- }
- else
- {
-   $filename=$logFiles[0].FullName
-   
-   $content=Get-Content $filename -Raw
-
-   Write-HostOutputFromProgram -Name $filename -Content $content
-   #Write-HostSection ":: BEGIN :: $filename"         
-   #write-host $content
-   #Write-HostSection ":: END :: $filename"
- }
-
 }
 
 

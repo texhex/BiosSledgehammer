@@ -220,7 +220,7 @@ Depending on the model, a device might be equipped with [Intel Active Management
  
 :warning: **WARNING!** The updates tool for the ME firmware from HP **DOES NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. If this happens, the machine will be toast/FUBAR on next start (CAPS LOCK will blink 5 times) and the mainboard needs to be replaced. Therefore, please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
 
-If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you are forced to use this in some cases.
+If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
 
 The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#modelsfolder). Example:
 
