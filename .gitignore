@@ -7,6 +7,9 @@ TPM12*
 TPM20*
 *.pdf
 *.rtf
+ISA75DT-1.0.1.39/Windows/Intel-SA-00075-console.exe.config
+ISA75DT-1.0.1.39/Windows/Intel-SA-00075-GUI.exe.config
+
 
 
 # User-specific files
