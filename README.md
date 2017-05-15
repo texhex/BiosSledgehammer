@@ -29,7 +29,7 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
 * BIOS Sledgehammer is **NOT** an official HP or Intel tool.                         
 * This is **NOT** sponsored or endorsed by HP or Intel.
-* HP was **NOT** involved in developing BIOS Sledgehammer.
+* HP or Intel were **NOT** involved in developing BIOS Sledgehammer.
 * The device can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
 
 ## <a name="about">About</a>
