@@ -21,8 +21,9 @@ param(
   [switch]$ActivateUEFIBoot=$False
 )
 
+
 #Script version
-$scriptversion="3.0.2"
+$scriptversion="3.0.3"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -408,8 +409,20 @@ function Get-BiosValue()
       try
       {
          #Try to get a single value
-         $output=&$BCU_EXE -getvalue $Name | Out-String
 
+         #Starting with BCU 4.0.21.1, a call to /GetValue will cause BCU
+         #to write a single text file with the name of the setting
+         #to the current working directory. We change the current 
+         #directory to TEMP to avoid any issues.
+         $previousLocation=Get-Location         
+         Set-Location $(Get-TempFolder) | Out-Null
+         
+         #$output=&$BCU_EXE -getvalue $Name | Out-String
+         $output=&$BCU_EXE /GetValue:`"$Name`" | Out-String
+
+         Set-Location $previousLocation -ErrorAction SilentlyContinue | Out-Null
+
+         
          write-verbose "Read BIOS value: Result from BCU ============="
          write-verbose $output.Trim()
          write-verbose "=============================================="
@@ -1214,7 +1227,7 @@ function Update-BiosFirmware()
                 #write-host "  Full path to firmware file: [$firmwareFile]"
             } 
 
-            $returncode=Invoke-UpdateProgramRun -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
+            $returncode=Invoke-UpdateProgram -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
      
             if ( $returnCode -eq $null )
             {
@@ -1454,7 +1467,7 @@ function Invoke-BitLockerDecryption()
 }
 
 
-function Update-TPM()
+function Update-TPMFirmware()
 {
  param(
   [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
@@ -1471,14 +1484,15 @@ function Update-TPM()
 
  Write-HostSection "TPM Update"
 
- $result=$false
- $updatefile="$ModelFolder\TPM-Update.txt"
-   
+ $result=$null
+
+ $updatefile="$ModelFolder\TPM-Update.txt"   
  write-host "Reading TPM update information from [$updatefile]..."
 
  if ( -not (Test-FileExists $updatefile) ) 
  {
     write-host "File does not exist, ignoring TPM update"
+    $result=$false
  } 
  else
  {
@@ -1573,6 +1587,7 @@ function Update-TPM()
              if ( -not ($updateBecauseTPMSpec -and $updateBecauseFirmware) )
              {
                 write-host "TPM update not required"
+                $result=$false
              }
              else
              {
@@ -1630,7 +1645,7 @@ function Update-TPM()
                                 
                 if ( -not $firmwareEntryFound )
                 {
-                   write-warning "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
+                   write-error "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
                 }
                 else
                 {
@@ -1691,10 +1706,11 @@ function Update-TPM()
                             Write-Error "BitLocker is in use, TPM update not possible"
                       }
                       else
-                      {                              
+                      {                                      
                             #Real update process starts here. We might need to do this two times in case two firmwares were found
+                            
                             #$returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -Hashtable $settings -PasswordFile $PasswordFile                          
-                            $returnCode=Invoke-UpdateProgramRun -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
+                            $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
 
                             if ( $returnCode -eq $null )
                             {
@@ -1705,7 +1721,7 @@ function Update-TPM()
                             {
                                 #If it's not null, we have two options:
 
-                                #Only a single firmware file exist: Assume any return code is OK
+                                # (A) Only a single firmware file exist: Assume any return code is OK
                                 $updateSuccess=$false
 
                                 if ( -not (Test-String -HasData $firmwareFile_B) )
@@ -1714,7 +1730,7 @@ function Update-TPM()
                                 }
                                 else
                                 {
-                                    #Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
+                                    # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
                                     if ( $returnCode -ne 275 )
                                     {
                                         #Different return code than 275, most likely the command was a success
@@ -1725,8 +1741,7 @@ function Update-TPM()
                                         #Return code was 275 - repeat with firmwareFile_B
                                         write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
                                         
-                                        #$returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -Hashtable $settings -PasswordFile $PasswordFile
-                                        $returnCode=Invoke-UpdateProgramRun -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
+                                        $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
 
                                         if ( $returnCode -eq $null )
                                         {
@@ -1744,18 +1759,19 @@ function Update-TPM()
                                 if ( $updateSuccess -eq $true )
                                 {
                                     write-host "TPM update success"
+                                    $result=$True
                                 }
                                 else
-                                {
-                                    
+                                {                                    
                                     write-error "Running TPM update command failed!"
+                                    $result=$null
                                 }
 
                                 
                             }
 
-                            #always set result to TRUE so we return a 3010 code
-                            $result=$true
+                            ###always set result to TRUE so we return a 3010 code
+                            ##$result=$true
                                                  
                       }
                    }
@@ -1771,64 +1787,8 @@ function Update-TPM()
  return $result
 }
 
-<#
-function Invoke-TPMUpdateExe()
-{
- param(
-  [Parameter(Mandatory=$True)]
-  [ValidateNotNullOrEmpty()]
-  [hashtable]$Hashtable,
 
-  [Parameter(Mandatory=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$SourcePath,
-    
-  [Parameter(Mandatory=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$FirmwareFile,
-
-  [Parameter(Mandatory=$False)]
-  [string]$PasswordFile=""
-)
-    $returnCode=$null
-
-    
-    write-host "--- Preparing launch of TPM update executable for [$(Get-FileName $FirmwareFile)] ---"
-        
-    $localfolder=$null
-
-    try
-    {
-        $localfolder=Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"                        
-    }
-    catch
-    {
-        write-error "Preparing local folder failed: $($error[0])"
-    }
-
-    if ( $localfolder -ne $null )
-    {
-        $firmwareupdatefile="$localfolder\$FirmwareFile"
-        write-host "Firmware file used is [$firmwareupdatefile]"
-                         
-        #Concat the data for execution 
-        $params=Get-ArgumentsFromHastable -Hashtable $Hashtable -PasswordFile $PasswordFile -FirmwareFile $firmwareupdatefile
-        $ExeFile="$localfolder\$($Hashtable["command"])"               
-                        
-        $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params                        
-        
-        #write log to output                 
-        $ignored=Write-HostFirstLogFound $localfolder
-    }
-
-    write-host "--- TPM update executable finished ---"
-
-    return $returnCode
-}
-#>
-
-
-function Invoke-UpdateProgramRun()
+function Invoke-UpdateProgram()
 {
  param(
   [Parameter(Mandatory=$False)]
@@ -1850,45 +1810,76 @@ function Invoke-UpdateProgramRun()
 )
 
     $result=$null
+    write-verbose "Invoke-UpdateProgram() started"
+    
 
-    if ( Test-String -HasData $Name)
+    Write-Verbose "Checking if system is on AC or DC (battery) power. "    
+    #see https://msdn.microsoft.com/en-us/library/aa394074(v=vs.85).aspx
+    $batteryStatus=(Get-CimInstance Win32_Battery).BatteryStatus
+    $batteryOK=$false
+    
+    if ($batteryStatus -eq $null)
     {
-        write-host "::: Preparing launch of update executable - $name :::"
+        #No battery found, ignoring state 
+        $batteryOK=$true
     }
     else
     {
-        write-host "::: Preparing launch of update executable :::"
+        #On Battery (1), Critical (5), Charging and Critical (9)
+        if ( ($batteryStatus -eq 1) -or ($batteryStatus -eq 5) -or ($batteryStatus -eq 9) )
+        {
+            write-error "This device is running on battery or the battery is at a critically low level. Update program will not be started to prevent possible firmware corruption."
+        }
+        else
+        {
+            $batteryOK=$true
+        }
     }
 
 
-    $localFolder=$null
-    try
+    if ( $batteryOK ) 
     {
-        $localFolder=Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"
-    }
-    catch
-    {
-        write-host "Preparing local folder failed: $($error[0])"
-    }
 
-    if ( $localfolder -ne $null )
-    {              
-        #Get the parameters together.
-        #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-        $params=Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $FirmwareFile
+        if ( Test-String -HasData $Name)
+        {
+            write-host "::: Preparing launch of update executable - $name :::"
+        }
+        else
+        {
+            write-host "::: Preparing launch of update executable :::"
+        }
 
-        #Get the exe file
-        $exeFileName=$Settings["command"]        
-        $exeFileLocalPath="$localFolder\$exeFileName"               
+        $localFolder=$null
+        try
+        {
+            $localFolder=Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"
+        }
+        catch
+        {
+            write-host "Preparing local folder failed: $($error[0])"
+        }
 
-        #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-        $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params
+        if ( $localfolder -ne $null )
+        {              
+            #Get the parameters together.
+            #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+            $params=Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $FirmwareFile
+
+            #Get the exe file
+            $exeFileName=$Settings["command"]        
+            $exeFileLocalPath="$localFolder\$exeFileName"               
+
+            #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+            $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params
                
-        #always try to grab the log file
-        $ignored=Write-HostFirstLogFound -Folder $localFolder
-    }
+            #always try to grab the log file
+            $ignored=Write-HostFirstLogFound -Folder $localFolder
+        }
 
-    write-host "::: Launching update executable finished :::"
+        write-host "::: Launching update executable finished :::"
+    }
+    
+    write-verbose "Invoke-UpdateProgram() ended"
     return $result
 }
 
@@ -2180,7 +2171,7 @@ function Write-HostFirstLogFound()
 }
 
 
-function Invoke-MECheckAndUpdate()
+function Update-MEFirmware()
 {
  param(
   [Parameter(Mandatory=$True,ValueFromPipeline=$False)]
@@ -2189,7 +2180,7 @@ function Invoke-MECheckAndUpdate()
  )
 
  Write-HostSection "Management Engine (ME) Update"
- $result=$false
+ $result=$null
 
  $checkFile="$ModelFolder\ME-VulnerabilityScan.txt"
  $updateSettingsFile="$ModelFolder\ME-Update.txt"
@@ -2203,6 +2194,7 @@ function Invoke-MECheckAndUpdate()
  if ( -not ( $performSecurityCheck -or $performUpdateIfNeeded)  ) 
  {
     write-host "No ME setting file found, nothing to do"
+    $result=$false
  } 
  else
  {    
@@ -2343,24 +2335,39 @@ function Invoke-MECheckAndUpdate()
                         else
                         {
                             write-host "  ME update required!"
-
-                            $updatefolder="$ModelFolder\ME-$versionDesiredText"
-
-                            $result=Invoke-UpdateProgramRun -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile ""
                             
-                            if ( $result -eq $null )
+                            <#
+                             All ME firmware downloads from HP advise that the driver needs to be installed before:                            
+                              "Intel Management Engine Components Driver must be installed before this package is installed."
+
+                             The Intel detection tool has the element "ME_Driver_Installed" which we also read into $MEData.DriverInstalled
+                              "True/False value if the MEI driver is present on the computer"
+                            
+                             Therefore we will only execute the update if a driver was detected.
+                            #>
+
+                            if ( -not $MEData.DriverInstalled )
                             {
-                                write-error "Running ME update command failed!"
-                                $result=$null
+                                write-error "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
                             }
                             else
-                            {                  
-                                write-host "ME update success"
-                                $result=$true
-                            }
+                            {
+                                $updatefolder="$ModelFolder\ME-$versionDesiredText"
 
-                           
-                            #
+                                $result=Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile ""
+                            
+                                if ( $result -eq $null )
+                                {
+                                    write-error "Running ME update command failed!"
+                                }
+                                else
+                                {                  
+                                    write-host "ME update success"
+                                    $result=$true
+                                }
+
+                                #All done
+                            }
                         }
                     }                                
                 }                
@@ -2618,9 +2625,11 @@ function Remove-File()
     We need to do the following in the correct order
     
     (1) BIOS Update - Because a possible TPM update requires an updated BIOS 
-    (2) TPM Update - Because some settings might require a newer TPM firmware
-    (3) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set
-    (4) BIOS Settings
+    (2) ME Update - Because some BIOS version recommand an ME firmware update, e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html
+    (3) TPM Update - Because some settings might require a newer TPM firmware
+    (4) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set
+    (5) BIOS Settings
+
    #>
 
    write-host "Collecting system information..."
@@ -2753,7 +2762,7 @@ function Remove-File()
 
             if ( $biosUpdated -eq $null) 
             {
-                write-error "BIOS Update failed!"
+                write-error "BIOS update failed!"
             }        
             else
             {
@@ -2765,73 +2774,84 @@ function Remove-File()
                 }
                 else 
                 {
-                    #ME update/check
-                    
-                    #We do this at this point because some BIOS version recommand an ME firmware update
-                    #e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html
+                    #ME update/check                    
                     $mefwUpdated=$false                     
-                    $mefwUpdated=Invoke-MECheckAndUpdate -Modelfolder $modelfolder
+                    $mefwUpdated=Update-MEFirmware -Modelfolder $modelfolder
 
-                    if ( $mefwUpdated )
+                    if ($mefwUpdated -eq $null)
                     {
-                        $ignored=Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
-                        $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                        Write-Error "ME update failed!"
                     }
                     else
                     {
-                        #TPM Update
-                        $tpmUpdated=$false
-
-                        if ( $TPMDetails.Parsed )
+                        if ( $mefwUpdated )
                         {
-                            $tpmUpdated=Update-TPM -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
-                        }
-
-                        if ( $tpmUpdated )
-                        {
-                            $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                            $ignored=Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
                             $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
                         }
                         else
-                        {                     
-                            #BIOS Password update
-                            $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+                        {
+                            #TPM Update
+                            $tpmUpdated=$false
 
-                            if ( $updatedPasswordFile -ne $null )
+                            if ( $TPMDetails.Parsed )
                             {
-                                #File has changed - remove old password file
-                                $ignored=Remove-File -Filename $CurrentPasswordFile
-                                $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                                $tpmUpdated=Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
                             }
 
-                            #Apply BIOS Settings
-                            $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                            if ( ($settingsApplied -lt 0) )
+                            if ($tpmUpdated -eq $null)
                             {
-                                write-error "Error applying BIOS settings!"
+                                Write-Error "TPM update failed!"
                             }
                             else
                             {
-                                 <#
-                                   Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
-                                   does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
-                                   value as before. 
-                 
-                                 if ( $settingsApplied -ge 1 )
-                                 {
-                                    $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                                if ( $tpmUpdated )
+                                {
+                                    $ignored=Write-HostPleaseRestart -Reason "A TPM update was performed."              
                                     $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-                                 }
-                                 else
-                                 {
-                                    #no changes for BIOS setting
-                                    $returncode=0
-                                 }
-                                 #>
+                                }
+                                else
+                                {                     
+                                    #BIOS Password update
+                                    $updatedPasswordFile=Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                                    if ( $updatedPasswordFile -ne $null )
+                                    {
+                                        #File has changed - remove old password file
+                                        $ignored=Remove-File -Filename $CurrentPasswordFile
+                                        $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                                    }
+
+                                    #Apply BIOS Settings
+                                    $settingsApplied=Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                                    if ( ($settingsApplied -lt 0) )
+                                    {
+                                        write-error "Error applying BIOS settings!"
+                                    }
+                                    else
+                                    {
+                                         <#
+                                           Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
+                                           does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
+                                           value as before. 
                  
-                                $returncode=0
-                          }
+                                         if ( $settingsApplied -ge 1 )
+                                         {
+                                            $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                                            $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                                         }
+                                         else
+                                         {
+                                            #no changes for BIOS setting
+                                            $returncode=0
+                                         }
+                                         #>
+                 
+                                        $returncode=0
+                                    }
+                               }
+                            }
                         }
                     }
                 }
