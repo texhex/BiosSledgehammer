@@ -23,7 +23,7 @@ param(
 
 
 #Script version
-$scriptversion="3.0.3"
+$scriptversion="3.0.4"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -177,8 +177,11 @@ function Test-BiosCommunication()
 
   #At least the ProDesk 600 G1 uses the name "Enter UUID"
   #Newer models use "Universally Unique Identifier (UUID)"
+  
+  #raynorpat: my 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
+  #https://github.com/raynorpat
 
-  $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID")
+  $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
 
   $UUID=Get-BiosValue -Names $UUIDNames -Silent
 
