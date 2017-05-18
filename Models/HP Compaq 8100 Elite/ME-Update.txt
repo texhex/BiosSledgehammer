@@ -1,0 +1,11 @@
+# 8100 Elite ME Update
+
+
+# The ME firmware version the device should have
+Version == 6.2.61.3535
+
+#Command to be executed for the ME update
+Command==CallInst.exe
+
+Arg1 == /app Update.bat
+Arg2 == /hide

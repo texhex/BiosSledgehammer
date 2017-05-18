@@ -1,0 +1,30 @@
+# 8570p
+
+Boot Mode==UEFI Native (Without CSM)
+SecureBoot==Enable
+
+Reset of TPM from OS==Enable
+OS Management of TPM==Enable
+TPM Device==Available
+
+#If the setting is set to "F1 to Boot" when no BIOS password is defined, this value can not be set with error 32769
+TPM Activation Policy==No prompts
+
+Data Execution Prevention==Enable
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+                                     
+LAN/WLAN Switching==Enable
+Fast Boot==Disable
+
+SATA Device Mode == AHCI
+Multi Core CPU == Enable
+Intel (R) HT Technology == Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ....
+

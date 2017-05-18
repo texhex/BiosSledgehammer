@@ -1,0 +1,3 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp53501-54000/sp53945.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp53501-54000/sp53945.html

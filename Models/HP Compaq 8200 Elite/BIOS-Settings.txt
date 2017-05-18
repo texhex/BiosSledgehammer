@@ -1,0 +1,35 @@
+# HP Compaq Pro 8200 Elite
+
+#Legacy Support==Disable
+Secure Boot==Enable
+
+
+Reset of Embedded Security Device through OS==Enable
+OS management of Embedded Security Device==Enable
+Embedded Security Device==Device available
+Embedded Security Activation Policy==No prompts
+
+Data Execution Prevention==Enable
+
+#Can't active this either...
+#Virtualization Technology (VTx)==Enable
+#Virtualization Technology Directed I/O (VTd)==Disable
+                                     
+#Fast Boot==Disable
+
+SATA Emulation == AHCI
+
+Multi-Processor == Enable
+
+Hyper-Threading == Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Set it to your company name
+#Enter Ownership Tag == Property of ....
+
+
+
+
+
+
