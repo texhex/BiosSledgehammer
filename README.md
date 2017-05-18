@@ -1,5 +1,5 @@
 # BIOS Sledgehammer
-Automated BIOS update, TPM firmware update and BIOS settings for HP devices.
+Automated BIOS, ME, TPM firmware update and BIOS settings for HP devices.
 
 ```
             _
@@ -220,7 +220,7 @@ If anything goes wrong during the process, an error is generated.
 
 Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable. This can be done with BIOS Sledgehammer.   
  
-:warning: **WARNING!** The updates tool for the ME firmware from HP **DOES NOT** check if the provided ME firmware file matches the current model. This means, it allows to flash the ME firmware from a ZBook G1 on an EliteBook 840 G4 without an error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Therefore, please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
+:warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine. 
 
 If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
 
@@ -238,6 +238,8 @@ Command==CallInst.exe
 Arg1 == /app Update.bat 
 Arg2 == /hide
 ```
+
+:exclamation: **IMPORTANT!** Please note that newer versions of the ME firmware update tool require the .NET 3.x framework to be installed. 
 
 *Version* defines which ME version the device should have. If the current firmware is older, the update files are copied locally and then started using the settings *Command* and *ArgX*. A restart is requested after that because the new firmware will only be activated during POST, after an restart. 
 
