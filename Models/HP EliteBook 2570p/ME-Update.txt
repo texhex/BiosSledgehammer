@@ -1,0 +1,11 @@
+# 2470p ME Update
+
+
+# The ME firmware version the device should have
+Version == 8.1.71.3608
+
+#Command to be executed for the ME update
+Command==CallInst.exe
+
+Arg1 == /app Update.bat
+Arg2 == /hide

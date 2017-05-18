@@ -1,0 +1,45 @@
+# ZBook 15 G3 BIOS Settings
+
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+Enable MS UEFI CA key == Yes
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+#Anti-Theft stuff
+Absolute Persistence Module Current State==Inactive
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+
+# This makes sure that the user is not prompted when connecting his/her docking station
+Thunderbolt Security Level==PCIe and DisplayPort - No Security
+#default value: PCIe and DisplayPort - User Authorization
+
+LAN / WLAN Auto Switching==Enabled
+
+Fast Boot==Disable
+Turbo-boost==Enable
+Hyperthreading==Enable
+Multi-processor==Enable
+
+Connected Standby Supported==Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+
+
+#No idea if we need to set this or not. Default is AUTO
+#Graphics==Hybrid Graphics
+#Graphics==Discrete Graphics
+#Graphics==Auto
+#Force to Run Discrete Only Mode==Disable
+
+#Better leave this alone
+#Wake unit from sleep when lid is opened==Enabled
+
+

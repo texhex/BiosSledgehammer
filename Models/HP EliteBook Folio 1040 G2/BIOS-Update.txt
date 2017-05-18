@@ -1,12 +1,13 @@
-# 1040 G3 update
+# 1040 G2 update
 
-# The BIOS version the device should be on
-Version == 1.11
+#The BIOS version the device should be on
+Version == 1.07
 
-# Command to be executed for the BIOS update
+#Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
 
-# Arguments passed to COMMAND
+
+#There can be spaces before the argument since leading and trailing spaces are removed
 
 # Silent
 Arg1 == -s
@@ -16,4 +17,6 @@ Arg2 == -r
 Arg3 == -b
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
+
+
 
