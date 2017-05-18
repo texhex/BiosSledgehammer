@@ -178,8 +178,7 @@ function Test-BiosCommunication()
   #At least the ProDesk 600 G1 uses the name "Enter UUID"
   #Newer models use "Universally Unique Identifier (UUID)"
   
-  #raynorpat: my 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
-  #https://github.com/raynorpat
+  #Raynorpat (https://github.com/raynorpat): my 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
 
   $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
 
@@ -1586,8 +1585,8 @@ function Update-TPMFirmware()
              write-host "Update required result:"
              write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
              write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
-
-             if ( -not ($updateBecauseTPMSpec -and $updateBecauseFirmware) )
+             
+             if ( -not ($updateBecauseTPMSpec -or $updateBecauseFirmware) )
              {
                 write-host "TPM update not required"
                 $result=$false
@@ -1809,7 +1808,10 @@ function Invoke-UpdateProgram()
   [string]$FirmwareFile="",
 
   [Parameter(Mandatory=$False)]
-  [string]$PasswordFile=""
+  [string]$PasswordFile="",
+
+  [Parameter(Mandatory=$False)]
+  [switch]$NoOutputRedirect=$false
 )
 
     $result=$null
@@ -1873,7 +1875,7 @@ function Invoke-UpdateProgram()
             $exeFileLocalPath="$localFolder\$exeFileName"               
 
             #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-            $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params
+            $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params -NoOutputRedirect:$NoOutputRedirect
                
             #always try to grab the log file
             $ignored=Write-HostFirstLogFound -Folder $localFolder
@@ -2048,19 +2050,20 @@ function Invoke-ExeAndWaitForExit()
   [string]$ExeName,
 
   [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [array]$Parameter=@()
+  [array]$Parameter=@(),
+
+  [Parameter(Mandatory=$False)]
+  [switch]$NoOutputRedirect=$false
  )
 
  $result=-1
   
- write-host "About to launch: "
+ write-host "Starting: "
  write-host "  $ExeName"
  write-host "  $Parameter"
  
  try
  {
-    write-verbose "Starting exe..."
-
     #Version 1
     #We can not use this command because this will not return the exit code. 
     #Also, most HP update tools do not return anything to stdout at all.
@@ -2076,8 +2079,16 @@ function Invoke-ExeAndWaitForExit()
     $startInfo.Arguments=$Parameter
     
     $startInfo.UseShellExecute=$false #else redirected streams do not work
-    $startInfo.RedirectStandardError=$true
-    $startInfo.RedirectStandardOutput=$true
+
+    if ( $NoOutputRedirect )
+    {
+        Write-Verbose "StdOut and StdError redirection disabled"
+    }
+    else
+    {
+        $startInfo.RedirectStandardError=$true
+        $startInfo.RedirectStandardOutput=$true
+    }
         
     $proc=New-Object System.Diagnostics.Process
     $proc.StartInfo=$startInfo
@@ -2086,9 +2097,16 @@ function Invoke-ExeAndWaitForExit()
     #LAUNCH HERE
     $proc.WaitForExit()
     
-    $stdOutput=$proc.StandardOutput.ReadToEnd()
-    $stdErr=$proc.StandardError.ReadToEnd()
+    #Get result code
     $result=$proc.ExitCode
+    $stdOutput=""
+    $stdErr=""
+
+    if ( -not $NoOutputRedirect )
+    {
+        $stdOutput=$proc.StandardOutput.ReadToEnd()
+        $stdErr=$proc.StandardError.ReadToEnd()
+    }
 
     write-host "  Done, return code is $result"
 
@@ -2355,9 +2373,11 @@ function Update-MEFirmware()
                             }
                             else
                             {
+                                write-host "The ME update will take some time, please be patient."
+                                
                                 $updatefolder="$ModelFolder\ME-$versionDesiredText"
 
-                                $result=Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile ""
+                                $result=Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
                             
                                 if ( $result -eq $null )
                                 {
