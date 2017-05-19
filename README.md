@@ -84,9 +84,7 @@ When starting BiosSledgehammer.ps1, the following will happen:
 * If the file **BIOS-Password.txt** is found, it is checked if the device is already set to use this password. The password is not specified directly (clear), but by using a *.bin file name that stores the password encrypted. If the passwords differ, the configured *.bin file is read from the [PwdFiles folder](#pwdfilesfolder) and the password is changed. See [BIOS Password](#biospassword) for more details.
 * If the file **BIOS-Settings.txt** exists, it is read and each entry is the name of a BIOS setting that needs to be changed. Each entry will be performed as single change (not all in a batch) to detect faulty settings more easily. See [BIOS Settings](#biossettings) for more details.
 
-Starting with Windows 10 1703, you can in-place convert coinvert from BIOS legacy (MBR) to UEFI boot mode (GPT); this is supported by BIOS Sledgehammer using the parameter ``-ActivateUEFIBoot``. This switch will result in BIOS Sledgehammer only apply the BIOS settings defined in **Activate-UEFIBoot.txt**.
-
-These are normally just two settings to change the boot mode to UEFI. Please see [In-place BIOS to UEFI boot mode conversion](#activateuefimode) for more details.  
+Starting with Windows 10 1703, you can in-place convert from BIOS legacy (MBR) to UEFI boot mode (GPT); this is supported by BIOS Sledgehammer using the parameter ``-ActivateUEFIBoot``. This parameter will result in BIOS Sledgehammer only apply the BIOS settings defined in **Activate-UEFIBoot.txt**, which are one or two settings to change the boot mode to UEFI. Please see [In-place BIOS to UEFI boot mode conversion](#activateuefimode) for more details.  
 
 ## <a name="returncodes">Return Code (exit code)</a>
 
