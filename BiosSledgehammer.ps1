@@ -23,7 +23,7 @@ param(
 
 
 #Script version
-$scriptversion="3.0.4"
+$scriptversion="3.1.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -84,12 +84,12 @@ write-host $banner
 
 #Configure which BCU version to use 
 #Version 2.45 and upwards: BCU 4.0.21.1
-Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" –option ReadOnly -Force
+Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" -option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
 
 #Configute which ISA00075 version to use
-Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" –option ReadOnly -Force
+Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" -option ReadOnly -Force
 
 
 #For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally
@@ -97,17 +97,17 @@ Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA
 Set-Variable BCU_EXE "" -Force
 
 #Path to password files (need to have extension *.bin)
-Set-Variable PWDFILES_PATH "$PSScriptRoot\PwdFiles" –option ReadOnly -Force
+Set-Variable PWDFILES_PATH "$PSScriptRoot\PwdFiles" -option ReadOnly -Force
 
 #Will store the currently used password file (copied locally)
 #File will be deleted when the script finishes
 Set-Variable CurrentPasswordFile "" -Force
 
 #Path to model files
-Set-Variable MODELS_PATH "$PSScriptRoot\Models" –option ReadOnly -Force
+Set-Variable MODELS_PATH "$PSScriptRoot\Models" -option ReadOnly -Force
 
 #Common exit code
-Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 –option ReadOnly -Force
+Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 -option ReadOnly -Force
 
 
 
@@ -175,10 +175,9 @@ function Test-BiosCommunication()
   
   write-host "Trying to read UUID to test BIOS communication..." -NoNewline
 
-  #At least the ProDesk 600 G1 uses the name "Enter UUID"
-  #Newer models use "Universally Unique Identifier (UUID)"
-  
-  #Raynorpat (https://github.com/raynorpat): my 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
+  #Newer models use "Universally Unique Identifier (UUID)"  
+  #At least the ProDesk 600 G1 uses the name "Enter UUID"  
+  #Raynorpat (https://github.com/raynorpat): My 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
 
   $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
 
@@ -963,12 +962,6 @@ function Get-BIOSVersionDetails()
 }
 
 
-
-
-
-
-
-
 function Get-VersionTextAndNumerical()
 {
  param(
@@ -1222,11 +1215,7 @@ function Update-BiosFirmware()
             {
                 #Entry exists
                 $firmwareFile=$details[$biosFamily]
-                write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"
-                
-                #Possible bug that we do not longer pass the full path to the firmware file?  
-                #$firmwarefile="$localfolder\$firmwareFile"
-                #write-host "  Full path to firmware file: [$firmwareFile]"
+                write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"                
             } 
 
             $returncode=Invoke-UpdateProgram -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
@@ -1242,62 +1231,6 @@ function Update-BiosFirmware()
                $result=$true
             }
 
-            <#
-            $updatefolder="$ModelFolder\BIOS-$versionDesiredText"
-            $localfolder=$null
-            try
-            {
-              $localfolder=Copy-FolderForExec -SourceFolder $updatefolder -DeleteFilter "*.log"
-            }
-            catch
-            {
-              write-host "Preparing local folder failed: $($error[0])"
-            }
-
-            if ( $localfolder -ne $null )
-            {
-               #check if we need to pass a firmware file based on the BIOS Family
-               $firmwareFile=""
-               $biosFamily=$BiosDetails.Family
-
-               write-host "BIOS family is [$biosFamily]"
-               if ( $details.ContainsKey($biosFamily) )
-               {
-                  #Entry exists
-                  $firmwareFile=$details[$biosFamily]
-                  write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"
-                  
-                  $firmwarefile="$localfolder\$firmwareFile"
-                  write-host "  Full path to firmware file: [$firmwareFile]"
-               }    
-               
-                     
-               # Get the parameters together.
-               $params=Get-ArgumentsFromHastable -Hashtable $details -PasswordFile $PasswordFile -FirmwareFile $firmwareFile
-               $ExeFile="$localfolder\$($details["command"])"               
-
-               #run "manage-bde.exe C: -pause" before?
-
-               #HPBiosUpdRec64.exe/hpqFlash64.exe might restart itself as a service in order to perform the update,
-               #so we need to wait for it.
-
-               #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-               $returnCode=Invoke-ExeAndWaitForExit -ExeName $ExeFile -Parameter $params
-               
-               #always try to grab the log file
-               $ignored=Write-HostFirstLogFound $localfolder
-
-               if ( $returnCode -eq $null )
-               {
-                  write-error "Running BIOS update command failed!"
-                  $result=$null
-               }
-               else
-               {                  
-                  write-host "BIOS update success"
-                  $result=$true
-               }
-               #>
               
             #update done
          }
@@ -1866,15 +1799,22 @@ function Invoke-UpdateProgram()
 
         if ( $localfolder -ne $null )
         {              
+            #Some HP tools require full paths for the firmware file or they will not work, especially TPMConfig64.exe
+            #Therefore append the local path to the firmware if one is set
+            $localFirmwareFile=$FirmwareFile
+            if ( Test-String $localFirmwareFile -HasData)
+            {
+                $localFirmwareFile=Join-Path -Path $localFolder -ChildPath $localFirmwareFile
+            }
+
             #Get the parameters together.
             #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-            $params=Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $FirmwareFile
+            $params=Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $localFirmwareFile
 
             #Get the exe file
             $exeFileName=$Settings["command"]        
             $exeFileLocalPath="$localFolder\$exeFileName"               
 
-            #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
             $result=Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params -NoOutputRedirect:$NoOutputRedirect
                
             #always try to grab the log file
@@ -1910,7 +1850,6 @@ function Copy-FolderForExec()
  {
     #When using $env:temp, we might get a path with "~" in it
     #Remove-Item does not like these path, no idea why...
-    #$dest=Join-Path -Path $env:temp -ChildPath (Split-Path $SourceFolder -Leaf)
     $dest=Join-Path -Path $(Get-TempFolder) -ChildPath (Split-Path $SourceFolder -Leaf)
 
     #If it exists, kill it
@@ -1967,6 +1906,7 @@ function Copy-FolderForExec()
     return $dest.TrimEnd("\")
  }
 }
+
 
 function Get-ArgumentsFromHastable()
 {
@@ -2099,6 +2039,7 @@ function Invoke-ExeAndWaitForExit()
     
     #Get result code
     $result=$proc.ExitCode
+    
     $stdOutput=""
     $stdErr=""
 
