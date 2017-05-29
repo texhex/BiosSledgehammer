@@ -23,7 +23,7 @@ param(
 
 
 #Script version
-$scriptversion="3.1.0"
+$scriptversion="3.1.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1751,11 +1751,23 @@ function Invoke-UpdateProgram()
     write-verbose "Invoke-UpdateProgram() started"
     
 
-    Write-Verbose "Checking if system is on AC or DC (battery) power. "    
-    #see https://msdn.microsoft.com/en-us/library/aa394074(v=vs.85).aspx
-    $batteryStatus=(Get-CimInstance Win32_Battery).BatteryStatus
-    $batteryOK=$false
+    write-host "Checking if system is on AC or DC (battery) power..."    
     
+    #Checking the property might fail with the message "The property 'BatteryStatus' cannot be found on this object. Verify that the property exists."    
+    try
+    {        
+        $batteryStatus=$null
+        
+        #see https://msdn.microsoft.com/en-us/library/aa394074(v=vs.85).aspx
+        $batteryStatus=(Get-CimInstance Win32_Battery -ErrorAction Stop).BatteryStatus
+        #-ErrorAction Stop is required to turn any error into a catchable error
+    }
+    catch
+    {
+        write-host "CIM Query Win32_Battery.BatteryStatus failed: $($error[0])"        
+    }
+
+    $batteryOK=$false    
     if ($batteryStatus -eq $null)
     {
         #No battery found, ignoring state 
@@ -1774,9 +1786,10 @@ function Invoke-UpdateProgram()
         }
     }
 
-
+    
     if ( $batteryOK ) 
     {
+        write-host "  Battery status is OK or system has no battery."
 
         if ( Test-String -HasData $Name)
         {
