@@ -12,8 +12,9 @@ Arg1 == -s
 # Password file (will be removed if empty password)
 Arg2 == -p"@@PASSWORD_FILE@@"
 
+# Not supported
 # Do not restart automatically
-Arg3 == -r
+#Arg3 == -r
 
 
 

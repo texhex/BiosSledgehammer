@@ -17,7 +17,7 @@ Multi-processor==Enable
 
 Fast Boot==Disable
 
-LAN / WLAN Auto Switching==Enabled
+LAN / WLAN Auto Switching==Enable
 
 Dynamic Platform and Thermal Framework (DPTF)==Enable
 
