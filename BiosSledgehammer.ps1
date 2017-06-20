@@ -12,6 +12,9 @@
 # Wait 30 seconds at the end of the script
 # .\BiosSledgehammer.ps1 -WaitAtEnd
 
+# Activate UEFI Boot mode for the current model (for MBR2GPT.exe)
+# .\BiosSledgehammer.ps1 -ActivateUEFIBoot
+
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$False)]
@@ -23,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.2.0"
+$scriptversion="3.2.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1259,15 +1262,24 @@ function Update-BiosFirmware()
 
             $returncode=Invoke-UpdateProgram -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
      
-            if ( $returnCode -eq $null )
+
+            if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
             {
-               write-error "Running BIOS update failed!"
-               $result=$null
+                write-host "BIOS update success"
+                $result=$true
             }
             else
-            {                  
-               write-host "BIOS update success"
-               $result=$true
+            {
+                $result=$null
+
+                if ( $returnCode -eq $null )
+                {
+                    write-error "Running BIOS update program failed"
+                }
+                else
+                {
+                    write-error "BIOS update failed, update program returned code $($returnCode)"
+                }
             }
 
               
@@ -1790,7 +1802,7 @@ function Invoke-UpdateProgram()
     write-verbose "Invoke-UpdateProgram() started"
     
 
-    write-host "Checking if system is on AC or DC (battery) power..."    
+    write-host "Checking if the computer is on AC or DC (battery) power..."    
     
     #Checking the property might fail with the message "The property 'BatteryStatus' cannot be found on this object. Verify that the property exists."    
     try
@@ -1799,11 +1811,11 @@ function Invoke-UpdateProgram()
         
         #see https://msdn.microsoft.com/en-us/library/aa394074(v=vs.85).aspx
         $batteryStatus=(Get-CimInstance Win32_Battery -ErrorAction Stop).BatteryStatus
-        #-ErrorAction Stop is required to turn any error into a catchable error
+        # "-ErrorAction Stop" is required to turn any error into a catchable error
     }
     catch
     {
-        write-host "CIM Query Win32_Battery.BatteryStatus failed: $($error[0])"        
+        write-host "Querying CIM for Win32_Battery.BatteryStatus failed ($($error[0])), assuming this computer has no battery."
     }
 
     $batteryOK=$false    
@@ -1817,7 +1829,7 @@ function Invoke-UpdateProgram()
         #On Battery (1), Critical (5), Charging and Critical (9)
         if ( ($batteryStatus -eq 1) -or ($batteryStatus -eq 5) -or ($batteryStatus -eq 9) )
         {
-            write-error "This device is running on battery or the battery is at a critically low level. Update program will not be started to prevent possible firmware corruption."
+            write-error "This device is running on battery or the battery is at a critically low level. The update will not be started to prevent possible firmware corruption."
         }
         else
         {
@@ -1828,7 +1840,7 @@ function Invoke-UpdateProgram()
     
     if ( $batteryOK ) 
     {
-        write-host "  Battery status is OK or system has no battery."
+        write-host "  Battery status is OK or no battery present."
 
         if ( Test-String -HasData $Name)
         {
