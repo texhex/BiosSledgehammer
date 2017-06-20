@@ -23,7 +23,7 @@ param(
 
 
 #Script version
-$scriptversion="3.1.2"
+$scriptversion="3.2.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -173,28 +173,67 @@ function Test-BiosCommunication()
 {
   $result=$false
   
-  write-host "Trying to read UUID to test BIOS communication..." -NoNewline
+  write-host "Verifying BIOS Configuration Utility (BCU) can communicate with BIOS." 
+
+  write-host "  Trying to read Universally Unique Identifier (UUID)..." -NoNewline
 
   #Newer models use "Universally Unique Identifier (UUID)"  
   #At least the ProDesk 600 G1 uses the name "Enter UUID"  
   #Raynorpat (https://github.com/raynorpat): My 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
-
   $UUIDNames=@("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
+  
+  $test=Test-BiosValueRead $UUIDNames
 
-  $UUID=Get-BiosValue -Names $UUIDNames -Silent
-
-  if ( -not (Test-String -IsNullOrWhiteSpace $UUID) ) 
+  if ( $test )
   {
-     write-host "  Success"
-     $result=$true
+       write-host "  Success"
+       $result=$true
   }
   else
-  {   
-    write-host "  Failed!"
+  {
+       write-host "  Failed."
+
+       #Some revision of some models (8x0 G1 for example) have a BIOS bug so BCU never returns UUID for those, although everything else works fine. 
+       #We try "Serial Number" in this case
+       write-host "  Trying to read Serial Number (S/N)..." -NoNewline
+       
+       $SNNames=@("Serial Number", "S/N")
+       $test=Test-BiosValueRead $SNNames
+       
+       if ( $test )
+       {
+           write-host "  Success"
+           $result=$true
+       }
+       else
+       {
+           write-host "  Failed."
+       }
+
   }
 
   
   return $result
+}
+
+function Test-BiosValueRead()
+{
+param(
+  [Parameter(Mandatory=$True,ValueFromPipeline=$false)]
+  [ValidateNotNullOrEmpty()]
+  [string[]]$ValueNames
+)
+    $result=$false
+
+    #Remove -Silent in order so what is going on
+    $testvalue=Get-BiosValue -Names $ValueNames -Silent
+    
+    if ( -not (Test-String -IsNullOrWhiteSpace $testvalue) ) 
+    {
+        $result=$true
+    }
+
+    return $result
 }
 
 
@@ -2578,7 +2617,7 @@ function Remove-File()
     #First try if we are able to communicate with the BIOS
     if ( Test-BiosCommunication ) 
     {
-        write-host "Communication with BIOS using BCU works, will continue."
+        write-host "Communication with BIOS works, will continue."
 		
 		$can_start=$True
     }
