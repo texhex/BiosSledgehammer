@@ -89,7 +89,7 @@ write-host $banner
 #Version 2.45 and upwards: BCU 4.0.21.1
 Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" -option ReadOnly -Force
   #for testing if the arguments are correctly sent to BCU
-  #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" –option ReadOnly -Force
+  #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" -option ReadOnly -Force
 
 #Configute which ISA00075 version to use
 Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" -option ReadOnly -Force
@@ -314,7 +314,7 @@ function ConvertTo-DescriptionFromBCUReturncode()
  $lookup=
  @{ 
   "0"="Success"; "1"="Not Supported"; "2"="Unknown"; "3"="Timeout"; "4"="Failed"; "5"="Invalid Parameter"; "6"="Access Denied";
-  "10"="Valid password not provided"; "11"="Config file not valid"; "12"="First line in config file is not the BIOSConfig”;
+  "10"="Valid password not provided"; "11"="Config file not valid"; "12"="First line in config file is not the BIOSConfig";
   "13"="Failed to change setting"; "14"="BCU not ready to write file."; "15"="Command line syntax error."; "16"="Unable to write to file or system";
   "17"="Help is invoked"; "18"="Setting is unchanged"; "19"="Setting is read-only"; "20"="Invalid setting name"; "21"="Invalid setting value";
   "23"="Unable to connect to HP BIOS WMI namespace"; "24"="Unable to connect to HP WMI namespace."; "25"="Unable to connect to PUBLIC WMI namespace";
@@ -840,7 +840,7 @@ function Test-BiosPasswordFiles()
   [string]$PwdFilesFolder
  )   
   
-  Set-Variable ASSET_NAME "Asset Tracking Number" –option ReadOnly -Force
+  Set-Variable ASSET_NAME "Asset Tracking Number" -option ReadOnly -Force
 
   Write-HostSection -Start "Determine BIOS Password"
 
