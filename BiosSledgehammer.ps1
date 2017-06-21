@@ -196,8 +196,8 @@ function Test-BiosCommunication()
   {
        write-host "  Failed."
 
-       #Some revision of some models (8x0 G1 for example) have a BIOS bug so BCU never returns UUID for those, although everything else works fine. 
-       #We try "Serial Number" in this case
+       #Some revision of some older models (8x0 G1 for example) might have a BIOS bug. In these cases BCU never returns UUID, 
+       #although everything else works fine. We try to read "Serial Number" in this case
        write-host "  Trying to read Serial Number (S/N)..." -NoNewline
        
        $SNNames=@("Serial Number", "S/N")
@@ -212,7 +212,6 @@ function Test-BiosCommunication()
        {
            write-host "  Failed."
        }
-
   }
 
   
@@ -228,7 +227,7 @@ param(
 )
     $result=$false
 
-    #Remove -Silent in order so what is going on
+    #Remove -Silent in order to see what this command does
     $testvalue=Get-BiosValue -Names $ValueNames -Silent
     
     if ( -not (Test-String -IsNullOrWhiteSpace $testvalue) ) 
