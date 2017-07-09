@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.2.2"
+$scriptversion="3.2.4"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -2264,7 +2264,7 @@ function Update-MEFirmware()
         else
         {
             $xmlFilename=$files[0].FullName            
-            $MEData=[PSObject]@{"Parsed"=$false; "VersionText"="0.0.0"; "FeatureLevel"="Unkown"; "Provisioned"="Unknown"; "VulnerableText"="Unknown"; "Vulnerable"=$false; "ExposedText"="Unknown"; "Exposed"=$false; "DriverInstalled"=$false }
+            $MEData=[PSObject]@{"Parsed"=$false; "VersionText"="0.0.0"; "VersionParsed"=$false; "FeatureLevel"="Unkown"; "Provisioned"="Unknown"; "VulnerableText"="Unknown"; "Vulnerable"=$false; "ExposedText"="Unknown"; "Exposed"=$false; "DriverInstalled"=$false }
 
             try 
             {
@@ -2272,8 +2272,15 @@ function Update-MEFirmware()
                 [xml]$xml = $xmlContent
 
                 $MEData.VersionText=$xml.System.ME_Firmware_Information.ME_Version
-                $MEData.Version=ConvertTo-Version -Text $MEData.VersionText
 
+                #In some cases, the Intel tool will report "Unknown" for the version. 
+                #If this happens, no ME update is possible
+                if ($MEData.VersionText.ToUpper() -ne "UNKNOWN")
+                {
+                    $MEData.Version=ConvertTo-Version -Text $MEData.VersionText
+                    $MEData.VersionParsed=$true
+                }
+                
                 $MEData.FeatureLevel=$xml.System.ME_Firmware_Information.ME_SKU
                 $MEData.Provisioned=$xml.System.ME_Firmware_Information.ME_Provisioning_State
 
@@ -2338,65 +2345,74 @@ function Update-MEFirmware()
                 #Perform ME Update?
                 if ( $performUpdateIfNeeded )
                 {
-                    $settings=Read-StringHashtable $updateSettingsFile
-                    
-                    $versionDesiredText=$settings["version"]                   
-                    [version]$versionDesired=ConvertTo-Version -Text $versionDesiredText
+                    #First check if we were able to parse the version
 
-                    if ( $versionDesired -eq $null ) 
+                    if ( -not $MEData.VersionParsed )
                     {
-                        write-error "Unable to parse [$versionDesiredText] as a version"
+                        write-error "The detection tool was unable to determine the installed ME firmware version, no update possible"
                     }
                     else
                     {
-                        write-host "Current ME firmware version: $(Get-VersionTextAndNumerical $MEData.VersionText $MEData.Version)"
-                        write-host "Desired ME firmware version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
+                        $settings=Read-StringHashtable $updateSettingsFile
                     
-                        if ( $versionDesired -le $MEData.Version ) 
+                        $versionDesiredText=$settings["version"]                   
+                        [version]$versionDesired=ConvertTo-Version -Text $versionDesiredText
+
+                        if ( $versionDesired -eq $null ) 
                         {
-                            write-host "  ME firmware update not required"
-                            $result=$false
+                            write-error "Unable to parse [$versionDesiredText] as a version"
                         }
                         else
                         {
-                            write-host "  ME update required!"
-                            
-                            <#
-                             All ME firmware downloads from HP advise that the driver needs to be installed before:                            
-                              "Intel Management Engine Components Driver must be installed before this package is installed."
-
-                             The Intel detection tool has the element "ME_Driver_Installed" which we also read into $MEData.DriverInstalled
-                              "True/False value if the MEI driver is present on the computer"
-                            
-                             Therefore we will only execute the update if a driver was detected.
-                            #>
-
-                            if ( -not $MEData.DriverInstalled )
+                            write-host "Current ME firmware version: $($MEData.Version)"
+                            write-host "Desired ME firmware version: $($versionDesired)"
+                    
+                            if ( $versionDesired -le $MEData.Version ) 
                             {
-                                write-error "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
+                                write-host "  ME firmware update not required"
+                                $result=$false
                             }
                             else
                             {
-                                write-host "The ME update will take some time, please be patient."
-                                
-                                $updatefolder="$ModelFolder\ME-$versionDesiredText"
-
-                                $result=Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
+                                write-host "  ME update required!"
                             
-                                if ( $result -eq $null )
+                                <#
+                                 All ME firmware downloads from HP advise that the driver needs to be installed before:                            
+                                  "Intel Management Engine Components Driver must be installed before this package is installed."
+
+                                 The Intel detection tool has the element "ME_Driver_Installed" which we also read into $MEData.DriverInstalled
+                                  "True/False value if the MEI driver is present on the computer"
+                            
+                                 Therefore we will only execute the update if a driver was detected.
+                                #>
+
+                                if ( -not $MEData.DriverInstalled )
                                 {
-                                    write-error "Running ME update command failed!"
+                                    write-error "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
                                 }
                                 else
-                                {                  
-                                    write-host "ME update success"
-                                    $result=$true
-                                }
+                                {
+                                    write-host "The ME update will take some time, please be patient."
+                                
+                                    $updatefolder="$ModelFolder\ME-$versionDesiredText"
 
-                                #All done
+                                    $result=Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
+                            
+                                    if ( $result -eq $null )
+                                    {
+                                        write-error "Running ME update command failed!"
+                                    }
+                                    else
+                                    {                  
+                                        write-host "ME update success"
+                                        $result=$true
+                                    }
+
+                                    #All done
+                                }
                             }
-                        }
-                    }                                
+                        }    
+                    }                            
                 }                
             }                                
         }
