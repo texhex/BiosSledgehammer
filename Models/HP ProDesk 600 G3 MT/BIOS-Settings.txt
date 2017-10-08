@@ -32,6 +32,7 @@ Asset Tracking Number == @@COMPUTERNAME@@
 ##  that is still set to its default value of MSID. 
 #Allow OPAL Hard Drive SID Authentication==Enable
 
-
+##Example for UEFI Boot order
+#UEFI Boot Order == HDD:USB:1,CDROM:SATA:1,HDD:SATA:1
 
 
