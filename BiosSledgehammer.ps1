@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.2.4"
+$scriptversion="3.2.5"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1333,8 +1333,7 @@ function Get-TPMDetails()
  }
  catch
  {
-     write-verbose "Getting TPM data error:"
-     write-verbose " " $error[0]
+     write-verbose "Getting TPM data error: $($error[0])"
  }
 
  return $TPMData 
