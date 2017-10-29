@@ -64,7 +64,7 @@ desktops, notebooks, and workstations.*
 * BIOS updates file for the models you want to support
 	* Search http://www.hp.com/drivers for "(Model) BIOS" to locate them 
 * TPM update files if a TPM specification or TPM firmware update is desired 
-    * See [HP C05381064 advisory](https://support.hp.com/en-us/document/c05381064) and [TPM Firmware SoftPaq](https://ftp.hp.com/pub/softpaq/sp78501-79000/sp78910.exe)
+    * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
 * [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
     * For ME firmware files, see [HPSBHF03557 Advisory]( http://www8.hp.com/us/en/intelmanageabilityissue.html) or the driver download page from HP for the model
 * Note: Several BIOS, TPM and ME files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
