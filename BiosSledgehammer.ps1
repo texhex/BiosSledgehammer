@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.2.5"
+$scriptversion="3.2.6"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1390,6 +1390,10 @@ function Invoke-BitLockerDecryption()
 
                 write-host "Starting decryption (this might take some time)..."
                 $ignored=Disable-BitLocker -MountPoint $systemdrive
+				
+				#wait three seconds to avoid that we check the status before the decryption has started
+				Start-Sleep -Seconds 3 
+				
 
                 #Now wait for the decryption to complete
                 Do
@@ -1405,7 +1409,7 @@ function Invoke-BitLockerDecryption()
                     #During the process, the status is "DecryptionInProgress"
                     if ( $volumestatus -ne "FullyDecrypted" )
                     {
-                        write-host "  Decryption runing, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
+                        write-host "  Decryption in progress, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
                         Start-Sleep -Seconds 15
                     }
                     else
