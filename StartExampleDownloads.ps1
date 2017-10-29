@@ -1,5 +1,5 @@
 ﻿<#
- Start Example Downloads v1.05
+ Start Example Downloads v1.06
  Copyright © 2015-2017 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
@@ -205,7 +205,7 @@ param(
                 }
                 catch
                 {
-                    write-warning "Unable to remove temp extraction folder [$SPExtractedPath] - $(Error[0])"
+                    write-warning "Unable to remove temp extraction folder [$SPExtractedPath] - $($Error[0])"
                 }
             }
         }
