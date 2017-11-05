@@ -303,27 +303,13 @@ The TPM update also requires that BitLocker is turned off (as any BitLocker keys
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
-**Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``. 
+**Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#modelsfolder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``. 
 
 Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. 
 
 If anything goes wrong during the process, an error is generated. 
 
-
-## <a name="tpmspecialnotice">TPM Update - BitLocker handling</a>
-
-In cases of updates for in-use machines, the automatic decryption of BitLocker might not be desired as it will require a full roll-in of BitLocker. For these cases, it is possible to remove the TPM protector from BitLocker and disable it before BIOS Sledgehammer is run and then specify **IgnoreBitLocker==Yes** in ``TPM-Update.txt``. When set, no automatic decryption will take place.
-  
-
-```
-# Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
-IgnoreBitLocker==Yes
-```
-
-:warning: **WARNING!** Please take extra care when using this parameter. When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot).
-
-
-## <a name="tpmspecialnotice">TPM Update - Special handling for 6.41 firmware</a>
+### Special handling for 6.41 firmware
 
 BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
 
@@ -342,6 +328,34 @@ To support this special case, it is possible to define two entries for the same 
 ```
 
 In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a *Wrong firmware file* error, the second firmware file is tried.
+
+### BIOS Setting dependencies
+
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are turned on.
+
+To support this, BIOS Sledgehammer can change BIOS Settings just before the TPM update using the file `` TPM-BIOS-Settings.txt``, so these two BIOS settings will be turned off. If no TPM update is required, this file is ignored. It works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
+ 
+```
+# EliteBook 8x0 G4 BIOS Settings required for TPM update
+# When these options are activated, no TPM firmware can be installed
+Intel Software Guard Extensions (SGX) == Disable
+Trusted Execution Technology (TXT) == Disable
+```
+
+**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, in this file **Trusted Execution Technology (TXT)** can be configured to *DISABLE* here (as this is required to allow an TPM update) but *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect. 
+
+
+### Disable BitLocker check
+
+In cases of updates for in-use machines, the automatic decryption of BitLocker might not be desired as it will require a full roll-in of BitLocker. For these cases, it is possible to remove the TPM protector from BitLocker and disable it before BIOS Sledgehammer is run and then specify **IgnoreBitLocker==Yes** in ``TPM-Update.txt``. When set, no automatic decryption will take place.
+  
+
+```
+# Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
+IgnoreBitLocker==Yes
+```
+
+:warning: **WARNING!** Please take extra care when using this parameter. When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot).
 
 
 ## <a name="biospassword">BIOS Password</a>
