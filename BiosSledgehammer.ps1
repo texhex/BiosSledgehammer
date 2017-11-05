@@ -1682,8 +1682,8 @@ function Update-TPMFirmware()
 
 
                       #In case of update scenarios, the operator can decide to just pause BitLocker encrpytion and does not want to have it fully decrypt
-                      $ignoreBitLockerStatus=$settings["IgnoreBitLocker"]
-
+                      $ignoreBitLocker=$settings["IgnoreBitLocker"]
+                                                  
                       if ( $ignoreBitLocker -eq "Yes") 
                       {
                             write-host "BitLocker status is ignored, will continue without checking BitLocker"

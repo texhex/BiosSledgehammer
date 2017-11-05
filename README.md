@@ -297,9 +297,9 @@ To detect if an TPM update is required, two versions need to be checked: The TPM
 
 The reason is that all TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started. 
 
-The current TPM firmware version of the device is retrieved and it is checked if the settings file contains an entry for this firmware version. Given that the current device has TPM firmware 6.40, the update can be performed as an entry for this version exists (**6.40 == Firmware\TPM12....**). However, if the device would have firmware 6.22 the update would fail because no entry for this version exists. 
+The current TPM firmware version of the device is retrieved and it is checked if the settings file contains an entry for this firmware version. Given that the current device has TPM firmware 6.40, the update can be performed as an entry for this version exists (**6.40 == Firmware\TPM12....**). However, if the device would have firmware 6.22 the update would fail because no entry for this version exists.
 
-The TPM update also requires that BitLocker is completely turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 because the required BitLocker PowerShell module does not exist. 
+The TPM update also requires that BitLocker is turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 as the required BitLocker PowerShell module does not exist. 
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
@@ -310,7 +310,20 @@ Because the update utility sometimes restarts itself, the execution is paused un
 If anything goes wrong during the process, an error is generated. 
 
 
-## <a name="tpmspecialnotice">TPM Update - Special handling</a>
+## <a name="tpmspecialnotice">TPM Update - BitLocker handling</a>
+
+In cases of updates for in-use machines, the automatic decryption of BitLocker might not be desired as it will require a full roll-in of BitLocker. For these cases, it is possible to remove the TPM protector from BitLocker and disable it before BIOS Sledgehammer is run and then specify **IgnoreBitLocker==Yes** in ``TPM-Update.txt``. When set, no automatic decryption will take place.
+  
+
+```
+# Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
+IgnoreBitLocker==Yes
+```
+
+:warning: **WARNING!** Please take extra care when using this parameter. When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot).
+
+
+## <a name="tpmspecialnotice">TPM Update - Special handling for 6.41 firmware</a>
 
 BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
 
@@ -414,3 +427,6 @@ If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose 
 ``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2017 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
+
+All Intel related files (SA-00075) are © Copyright Intel. These files are licensed under different terms. 
+
