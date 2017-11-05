@@ -1,0 +1,6 @@
+# EliteBook 8x0 G3 BIOS Settings required for TPM Update
+
+#When these options are activated, no TPM upgrade can be performed
+Intel Software Guard Extensions (SGX)==Disable
+Trusted Execution Technology (TXT)==Disable
+

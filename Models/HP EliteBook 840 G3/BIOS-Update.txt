@@ -1,13 +1,12 @@
-# EliteBook 8x0 G3 BIOS Update
+# EliteBook 8x0 G2 BIOS Update
 
+#The BIOS version the device should be on
+Version == 1.18
 
-# The BIOS version the device should be on
-Version == 1.14
-
-# Command to be executed for the BIOS update
+#Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
 
-# Arguments passed to COMMAND
+#There can be spaces before the argument since leading and trailing spaces are removed
 
 # Silent
 Arg1 == -s
