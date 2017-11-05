@@ -1349,23 +1349,43 @@ function Invoke-BitLockerDecryption()
     #we better save this all with a try-catch
     try
     {
-        #Because we do not know if we can access the BitLocker module, we try to figure it out using CIM/WMI
+        #Because we do not know if we can access the BitLocker module, we check the status using WMI/CMI
         $encryptableVolumes=Get-CIMInstance "Win32_EncryptableVolume" -Namespace "root/CIMV2/Security/MicrosoftVolumeEncryption"
                       
         $systemdrive=$env:SystemDrive
         $systemdrive=$systemdrive.ToUpper()
+
+        write-verbose "Testing if system drive $($systemdrive) is BitLocker encrypted"
 
         if ( $encryptableVolumes -ne $null) 
         {
             foreach($drivestatus in $encryptableVolumes)
             {
                 if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
-                {
-                    # .ProtectionStatus will also be 0 if BitLocker was just suspended, so we can not use this property
-                    if ( $drivestatus.EncryptionMethod -ne 0 )
-                    {
-                        $bitLockerActive=$true
-                        write-verbose "BitLocker is active for system drive ($systemdrive)!"
+                {           
+                     write-verbose "Found entry for system drive"
+                               
+                     #The property ProtectionStatus will also be 0 if BitLocker was just suspended, so we can't use this property.
+                     #We go for EncryptionMethod which will report 0 if no BitLocker encryption is used
+
+                     #As @GregoryMachin reported, some versions of Windows do not have this property at all so need to make sure to have access to it
+                     #See https://github.com/texhex/BiosSledgehammer/issues/21
+                     if (Get-Member -InputObject $drivestatus -Name "EncryptionMethod" -Membertype Properties)
+                     {
+                        #Some computers reported NUL/NIL as the output, so we need to make sure it's uint32 what is returned
+                        #See https://msdn.microsoft.com/en-us/library/windows/desktop/aa376434(v=vs.85).aspx
+                        if ( $drivestatus.EncryptionMethod -is [uint32])
+                        {
+                            if ( $drivestatus.EncryptionMethod -ne 0 )
+                            {
+                                $bitLockerActive=$true
+                                write-host "BitLocker is active for system drive ($systemdrive)!"
+                            }                        
+                            else
+                            {
+                                write-verbose "BitLocker is not used"
+                            }
+                        }
                     }
                 }
             }
