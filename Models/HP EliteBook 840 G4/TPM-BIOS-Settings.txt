@@ -1,0 +1,6 @@
+# EliteBook 8x0 G4 BIOS Settings required for TPM update
+
+# When these options are activated, no TPM firmware can be installed
+Intel Software Guard Extensions (SGX)==Disable
+Trusted Execution Technology (TXT)==Disable
+
