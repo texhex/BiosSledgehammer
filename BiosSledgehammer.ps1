@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.2.6"
+$scriptversion="3.3.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1072,9 +1072,13 @@ function Update-BiosSettings()
   [string]$PasswordFile=""
  )
 
+ $displayText="BIOS Settings"
  $settingsfile="$modelfolder\BIOS-Settings.txt"
+ 
 
- $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -Displaytext "BIOS Settings" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile 
+ Write-HostSection -Start $displayText
+ $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile 
+ Write-HostSection -End $displayText
 
  return $result
 }
@@ -1090,9 +1094,12 @@ function Set-UEFIBootMode()
   [string]$PasswordFile=""
  )
 
+ $displayText="Activate UEFI Boot Mode"
  $settingsfile="$modelfolder\Activate-UEFIBoot.txt"
 
- $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -Displaytext "Activate UEFI Boot Mode" -PasswordFile $PasswordFile
+ Write-HostSection -Start $displayText
+ $result=Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -PasswordFile $PasswordFile
+ Write-HostSection -End $displayText
 
  return $result
 }
@@ -1105,20 +1112,14 @@ function Update-BiosSettingsEx()
   [ValidateNotNullOrEmpty()]
   [string]$ConfigFileFullPath,
 
-  [Parameter(Mandatory=$True, ValueFromPipeline=$False)]
-  [ValidateNotNullOrEmpty()]
-  [string]$Displaytext,
-
   [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
-  [ValidateNotNullOrEmpty()]
-  [switch]$IgnoreNonExistingConfigFile,
+  [string]$PasswordFile="",
   
   [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
-  [string]$PasswordFile=""
-
+  [ValidateNotNullOrEmpty()]
+  [switch]$IgnoreNonExistingConfigFile
  )
 
-    Write-HostSection -Start $Displaytext
     write-host "Reading BIOS settings from [$ConfigFileFullPath]..."
 
     $configFileExists=Test-FileExists $ConfigFileFullPath
@@ -1179,7 +1180,6 @@ function Update-BiosSettingsEx()
         }
      }
 
-    Write-HostSection -End $Displaytext
     return $result
 }
 
@@ -1676,91 +1676,123 @@ function Update-TPMFirmware()
 
                    #Check if it exists
                    if ( $firmwareFilesExist )
-                   {
+                   {                      
+                      #We might need to stop here, depending on the BitLockerStatus
+                      $continueTPMUpgrade=$false
 
-                      #write-host "Matching firmware file(s) found, will continue" 
 
-                      #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
-                      #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
-                      $BitLockerDecrypted=Invoke-BitLockerDecryption
-                      
-                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
-                      #$BitLockerDecrypted=$true
-                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
-                      
-                      #Check if bitlocker is still active
-                      if (-not $BitLockerDecrypted)
+                      #In case of update scenarios, the operator can decide to just pause BitLocker encrpytion and does not want to have it fully decrypt
+                      $ignoreBitLockerStatus=$settings["IgnoreBitLocker"]
+
+                      if ( $ignoreBitLocker -eq "Yes") 
                       {
-                            Write-Error "BitLocker is in use, TPM update not possible"
+                            write-host "BitLocker status is ignored, will continue without checking BitLocker"
+                            $continueTPMUpgrade=$true
                       }
                       else
-                      {                                      
-                            #Real update process starts here. We might need to do this two times in case two firmwares were found
-                            
-                            #$returnCode=Invoke-TPMUpdateExe -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -Hashtable $settings -PasswordFile $PasswordFile                          
-                            $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
+                      {
+                            #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
+                            #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
+                            $BitLockerDecrypted=Invoke-BitLockerDecryption
 
-                            if ( $returnCode -eq $null )
+                            if ($BitLockerDecrypted)
                             {
-                                #In this case, no second execution will be done because something completly failed. 
-                                write-error "TPM update failed!"
+                                $continueTPMUpgrade=$true                                
                             }
                             else
                             {
-                                #If it's not null, we have two options:
+                                write-Error "BitLocker is in use, TPM update not possible"
+                            }
+                      }
+                                           
+                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                      #$continueTPMUpgrade=$true
+                      #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                      
+                      if ($continueTPMUpgrade)
+                      {                
+                            #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                          
+                            $displayText="BIOS Settings for TPM Update"
+                            $tpmBIOSSettingsFile="$ModelFolder\TPM-BIOS-Settings.txt"   
+                                                        
+                            Write-HostSection -Start $displayText
+                            
+                            $biosChanges=-1
+                            $biosChanges=Update-BiosSettingsEx -ConfigFileFullPath $tpmBIOSSettingsFile -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile
+                                                        
+                            Write-HostSection -End $displayText -NoEmptyLineAtEnd
 
-                                # (A) Only a single firmware file exist: Assume any return code is OK
-                                $updateSuccess=$false
 
-                                if ( -not (Test-String -HasData $firmwareFile_B) )
+                            if ( $biosChanges -lt 0 )
+                            {
+                                write-error "BIOS changes failed, can not continue"
+                            }
+                            else
+                            {
+                                #
+                                #Real update process starts here. We might need to do this two times in case two firmwares were found                            
+                                #
+                                $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
+
+                                if ( $returnCode -eq $null )
                                 {
-                                    $updateSuccess=$true
+                                    #In this case, no second execution will be done because something completly failed. 
+                                    write-error "TPM update failed!"
                                 }
                                 else
                                 {
-                                    # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
-                                    if ( $returnCode -ne 275 )
+                                    #If it's not null, we have two options:
+
+                                    # (A) Only a single firmware file exist: Assume any return code is OK
+                                    $updateSuccess=$false
+
+                                    if ( -not (Test-String -HasData $firmwareFile_B) )
                                     {
-                                        #Different return code than 275, most likely the command was a success
                                         $updateSuccess=$true
                                     }
                                     else
                                     {
-                                        #Return code was 275 - repeat with firmwareFile_B
-                                        write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
-                                        
-                                        $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
-
-                                        if ( $returnCode -eq $null )
+                                        # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
+                                        if ( $returnCode -ne 275 )
                                         {
-                                            #Well, that didn't worked...
-                                            write-error "TPM update failed!"
+                                            #Different return code than 275, most likely the command was a success
+                                            $updateSuccess=$true
                                         }
                                         else
                                         {
-                                            $updateSuccess=$true
-                                        }
-                                    }                                                                        
-                                }
+                                            #Return code was 275 - repeat with firmwareFile_B
+                                            write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
+                                        
+                                            $returnCode=Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
+
+                                            if ( $returnCode -eq $null )
+                                            {
+                                                #Well, that didn't worked...
+                                                write-error "TPM update failed!"
+                                            }
+                                            else
+                                            {
+                                                $updateSuccess=$true
+                                            }
+                                        }                                                                        
+                                    }
 
 
-                                if ( $updateSuccess -eq $true )
-                                {
-                                    write-host "TPM update success"
-                                    $result=$True
-                                }
-                                else
-                                {                                    
-                                    write-error "Running TPM update command failed!"
-                                    $result=$null
-                                }
+                                    if ( $updateSuccess -eq $true )
+                                    {
+                                        write-host "TPM update success"
+                                        $result=$True
+                                    }
+                                    else
+                                    {                                    
+                                        write-error "Running TPM update command failed!"
+                                        $result=$null
+                                    }
 
                                 
-                            }
+                                }
 
-                            ###always set result to TRUE so we return a 3010 code
-                            ##$result=$true
-                                                 
+                            }                                                 
                       }
                    }
                 }
@@ -2431,11 +2463,14 @@ function Update-MEFirmware()
 function Write-HostSection()
 {
  param(
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
   [string]$Start="",
 
-  [Parameter(Mandatory=$False,ValueFromPipeline=$True)]
-  [string]$End=""
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [string]$End="",
+
+  [Parameter(Mandatory=$False, ValueFromPipeline=$False)]
+  [switch]$NoEmptyLineAtEnd
  )
 
  $charlength=65
@@ -2462,11 +2497,16 @@ function Write-HostSection()
  }
 
  write-host $output
+
  
- #Add a single empty line if no name was given
+ #Add a single empty line if this is an END section
  if ( Test-String -HasData $End )
  {
-    write-host "   "
+    #Only write the empty line if NoEmptyLine is NOT set (=False)
+    if ( $NoEmptyLineAtEnd -eq $False )
+    {
+        write-host "   "
+    }
  }
 
 }
