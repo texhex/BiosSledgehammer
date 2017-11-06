@@ -92,7 +92,8 @@ Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe"
   #Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" -option ReadOnly -Force
 
 #Configute which ISA00075 version to use
-Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" -option ReadOnly -Force
+#Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" -option ReadOnly -Force
+Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.3.215\Intel-SA-00075-console.exe" -option ReadOnly -Force
 
 
 #For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally
@@ -2283,11 +2284,11 @@ function Update-MEFirmware()
     $tempFolder=Get-TempFolder
     $runToolOK=$false
   
-    #We use the XML output method, so the tool will generate a file called [DEVICENAME]_System_Summary.xml.
-    #We need to make sure that no other *_System_Summary.xml file exists
-    $xmlFilePattern="*_System_Summary.xml"
+    #We use the XML output method, so the tool will generate a file called [DEVICENAME].xml.    
+    $xmlFilename="$tempFolder\$($env:computername).xml"
  
-    $ignored=Remove-Item -Path "$tempFolder\$xmlFilePattern" -Force -ErrorAction SilentlyContinue
+    #If a file by the name already exists, delete it
+    $ignored=Remove-Item -Path $xmlFilename -Force -ErrorAction SilentlyContinue
     
     try
     {
@@ -2308,18 +2309,15 @@ function Update-MEFirmware()
         #Output console output to make sure we have something in the log even if the XML parsing fails
         Write-HostOutputFromProgram -Name "Discovery Tool Output" -Content $runToolResult
 
-        write-host "Processing XML output ($tempFolder\$xmlFilePattern)..."
-        
-        #Read the XML output
-        $files=Get-ChildItem -Path $tempFolder -File -Filter $xmlFilePattern -Force 
-        if ( $files -eq $null )
+        write-host "Processing XML result [$xmlFilename]..."        
+
+        if ( -not (Test-FileExists $xmlFilename) ) 
         {
             write-error "XML file not found!"
         }
         else
         {
-            $xmlFilename=$files[0].FullName            
-            $MEData=[PSObject]@{"Parsed"=$false; "VersionText"="0.0.0"; "VersionParsed"=$false; "FeatureLevel"="Unkown"; "Provisioned"="Unknown"; "VulnerableText"="Unknown"; "Vulnerable"=$false; "ExposedText"="Unknown"; "Exposed"=$false; "DriverInstalled"=$false }
+            $MEData=[PSObject]@{"Parsed"=$false; "VersionText"="0.0.0"; "VersionParsed"=$false; "FeatureLevel"="Unkown"; "Provisioned"="Unknown"; "VulnerableText"="Unknown"; "Vulnerable"=$false; "ExposedText"="Unknown"; "DriverInstalled"=$false }
 
             try 
             {
@@ -2336,9 +2334,8 @@ function Update-MEFirmware()
                     $MEData.VersionParsed=$true
                 }
                 
-                $MEData.FeatureLevel=$xml.System.ME_Firmware_Information.ME_SKU
+                #IS75DT 1.0.3 does now longer contain the entry SKU in the XML. Still in the normal output though...
                 $MEData.Provisioned=$xml.System.ME_Firmware_Information.ME_Provisioning_State
-
                 $MEData.VulnerableText=$xml.System.System_Status.System_Risk
                 $MEData.ExposedText=$xml.System.System_Status.System_Exposure
 
@@ -2347,16 +2344,12 @@ function Update-MEFirmware()
                     $MEData.DriverInstalled=$true
                 }    
 
-                if ( $MEData.VulnerableText -eq "Vulnerable" )
+                #As of version 1.0.3, the vulnerable status is a sentence and the important part is "is vulnerable / is not vulnerable"
+                if ( Test-String $MEData.VulnerableText -Contains "is vulnerable" ) 
                 {
                     $MEData.Vulnerable=$true
                 }
-                
-                if ( $MEData.ExposedText -eq "Exposed" )
-                {
-                    $MEData.Exposed=$true
-                }
-               
+                             
                 $MEData.Parsed=$true
                 write-host "Reading finished"
 
@@ -2372,7 +2365,6 @@ function Update-MEFirmware()
                 write-host "Management Engine information:"
                 write-host " "
                 write-host "  Firmware Version ..: $($MEData.VersionText)"
-                write-host "  Feature Level .....: $($MEData.FeatureLevel)"
                 write-host "  Provisioned .......: $($MEData.Provisioned)"
                 write-host " "
 

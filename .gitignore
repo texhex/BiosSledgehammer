@@ -9,6 +9,8 @@ TPM20*
 *.rtf
 ISA75DT-1.0.1.39/Windows/Intel-SA-00075-console.exe.config
 ISA75DT-1.0.1.39/Windows/Intel-SA-00075-GUI.exe.config
+ISA75DT-1.0.3.215/Intel-SA-00075-console.exe.config
+ISA75DT-1.0.3.215/Licenses/*
 
 
 
