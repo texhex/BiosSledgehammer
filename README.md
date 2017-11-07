@@ -311,12 +311,12 @@ If anything goes wrong during the process, an error is generated.
 
 ### Special handling for 6.41 firmware
 
-BIOS Sledgehammer is also able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
+BIOS Sledgehammer is able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
 
  * 6.41.**197** is used for devices that have a TPM 1.2 by default
  * 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
 
-The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD part in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. 
+The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD number (.197 or .198) in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. 
 
 If the firmware file specified for the update does not match exactly, the TPM will reject the update (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
 
@@ -327,35 +327,38 @@ To support this special case, it is possible to define two entries for the same 
 6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 ```
 
-In this case, BIOS Sledgehammer will first try to flash the first file. If the TPM update executable returns a *Wrong firmware file* error, the second firmware file is tried.
+BIOS Sledgehammer will first try to flash the first file (*6.41.A). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
 
-### BIOS Setting dependencies
+### BIOS setting dependencies
 
-Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are turned on.
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated.
 
-To support this, BIOS Sledgehammer can change BIOS Settings just before the TPM update using the file `` TPM-BIOS-Settings.txt``, so these two BIOS settings will be turned off. If no TPM update is required, this file is ignored. It works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
+To support this, these BIOS settings can be disabled just before the TPM update takes place using the file `` TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
  
 ```
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
 # When these options are activated, no TPM firmware can be installed
+
 Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
 ```
 
-**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, in this file **Trusted Execution Technology (TXT)** can be configured to *DISABLE* here (as this is required to allow an TPM update) but *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect. 
+**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect. 
 
 
-### Disable BitLocker check
+### Disable automatic BitLocker decryption
 
-In cases of updates for in-use machines, the automatic decryption of BitLocker might not be desired as it will require a full roll-in of BitLocker. For these cases, it is possible to remove the TPM protector from BitLocker and disable it before BIOS Sledgehammer is run and then specify **IgnoreBitLocker==Yes** in ``TPM-Update.txt``. When set, no automatic decryption will take place.
-  
+In cases of updates for in-use machines, the automatic decryption of BitLocker that BIOS Sledgehammer performs might not be desired as this will require a full roll-in of BitLocker later on. 
+
+It is possible that a script (executed before BIOS Sledgehammer) removes the TPM protector and then pauses BitLocker protection. Adding the parameter **IgnoreBitLocker==Yes** in ``TPM-Update.txt`` will cause BIOS Sledgehammer to ignore BitLocker all together and not start a full decryption. 
+ 
 
 ```
 # Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
 IgnoreBitLocker==Yes
 ```
 
-:warning: **WARNING!** Please take extra care when using this parameter. When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot).
+:warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned. 
 
 
 ## <a name="biospassword">BIOS Password</a>
