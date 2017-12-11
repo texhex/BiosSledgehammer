@@ -1358,11 +1358,11 @@ function Invoke-BitLockerDecryption()
 
         write-verbose "Testing if system drive $($systemdrive) is BitLocker encrypted"
 
-        if ( $encryptableVolumes -ne $null) 
+        if ( $encryptableVolumes -ne $null ) 
         {
             foreach($drivestatus in $encryptableVolumes)
             {
-                if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive)
+                if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive )
                 {           
                      write-verbose "Found entry for system drive"
                                
@@ -1371,11 +1371,11 @@ function Invoke-BitLockerDecryption()
 
                      #As @GregoryMachin reported, some versions of Windows do not have this property at all so need to make sure to have access to it
                      #See https://github.com/texhex/BiosSledgehammer/issues/21
-                     if (Get-Member -InputObject $drivestatus -Name "EncryptionMethod" -Membertype Properties)
+                     if ( Get-Member -InputObject $drivestatus -Name "EncryptionMethod" -Membertype Properties )
                      {
-                        #Some computers reported NUL/NIL as the output, so we need to make sure it's uint32 what is returned
+                        #Some computers reported NULL/NIL as the output, so we need to make sure it's uint32 what is returned
                         #See https://msdn.microsoft.com/en-us/library/windows/desktop/aa376434(v=vs.85).aspx
-                        if ( $drivestatus.EncryptionMethod -is [uint32])
+                        if ( $drivestatus.EncryptionMethod -is [uint32] )
                         {
                             if ( $drivestatus.EncryptionMethod -ne 0 )
                             {
