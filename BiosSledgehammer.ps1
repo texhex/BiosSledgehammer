@@ -453,10 +453,9 @@ function Get-BiosValue()
       {
          #Try to get a single value
 
-         #Starting with BCU 4.0.21.1, a call to /GetValue will cause BCU
-         #to write a single text file with the name of the setting
-         #to the current working directory. We change the current 
-         #directory to TEMP to avoid any issues.
+         #Starting with BCU 4.0.21.1, a call to /GetValue will cause BCU to write a 
+         #single text file with the name of the setting to the current working directory. 
+         #We change the current directory to TEMP to avoid any issues.
          $previousLocation=Get-Location         
          Set-Location $(Get-TempFolder) | Out-Null
          

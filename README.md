@@ -55,7 +55,7 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 ## <a name="requirements">System requirements</a>
 
 * PowerShell 4.0 or higher
-* Windows 7 64-bit or Windows 10 64-bit (Windows 8 should also work, but wasn't tested)
+* Windows 7 64-bit or Windows 10 64-bit
     * Due to restrictions in several HP tools, it can NOT be run in Windows Preinstallation Environment (WinPE)
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]`` and the device must be supported by it. Most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
     * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
@@ -327,7 +327,7 @@ To support this special case, it is possible to define two entries for the same 
 6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 ```
 
-BIOS Sledgehammer will first try to flash the first file (*6.41.A). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
+BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
 
 ### BIOS setting dependencies
 
