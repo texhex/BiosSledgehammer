@@ -1,7 +1,0 @@
-
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp79501-80000/sp79834.exe
-NoteURL==https://ftp.hp.com/pub/softpaq/sp79501-80000/sp79834.html
-
-
-
-
