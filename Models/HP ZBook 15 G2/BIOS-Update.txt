@@ -1,8 +1,8 @@
-# ZBook 15 G2 BIOS Update
+# ZBook 1x G2 BIOS Update
 
 
 #The BIOS version the device should be on
-Version == 1.16
+Version == 1.18
 
 #Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
