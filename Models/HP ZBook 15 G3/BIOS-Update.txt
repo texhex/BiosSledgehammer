@@ -1,8 +1,8 @@
-# ZBook 15 G3 BIOS Update
+# ZBook 1x G3 BIOS Update
 
 
 #The BIOS version the device should be on
-Version == 1.14
+Version == 1.21
 
 #Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
