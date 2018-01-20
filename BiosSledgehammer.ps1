@@ -1214,11 +1214,20 @@ function Update-BiosFirmware()
  } 
  else
  {
+    #Check if the BIOS data was parsed
+
+    if ( -not $BIOSDetails.Parsed) 
+    {
+        write-error "BIOS data could not be parsed, unable to check if update is required"
+        throw New-Exception -InvalidFormat "BIOS data not parsed"
+    }
+
     $details=Read-StringHashtable $updatefile
 
     if ( -not($details.ContainsKey("Version")) -or  -not($details.ContainsKey("Command"))  ) 
     {
        write-error "Update configuration file is missing Version or Command settings"
+       throw New-Exception -InvalidFormat "Configuration error"
     } 
     else
     {       
@@ -1230,6 +1239,7 @@ function Update-BiosFirmware()
        if ( $versionDesired -eq $null ) 
        {
           write-error "Unable to parse [$versionDesiredText] as a version"
+          throw New-Exception -InvalidFormat "Configuration error"
        }
        else
        {
@@ -1274,10 +1284,12 @@ function Update-BiosFirmware()
                 if ( $returnCode -eq $null )
                 {
                     write-error "Running BIOS update program failed"
+                    throw New-Exception -InvalidArgument "BIOS update program failed"
                 }
                 else
                 {
                     write-error "BIOS update failed, update program returned code $($returnCode)"
+                    throw New-Exception -InvalidArgument "BIOS update program failed"
                 }
             }
 
@@ -2706,7 +2718,8 @@ function Write-HostOutputFromProgram()
     
     (1) BIOS Update - Because a possible TPM update requires an updated BIOS 
     (2) ME Update - Because some BIOS version recommand an ME firmware update, e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html
-    (3) TPM Update - Because some settings might require a newer TPM firmware
+    (3a) TPM BIOS Changes - Modern systems do not allow an TPM Update in case SGX or TXT is activated
+    (3b) TPM Update - Because some settings might require a newer TPM firmware
     (4) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set
     (5) BIOS Settings
 
@@ -2714,7 +2727,7 @@ function Write-HostOutputFromProgram()
 
    write-host "Collecting system information..."
 
-   $Model=(Get-CimInstance Win32_ComputerSystem).Model
+   $Model=(Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10).Model
    $computername=$env:computername
 
    write-host " "
@@ -2734,6 +2747,7 @@ function Write-HostOutputFromProgram()
    #L01 v02.53  10/20/2014
    #68ISB Ver. F.53
    #$BIOSRaw="L01 v02.53  10/20/2014"
+   #$BIOSRaw="B0rken"
 
    #replace $NULL in case we were unable to retireve the data
    if ( $BIOSRaw -eq $null ) 
@@ -2746,7 +2760,7 @@ function Write-HostOutputFromProgram()
 
    if ( !($BIOSDetails.Parsed) ) 
    {
-      write-warning "BIOS Data could not be parsed, no BIOS update will take place"
+      write-warning "BIOS Data could not be parsed!"
    }
    else
    {
@@ -2761,7 +2775,7 @@ function Write-HostOutputFromProgram()
    $TPMDetails=Get-TPMDetails
    if ( !($TPMDetails.Parsed) ) 
    {
-      write-host "  TPM data could not be found or parsed, no TPM update will take place"
+      write-host "  No TPM found or data could not be parsed."
    } 
    else
    {
@@ -2791,7 +2805,7 @@ function Write-HostOutputFromProgram()
       
       if ( ($foundPwdFile -eq $null) ) 
       {
-         write-error "Unable to find BIOS password!"
+         write-error "Unable to determin BIOS password, unable to continue!"
       } 
       else
       {
@@ -2801,7 +2815,6 @@ function Write-HostOutputFromProgram()
         #           Never set $CurrentPasswordFile to a file on the source!
         $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
         
-
         
         #Now we have everything ready to make changes to this system
         #If ActivateUEFIBoot is set, we only perform this change and nothing else
@@ -2831,14 +2844,18 @@ function Write-HostOutputFromProgram()
 
             #BIOS Update
             $biosUpdated=$false
-            if ( $BIOSDetails.Parsed ) 
+            try
             {
-                $biosUpdated=Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile 
+                $biosUpdated=Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+            }
+            catch 
+            {
+                $biosUpdated=$null
             }
 
             if ( $biosUpdated -eq $null) 
-            {
-                write-error "BIOS update failed!"
+            {   
+                #I know this is unecessary and it will be removed with the 4.0 rewrite             
             }        
             else
             {
