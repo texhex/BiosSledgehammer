@@ -1,15 +1,22 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.21.1
+# Version 3.23.0
 # https://github.com/texhex/MPSXM
 #
-# Copyright © 2010-2017 Michael 'Tex' Hex 
+# Copyright © 2010-2018 Michael 'Tex' Hex 
 # Licensed under the Apache License, Version 2.0. 
 #
-# Import this module like this in case it is locatd in the same folder as your script
+# Import this module in case it is located in the same folder as your script:
 # Import-Module "$PSScriptRoot\MPSXM.psm1"
 #
-# In case you edit this file, new functions will not be found by the current PS session. Use -Force in this case.
+# In case you edit this file, new functions will not be found by the current PS session - use -Force in this case:
 # Import-Module "$PSScriptRoot\MPSXM.psm1" -Force
+#
+#
+# Before adding a new function, please see
+# [Approved Verbs for Windows PowerShell Commands] http://msdn.microsoft.com/en-us/library/ms714428%28v=vs.85%29.aspx
+#
+# To run a PowerShell script from the command line, use
+# powershell.exe [-NonInteractive] -ExecutionPolicy Bypass -File "C:\Script\DoIt.ps1"
 #
 #
 # Common header for your script:
@@ -32,12 +39,8 @@ $ErrorActionPreference = 'Stop'
 Import-Module "$PSScriptRoot\MPSXM.psm1" -Force
 
 #>
-
-# Before adding a new function, please see
-# [Approved Verbs for Windows PowerShell Commands] http://msdn.microsoft.com/en-us/library/ms714428%28v=vs.85%29.aspx
-# 
-# To run a PowerShell script from the command line, use
-# powershell.exe [-NonInteractive] -ExecutionPolicy Bypass -File "C:\Script\DoIt.ps1"
+#
+#
 
 
 #requires -version 4.0
@@ -56,7 +59,7 @@ $ErrorActionPreference = 'Stop'
 # Get-RunningInISE() should be deleted (replaced with Test-InISE)
 # Add-RegistryValue() should be be deleted (replaced with Set-RegistryValue)
 
-function Get-CurrentProcessBitness()
+Function Get-CurrentProcessBitness()
 {
 <#
   .SYNOPSIS
@@ -132,7 +135,7 @@ param (
 }
 
 
-function Get-OperatingSystemBitness()
+Function Get-OperatingSystemBitness()
 {
 <#
   .SYNOPSIS
@@ -178,8 +181,10 @@ param (
 
   } #switch
    
-}
-function Get-StringIsNullOrWhiteSpace()
+}
+
+
+Function Get-StringIsNullOrWhiteSpace()
 {
 <#
   .SYNOPSIS
@@ -202,7 +207,7 @@ param (
 }
 
 
-function Get-StringHasData()
+Function Get-StringHasData()
 {
 <#
   .SYNOPSIS
@@ -225,6 +230,7 @@ param (
 }
 
 
+Function Test-String()
 <#
  -IsNullOrWhiteSpace:
    Helper function for [string]::IsNullOrWhiteSpace - http://msdn.microsoft.com/en-us/library/system.string.isnullorwhitespace%28v=vs.110%29.aspx
@@ -245,7 +251,6 @@ param (
  -StartsWith
    Uses string.StartsWith() with different parameters
 #> 
-function Test-String()
 {
 <#
   .SYNOPSIS
@@ -338,7 +343,7 @@ param (
         #$index=$String.IndexOf($SearchFor, ([System.StringComparer]::OrdinalIgnoreCase))
         #$index=$String.IndexOf($SearchFor, "System.StringComparison.OrdinalIgnoreCase")       
         
-        #We could also use [StringComparison]::CurrentCultureIgnoreCase but it seems OrdinalIgnoreCase is better (Faster)
+        #We could also use [StringComparison]::CurrentCultureIgnoreCase but it seems OrdinalIgnoreCase does the job also
         $result=( $String.IndexOf($SearchFor,[StringComparison]::OrdinalIgnoreCase) ) -ge 0
       }
     }
@@ -362,9 +367,9 @@ param (
 }
 
 
+Function Get-TempFolder() 
 #Yes, I'm aware of $env:TEMP but this will always return a 8+3 path, e.g. C:\USERS\ADMIN~1\AppData..."
 #This function returns the real path without that "~" garbage
-function Get-TempFolder() 
 {
 <#
   .SYNOPSIS
@@ -384,7 +389,8 @@ function Get-TempFolder()
 }
 
 
-Function Get-ModuleAvailable {
+Function Get-ModuleAvailable()
+{
 <#
   .SYNOPSIS
   Returns true if the module exist; it uses a a method that is about 10 times faster then using Get-Module -ListAvailable
@@ -450,13 +456,25 @@ param(
 } 
 
 
-Function Get-ComputerLastBootupTime(){<#
+Function Get-ComputerLastBootupTime()
+{
+<#
   .SYNOPSIS
   Returns the date and time of the last bootup time of this computer.
 
   .OUTPUTS
   DateTime (Kind = Local) that is the last bootup time of this computer
-#>    [OutputType([datetime])] #param(#) $obj = Get-CIMInstance Win32_OperatingSystem -Property "LastBootupTime"  return $obj.LastBootUpTime}Function Get-RunningInISE()
+#>    
+[OutputType([datetime])] 
+#param(
+#)
+
+ $obj = Get-CIMInstance Win32_OperatingSystem -Property "LastBootupTime" 
+ return $obj.LastBootUpTime
+}
+
+
+Function Get-RunningInISE()
 {
 <#
   .SYNOPSIS
@@ -464,14 +482,17 @@ Function Get-ComputerLastBootupTime(){<#
 
   .OUTPUTS
   $TRUE if running in ISE, FALSE otherise
-#>    [OutputType([bool])]    
+#>    
+[OutputType([bool])]    
 param()    
     
  return Test-IsISE
 }
 
 
-#From: http://stackoverflow.com/a/25224840#      by kuujinbo (http://stackoverflow.com/users/604196/kuujinbo)Function Test-IsISE()
+Function Test-IsISE()
+#From: http://stackoverflow.com/a/25224840
+#      by kuujinbo (http://stackoverflow.com/users/604196/kuujinbo)
 {
 <#
   .SYNOPSIS
@@ -479,7 +500,8 @@ param()
 
   .OUTPUTS
   $TRUE if running in ISE, FALSE otherise
-#>    [OutputType([bool])]    
+#>    
+[OutputType([bool])]    
 param()    
     
  try 
@@ -494,7 +516,7 @@ param()
 }
 
 
-function Start-TranscriptTaskSequence()
+Function Start-TranscriptTaskSequence()
 {
 <#
   .SYNOPSIS
@@ -505,10 +527,13 @@ function Start-TranscriptTaskSequence()
 
   .OUTPUTS
   None
-#>    param(
+#>    
+param(
  [Parameter(Mandatory=$False)]
  [switch]$NewLog=$False
-) try
+)
+
+ try
  {
    $tsenv = New-Object -COMObject Microsoft.SMS.TSEnvironment
    $logPath = $tsenv.Value("LogPath")
@@ -524,7 +549,18 @@ function Start-TranscriptTaskSequence()
  
  if ( $NewLog ) 
  {
-    Start-TranscriptIfSupported -Path $logPath -Name $logName -NewLog  } else {    Start-TranscriptIfSupported -Path $logPath -Name $logName }}function Start-TranscriptIfSupported {
+    Start-TranscriptIfSupported -Path $logPath -Name $logName -NewLog 
+ }
+ else
+ {
+    Start-TranscriptIfSupported -Path $logPath -Name $logName
+ }
+
+}
+
+
+Function Start-TranscriptIfSupported()
+{
 <#
   .SYNOPSIS
   Starts a transscript, but ignores if the host does not support it.
@@ -540,7 +576,8 @@ function Start-TranscriptTaskSequence()
 
   .OUTPUTS
   None
-#>     param(
+#>    
+ param(
   [Parameter(Mandatory=$False,Position=1)]
   [string]$Path=$env:TEMP,
 
@@ -549,7 +586,8 @@ function Start-TranscriptTaskSequence()
   
   [Parameter(Mandatory=$False)]
   [switch]$NewLog=$False
- )
+ )
+
  if ( Test-String -IsNullOrWhiteSpace $Name )
  {
   $Name=Split-Path -Path $myInvocation.ScriptName -Leaf   
@@ -632,24 +670,36 @@ function Start-TranscriptTaskSequence()
  catch [System.Management.Automation.PSNotSupportedException] {
     # The current PowerShell Host doesn't support transcribing
     write-host "Start-TranscriptIfSupported: The current PowerShell host doesn't support transcribing; no log will be generated to [$logfile]"
- }}function Stop-TranscriptIfSupported {
+ }
+}
+
+
+Function Stop-TranscriptIfSupported()
+{
 <#
   .SYNOPSIS
   Stops a transscript, but ignores if the host does not support it.
 
   .OUTPUTS
   None
-#>     try 
+#>    
+
+ try 
  {
    Stop-Transcript
  }
  catch [System.Management.Automation.PSNotSupportedException] 
  {
    write-host "Stop-TranscriptIfSupported WARNING: The current PowerShell host doesn't support transcribing. No log was generated."
- }}function Show-MessageBox {
+ }
+}
+
+
+Function Show-MessageBox() 
+{
 <#
   .SYNOPSIS
-  Shows the message box to the user using a message box.
+  Shows the message to the user using a message box.
 
   .PARAMETER Message
   The message to be displayed inside the message box.
@@ -707,9 +757,10 @@ param(
 }
 
 
+Function Get-RandomString()
 #From http://stackingcode.com/blog/2011/10/27/quick-random-string
 # by Adam Boddington
-function Get-RandomString { 
+{ 
 <#
   .SYNOPSIS
   Returns a random string (only Aa-Zz and 0-9 are used).
@@ -737,6 +788,8 @@ param (
 }
 
 
+
+Function Read-StringHashtable() 
 <#
  This is most basic way I could think of to represent a hash table with single string values as a file 
 
@@ -749,7 +802,7 @@ param (
  Key2==Value2
  ...
 #>
-function Read-StringHashtable() {
+{
 <#
   .SYNOPSIS
   Reads a hashtable from a file where the Key-Value pairs are stored as Key==Value
@@ -824,14 +877,15 @@ param(
 }
 
 
+Function ConvertTo-HumanizedBytesString()
 #The verb "Humanize" is taken from this great project: [Humanizer](https://github.com/MehdiK/Humanizer)
 #Idea from [Which Disk is that volume on](http://www.uvm.edu/~gcd/2013/01/which-disk-is-that-volume-on/) by Geoff Duke 
-function ConvertTo-HumanizedBytesString {
+{
 <#
   .SYNOPSIS
   Returns a string optimized for readability.
 
-   .PARAMETER bytes
+  .PARAMETER bytes
   The value of bytes that should be returned as humanized string.
 
   .OUTPUTS
@@ -858,7 +912,7 @@ param (
 }
 
 
-function ConvertTo-Version()
+Function ConvertTo-Version()
 {
 <#
   .SYNOPSIS
@@ -897,7 +951,7 @@ param(
    if ( $RespectLeadingZeros) {
       #Reminder: Version object defines Major.Minor.Build.Revision      
 
-      #In case the version only contains of a major version, there is nothing to respect.
+      #In case the version only contains a major version, there is nothing to take care of.
       #Whoever wants to have leading zeros for a major version respected should be killed. 
       if ( $version.Minor -gt -1 ) 
       {
@@ -972,7 +1026,8 @@ param(
 } 
 
 
-function Exit-Context {
+Function Exit-Context()
+{
 <#
   .SYNOPSIS
   Will exit from the current context and sets an exit code. Nothing will be done when running in ISE.
@@ -1020,7 +1075,7 @@ param(
 } 
 
 
-function Get-QuickReference()
+Function Get-QuickReference()
 {
 <#
   .SYNOPSIS
@@ -1288,7 +1343,7 @@ param (
 }
 
 
-function New-Dictionary()
+Function New-Dictionary()
 {
 <#
   .SYNOPSIS
@@ -1355,7 +1410,7 @@ param (
 }
 
 
-function New-Exception()
+Function New-Exception()
 {
 <#
   .SYNOPSIS
@@ -1486,7 +1541,7 @@ param (
 }
 
 
-function Test-Admin ()
+Function Test-Admin()
 {
 <#
    .SYNOPSIS
@@ -1503,6 +1558,7 @@ function Test-Admin ()
     $principal = New-Object System.Security.Principal.WindowsPrincipal( $identity )
     return $principal.IsInRole( [System.Security.Principal.WindowsBuiltInRole]::Administrator )
 }
+
 
 function ConvertTo-DateTimeString()
 {
@@ -1590,7 +1646,7 @@ param (
 }
 
 
-function ConvertFrom-DateTimeString()
+Function ConvertFrom-DateTimeString()
 {
 <#
   .SYNOPSIS
@@ -1640,7 +1696,7 @@ param (
 }
 
 
-function ConvertTo-UTC()
+Function ConvertTo-UTC()
 {
 <#
   .SYNOPSIS
@@ -1694,7 +1750,7 @@ param (
 }
 
 
-function ConvertFrom-UTC()
+Function ConvertFrom-UTC()
 {
 <#
   .SYNOPSIS
@@ -1723,7 +1779,7 @@ param (
 }
 
 
-function Get-TrimmedString
+Function Get-TrimmedString()
 {
 <#
   .SYNOPSIS
@@ -1844,7 +1900,8 @@ param (
 } #function 
 
 
-function Add-RegistryValue {
+Function Add-RegistryValue()
+{
 <#
   .SYNOPSIS
   Adds a value to the given registry path. Uses [Set-RegistryValue] internally.
@@ -1890,7 +1947,7 @@ param(
 }
 
 
-function Set-RegistryValue
+Function Set-RegistryValue()
 {
 <#
   .SYNOPSIS
@@ -1976,7 +2033,7 @@ param(
 
 
 
-function Get-RegistryValue
+Function Get-RegistryValue()
 {
 <#
   .SYNOPSIS
@@ -2054,7 +2111,7 @@ param(
 }
 
 
-function Get-FileName()
+Function Get-FileName()
 {
 <#
   .SYNOPSIS
@@ -2089,7 +2146,7 @@ function Get-FileName()
 }
 
 
-function Get-ContainingDirectory()
+Function Get-ContainingDirectory()
 {
 <#
   .SYNOPSIS
@@ -2121,7 +2178,7 @@ function Get-ContainingDirectory()
 }
 
 
-function Test-DirectoryExists()
+Function Test-DirectoryExists()
 {
 <#
   .SYNOPSIS
@@ -2142,7 +2199,8 @@ function Test-DirectoryExists()
   return Test-Path -Path $Path -PathType Container
 }
 
-function Test-FileExists()
+
+Function Test-FileExists()
 {
 <#
   .SYNOPSIS
@@ -2163,7 +2221,8 @@ function Test-FileExists()
   return Test-Path -Path $Path -PathType Leaf
 }
 
-function Copy-FileToDirectory()
+
+Function Copy-FileToDirectory()
 {
 <#
   .SYNOPSIS
@@ -2201,7 +2260,7 @@ function Copy-FileToDirectory()
 }
 
 
-function ConvertTo-Array()
+Function ConvertTo-Array()
 {
 <#
   .SYNOPSIS
@@ -2251,3 +2310,122 @@ function ConvertTo-Array()
         }
     }
 }
+
+
+Function Select-StringUnicodeCategory()
+#This function is based on the work of Francois-Xavier Cat:
+# http://www.lazywinadmin.com/2015/08/powershell-remove-special-characters.html
+# https://github.com/lazywinadmin/PowerShell/blob/master/TOOL-Remove-StringSpecialCharacter/Remove-StringSpecialCharacter.ps1
+#
+#For a list of categories, see 
+# https://en.wikipedia.org/wiki/Unicode_character_property#General_Category
+#and
+# https://docs.microsoft.com/en-us/dotnet/standard/base-types/character-classes-in-regular-expressions#SupportedUnicodeGeneralCategories
+{
+<#
+  .SYNOPSIS
+  Selects (filters) characters based on their unicode category from the given string. [Select-StringUnicodeCategory "A B C 123" -IncludeLetter] would return "ABC"
+
+  .PARAMETER String
+  The string the operation should be performed on
+
+  .PARAMETER IncludeLetter
+  Include letter characters 
+
+  .PARAMETER IncludeNumber
+  Include number characters 
+
+  .PARAMETER IncludeSpace
+  Include the default space character (u0020)
+  
+  .PARAMETER IncludePunctuation
+  Include punctuation characters
+
+  .PARAMETER IncludeSymbol
+  Include symbol characters
+#>  
+[OutputType([string])] 
+ param (
+  [Parameter(Mandatory=$false,Position=1)] #false or we can not pass empty strings
+  [string]$String="",
+
+  [Parameter(Mandatory=$false)]
+  [switch]$IncludeLetter,
+
+  [Parameter(Mandatory=$false)]
+  [switch]$IncludeNumber,
+
+  [Parameter(Mandatory=$false)]
+  [switch]$IncludeSpace,
+
+  [Parameter(Mandatory=$false)]
+  [switch]$IncludePunctuation,
+
+  [Parameter(Mandatory=$false)]
+  [switch]$IncludeSymbol
+ )
+
+ $output=""
+
+ #RegEx description: Everything that is NOT (^) matching the unicode category (\p{}) will be replaced
+ # L (Letter)
+ # Nd (Decimal Numbers)
+ # P (Punctuation) 
+ # S (Symbol)
+ # Zs (Space) => Not used as it also includes other "SPACE" charcaters - \u0020 is the "standard space" (ASCII)
+
+ $regex=""
+
+ if ( $IncludeLetter ) { $regex += "\p{L}" }
+ if ( $IncludeNumber ) { $regex += "\p{Nd}" }
+ if ( $IncludePunctuation ) { $regex += "\p{P}" }
+ if ( $IncludeSymbol ) { $regex += "\p{S}" }
+ 
+ if ( $IncludeSpace )  { $regex += "\u0020" }
+
+ #Check if anything was selected. If not, return an empty string
+ if ( Test-String -HasData $regex )
+ {
+    #Finish the regex
+    $regex = "[^$regex]"
+
+    $output= $String -replace $regex
+ }
+
+   
+ return $output
+}
+
+
+Function Remove-FileExact()
+#HINT: As we use -LiteralPath this function will NOT process wildcards like * or ?
+{
+  <#
+  .SYNOPSIS
+  Deletes a file; no wildcards are accepted, the filename must be exact. Exact also means that an 8+3 alias is not allowed (Filena~1). If the file does not exist, no error is generated. 
+
+  .PARAMETER Filename
+  The full path to the file that should be deleted.
+#> 
+ param(
+  [Parameter(Mandatory=$False)] #$False to allow empty strings
+  [string]$Filename
+)
+
+ if ( Test-String $Filename -HasData )
+ {
+   if ( (Test-FileExists $Filename) ) 
+   {
+     try 
+     {
+        #When using just -Path, sometimes this fails - See http://stackoverflow.com/questions/11586310/having-issue-removing-a-file-in-powershell
+   	    Remove-Item -LiteralPath $Filename -Force -ErrorAction Stop
+     }
+     catch
+     {
+        write-error "Unable to delete [$Filename]: $($_.Exception.Message)"
+     }
+   }
+ } 
+}
+

@@ -1,6 +1,6 @@
 <#
  BiosSledgehammer
- Copyright © 2015-2017 Michael 'Tex' Hex 
+ Copyright (c) 2015-2018 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
@@ -62,7 +62,7 @@ $banner=@"
             _
     jgs   ./ |   
          /  /    BIOS Sledgehammer Version @@VERSION@@
-       /'  /     Copyright © 2015-2017 Michael 'Tex' Hex
+       /'  /     Copyright (c) 2015-2018 Michael 'Tex' Hex
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\   
@@ -2782,7 +2782,7 @@ function Remove-File()
    $TPMDetails=Get-TPMDetails
    if ( !($TPMDetails.Parsed) ) 
    {
-      write-host "TPM data could not be found or parsed, no TPM update will take place"
+      write-host "  TPM data could not be found or parsed, no TPM update will take place"
    } 
    else
    {

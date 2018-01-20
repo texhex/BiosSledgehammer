@@ -5,7 +5,7 @@ Automated BIOS, ME, TPM firmware update and BIOS settings for HP devices.
             _
     jgs   ./ |    
          /  /    BIOS Sledgehammer  
-       /'  /     Copyright © 2015-2017 Michael 'Tex' Hex  
+       /'  /     Copyright © 2015-2018 Michael 'Tex' Hex  
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\     
@@ -441,7 +441,7 @@ Any constructive contribution is very welcome!
 If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose (``.\BiosSledgehammer.ps1 -Verbose``) and attach the logfile to [new issue](https://github.com/texhex/BiosSledgehammer/issues/new).
 
 ## <a name="license">License</a>
-``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2017 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
+``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2018 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
 
