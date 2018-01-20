@@ -2375,7 +2375,7 @@ function Update-MEFirmware()
                         $MEData.VersionParsed = $true
                     }
                 
-                    #IS75DT 1.0.3 does now longer contain the entry SKU in the XML. Still in the normal output though...
+                    #IS75DT 1.0.3 does no longer contain the entry SKU in the XML. Still in the normal output though...
                     $MEData.Provisioned = $xml.System.ME_Firmware_Information.ME_Provisioning_State
                     $MEData.VulnerableText = $xml.System.System_Status.System_Risk
                     $MEData.ExposedText = $xml.System.System_Status.System_Exposure
