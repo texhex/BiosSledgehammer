@@ -1,0 +1,47 @@
+#Z420 BIOS Settings
+
+Legacy Support==Disable
+Secure Boot==Enable
+
+
+Embedded Security Device==Device available
+Reset of Embedded Security Device through OS==Enable
+OS management of Embedded Security Device==Enable
+
+#If the setting is set to "F1 to Boot" when no BIOS password is defined, this value can not be set with error 32769
+Embedded Security Activation Policy==No prompts
+
+Tpm PPI policy changed by OS allowed==Enable
+
+
+Data Execution Prevention==Enable
+
+Virtualization Technology (VTx)==Enable
+Intel TXT(LT) Support==Disable
+
+# Might cause issues with the GPU
+Intel(R) VT-d==Disable
+
+
+Fast Boot == Disable
+SATA Emulation == AHCI
+
+Multi-Processor == Enable
+Active Processor Cores == All
+Hyper-Threading == Enable
+Turbo Mode == Enable
+
+USB3 Controller == Device available
+
+#Intel vPro AMT 
+AMT == Disable
+
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Enter Ownership Tag == Property of ...
+
+
+
+
+

@@ -1,0 +1,4 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78208.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78208.html
+

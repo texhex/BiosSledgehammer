@@ -1,0 +1,32 @@
+# BIOS Update Z420
+
+#The BIOS version the device should be on
+Version == 3.91
+
+#Command to be executed for the BIOS update
+
+
+## NOTE: At least BIOS 3.91 is bundled with HPQFlash 4.40 which can *NOT* read 
+## newer password files create with HpqPswd.exe. This results in the BIOS update to fail.
+##
+## Please download ProDesk 600 G1 BIOS 2.72 (or newer) which includes HPQFlash 4.50 
+## from https://ftp.hp.com/pub/softpaq/sp84001-84500/sp84334.exe
+##
+## Extract this softpaq by running SP84334.exe -e -s, then copy only C:\SWSetup\SP84334\HPqFlash.exe 
+## and \HPQFlash.txt to the folder \HPQFlash here, overwriting the existing files. After that, 
+## the BIOS update will work. 
+
+Command==HPQFlash\hpqFlash.exe
+
+# Silent
+Arg1 == -s
+
+# Password file (will be removed if empty password)
+Arg2 == -p"@@PASSWORD_FILE@@"
+
+## Do not restart automatically
+#Arg3 == -r
+
+
+
+
