@@ -1,0 +1,39 @@
+#Z240 BIOS Settings
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options==Enable
+Enable MS UEFI CA key==Yes
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Fast Boot==Disable
+Hyperthreading==Enable
+Multi-processor==Enable
+
+#Intel ME
+Active Management (AMT)==Disable
+
+Automatic BIOS Update Setting==Disable
+
+#Anti-Theft stuff
+Absolute Persistence Module Current State==Inactive
+
+S4/S5 Maximum Power Savings==Disable
+
+Virtualization Technology (VTx)==Enable
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+
+Intel Software Guard Extensions (SGX)==Software Controlled
+      
+Verbose Boot Messages==Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ....
+
+
+
+
