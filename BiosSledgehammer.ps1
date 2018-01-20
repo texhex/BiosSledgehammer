@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion="3.3.0"
+$scriptversion="3.3.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -2010,7 +2010,7 @@ function Copy-FolderForExec()
           foreach($file in $files)
           {
             write-host "  Deleting $($file.Fullname)"
-            Remove-File -Filename $file.Fullname
+            Remove-FileExact -Filename $file.Fullname
           }
                      
        }
@@ -2241,11 +2241,19 @@ function Write-HostFirstLogFound()
  }
  else
  {
-   $filename=$logFiles[0].FullName
+   $filename=$logFiles[0].FullName   
    
    $content=Get-Content $filename -Raw
 
-   Write-HostOutputFromProgram -Name $filename -Content $content
+   if ( Test-String $content -IsNullOrWhiteSpace )
+   {
+        write-host "  File $filename is empty!"
+   } 
+   else
+   {
+        Write-HostOutputFromProgram -Name $filename -Content $content    
+   }
+   
  }
 
 }
@@ -2640,31 +2648,6 @@ function Write-HostOutputFromProgram()
   Write-HostSection "::END:: $Name"
 }
 
-#HINT: As we use -LiteralPath this function will NOT process wildcards like * or ?
-function Remove-File()
-{
- param(
-  [Parameter(Mandatory=$False)] #$False to allow empty strings
-  [string]$Filename
-)
-
- if ( $Filename -ne "" )
- {
-   if ( (Test-FileExists $Filename) ) 
-   {
-     try 
-     {
-        #When using just -Path, sometimes this fails - See http://stackoverflow.com/questions/11586310/having-issue-removing-a-file-in-powershell
-   	    Remove-Item -LiteralPath $Filename -Force
-     }
-     catch
-     {
-       write-error "Unable to delete [$Filename]: $($error[0])"
-     }
-   }
- } 
-}
-
 
 
 ##########################################################################
@@ -2743,15 +2726,11 @@ function Remove-File()
 
    #We could use a direct call to BCU, but this does not work for old models
    #because it includes the data like this: "L01 v02.53  10/20/2014".
-   #This breaks the XML parsing from Get-BiosValue because BCU does not escape the slash
-      #For newer models, this is called "System BIOS Version". For older models, this is "BIOS Version & Date"
-      #$BIOSVersionNames=@("System BIOS Version", "BIOS Version & Date")
-      #$BIOSRaw=Get-BiosValue -Names $BIOSVersionNames -Silent   
-   
+   #This breaks the XML parsing from Get-BiosValue because BCU does not escape the slash   
    #So we get the data directly from Windows 
    $BIOSRaw=(Get-CimInstance Win32_Bios).SMBIOSBIOSVersion
   
-   #Teststuff
+   #Examples:
    #L01 v02.53  10/20/2014
    #68ISB Ver. F.53
    #$BIOSRaw="L01 v02.53  10/20/2014"
@@ -2799,7 +2778,7 @@ function Remove-File()
    if ( Test-String -IsNullOrWhiteSpace $modelfolder ) 
    {
       #When we are here, we are pretty sure we can communicate with the machine, but no model folder was found        
-      Write-error "The model specifc folder was not found in [$MODELS_PATH]. This device ($Model) is not supported by BIOS Sledgehammer."
+      write-error "The model specifc folder was not found in [$MODELS_PATH]. This device ($Model) is not supported by BIOS Sledgehammer."
 
       #let returncode as is, which means we exit with an fatal error  
    }
@@ -2915,7 +2894,7 @@ function Remove-File()
                                     if ( $updatedPasswordFile -ne $null )
                                     {
                                         #File has changed - remove old password file
-                                        $ignored=Remove-File -Filename $CurrentPasswordFile
+                                        $ignored=Remove-FileExact -Filename $CurrentPasswordFile
                                         $CurrentPasswordFile=Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
                                     }
 
@@ -2961,9 +2940,10 @@ function Remove-File()
  }
 
 
+
 #Clean up
-$ignored=Remove-File -Filename $CurrentPasswordFile
-$ignored=Remove-File -Filename $BCU_EXE
+$ignored=Remove-FileExact -Filename $CurrentPasswordFile
+$ignored=Remove-FileExact -Filename $BCU_EXE
 
 write-host "BIOS Sledgehammer finished, return code $returncode."
 write-host "Thank you, please come again!"
