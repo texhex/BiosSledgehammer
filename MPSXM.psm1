@@ -545,7 +545,8 @@ param(
    Write-Verbose "Start-TranscriptTaskSequence: This script is not running in a task sequence, will use [$logPath]"
  }
 
- $logName=Split-Path -Path $myInvocation.ScriptName -Leaf   
+ $logName=Split-Path -Path $myInvocation.ScriptName -Leaf
+ Write-Verbose "Start-TranscriptTaskSequence: Using logfile $($logName)"
  
  if ( $NewLog ) 
  {
