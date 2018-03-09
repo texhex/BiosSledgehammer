@@ -1,5 +1,5 @@
 ﻿<#
- Start Example Downloads v1.06
+ Start Example Downloads v1.07
  Copyright © 2015-2017 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
@@ -255,8 +255,30 @@ param(
 
 }
 
+#Issue #41 - https://github.com/texhex/BiosSledgehammer/issues/41
+#
+#TLS 1.0 and SSL3 are no longer supported by ftp.hp.com (see http://ssl-checker.online-domain-tools.com/
+#and enter ftp.hp.com)
+#
+#The default enabled security protocols for .NET 4.0/4.5 (and hence PowerShell) are SecurityProtocolType.Tls|SecurityProtocolType.Ssl3.
+#
+#Therefore we need to turn on TLS 1.1 and TLS 1.2. As TLS 1.3 is also on the horizon, and will properly 
+#be a default in PowerShell, we only turn on TLS 1.1 and TLS 1.2 without touching the default protocols. 
+#
+#Full details on this StackOverflow answer by Luke Hutton: https://stackoverflow.com/a/28333370
+#
+#Side notes:
+# -bor is "bitwise or"
+# View current protocols: write-host ([System.Net.ServicePointManager]::SecurityProtocol).ToString()
+#
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor
+                                                     [System.Net.SecurityProtocolType]'Tls11' -bor 
+                                                     [System.Net.SecurityProtocolType]'Tls12'
+
+
 ######################################################
-##Start here
+## Main ##############################################
+######################################################
 
 
 Set-Variable CHECK_FILENAME "$PSScriptRoot\BiosSledgehammer.ps1" –option ReadOnly -Force
@@ -279,6 +301,8 @@ if ( Get-UserConfirm )
       write-host "File [$curFile]"
  
       Invoke-DownloadSettingsProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
+
+      break
     }
 
     write-host "Cleaning up $UNPACK_FOLDER..."
