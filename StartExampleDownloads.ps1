@@ -301,8 +301,6 @@ if ( Get-UserConfirm )
       write-host "File [$curFile]"
  
       Invoke-DownloadSettingsProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
-
-      break
     }
 
     write-host "Cleaning up $UNPACK_FOLDER..."
