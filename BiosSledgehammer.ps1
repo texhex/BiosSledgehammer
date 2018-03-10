@@ -1,5 +1,5 @@
 <#
- BiosSledgehammer
+ BIOS Sledgehammer
  Copyright (c) 2015-2018 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "3.3.2"
+$scriptversion = "3.4.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -42,7 +42,7 @@ Import-Module $PSScriptRoot\MPSXM.psm1 -Force
 
 
 #----- ACTIVATE DEBUG MODE WHEN RUNNING IN ISE -----
-$DebugMode = Get-RunningInISE
+$DebugMode = Test-RunningInEditor
 if ( $DebugMode )
 {
     $VerbosePreference_BeforeStart = $VerbosePreference
@@ -85,26 +85,30 @@ $banner = @"
 $banner = $banner -replace "@@VERSION@@", $scriptversion
 write-host $banner
 
+
+#Configure with temp folder to use
+Set-Variable TEMP_FOLDER (Get-TempFolder) -option ReadOnly -Force
+#When using a different folder, do not use a trailing backslash ("\")
+#Set-Variable TEMP_FOLDER "C:\TEMP" -option ReadOnly -Force
+
 #Configure which BCU version to use 
 #Version 2.45 and upwards: BCU 4.0.21.1
-Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.21.1\BiosConfigUtility64.exe" -option ReadOnly -Force
+Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.24.1\BiosConfigUtility64.exe" -option ReadOnly -Force
 #for testing if the arguments are correctly sent to BCU
-#Set-Variable BCU_EXE "$PSScriptRoot\4.0.15.1\EchoArgs.exe" -option ReadOnly -Force
-
-#Configute which ISA00075 version to use
-#Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.1.39\Windows\Intel-SA-00075-console.exe" -option ReadOnly -Force
-Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.3.215\Intel-SA-00075-console.exe" -option ReadOnly -Force
-
+#Set-Variable BCU_EXE "$PSScriptRoot\BCU-4.0.24.1\EchoArgs.exe" -option ReadOnly -Force
 
 #For performance issues (AV software that keeps scanning EXEs from network) we copy BCU locally
-#File will be deleted when the script finishes
+#The file will be deleted when the script finishes
 Set-Variable BCU_EXE "" -Force
 
-#Path to password files (need to have extension *.bin)
+#Configute which ISA00075 version to use
+Set-Variable ISA75DT_EXE_SOURCE "$PSScriptRoot\ISA75DT-1.0.3.215\Intel-SA-00075-console.exe" -option ReadOnly -Force
+
+#Path to password files (need to have the extension *.bin)
 Set-Variable PWDFILES_PATH "$PSScriptRoot\PwdFiles" -option ReadOnly -Force
 
 #Will store the currently used password file (copied locally)
-#File will be deleted when the script finishes
+#The file will be deleted when the script finishes
 Set-Variable CurrentPasswordFile "" -Force
 
 #Path to model files
@@ -118,65 +122,66 @@ Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 -option ReadOnly -Force
 
 function Test-Environment()
 {
-    $result = $false
+    write-host "Verifying environment..." -NoNewline
 
-    if ( !(OperatingSystemBitness -Is64bit) ) 
+    try
     {
-        Write-error "A 64-bit Windows is required"
-    }
-    else
-    {
+        if ( -not (OperatingSystemBitness -Is64bit) ) 
+        {
+            throw "A 64-bit Windows is required"
+        }
+
         if ( (Get-CurrentProcessBitness -IsWoW) )
         {
-            write-error "This can not be run as a WoW (32-bit) process"
+            throw  "This can not be run as a WoW (32-bit on 64-bit) process"
+        }
+
+        if ( -not (Test-FileExists $BCU_EXE_SOURCE) ) 
+        {
+            throw "BiosConfigUtility [$BCU_EXE_SOURCE] not found"
+        }
+
+        if ( -not (Test-DirectoryExists $PWDFILES_PATH) ) 
+        {
+            throw "Folder for password files [$PWDFILES_PATH] not found"
+        }
+
+        if ( -not (Test-DirectoryExists $MODELS_PATH) )
+        {
+            throw "Folder for model specific files [$MODELS_PATH] not found"
+        }
+
+        if ( -not (Test-DirectoryExists $TEMP_FOLDER) )
+        {
+            throw "TEMP folder [$TEMP_FOLDER] not found"
+        }
+
+        $Make = (Get-CimInstance Win32_ComputerSystem).Manufacturer
+        if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
+        {
+            #All seems to be fine
         }
         else
         {
-            if ( !(Test-FileExists $BCU_EXE_SOURCE) ) 
-            {
-                Write-Error "BiosConfigUtility not found: $BCU_EXE_SOURCE"
-            }
-            else
-            {
-                if ( !(Test-DirectoryExists $PWDFILES_PATH) ) 
-                {
-                    Write-Error "Folder for password files not found: $PWDFILES_PATH"
-                }
-                else 
-                {
-                    if ( !(Test-DirectoryExists $MODELS_PATH) )
-                    {
-                        Write-Error "Folder for model specific files not found: $MODELS_PATH"
-                    }
-                    else
-                    {
-                        $Make = (Get-CimInstance Win32_ComputerSystem).Manufacturer
+            throw "Unsupported manufacturer [$Make]"
+        }                                                                    
 
-                        if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
-                        {
-                            #All seems to be fine
-                            $result = $true
-                        }
-                        else
-                        {
-                            Write-Error "Unsupported manufacturer [$Make]"
-                        }
+        write-host "  Success"
 
-                    }
-                }
-            }
-        }
+        return $true
+        
+    }
+    catch
+    {
+        write-host "  Failed!"
+        throw $_
     }
 
-
-    return $result
 }
 
 
 function Test-BiosCommunication()
-{
-    $result = $false
-  
+{  
     write-host "Verifying BIOS Configuration Utility (BCU) can communicate with BIOS." 
 
     write-host "  Trying to read Universally Unique Identifier (UUID)..." -NoNewline
@@ -186,12 +191,10 @@ function Test-BiosCommunication()
     #Raynorpat (https://github.com/raynorpat): My 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
     $UUIDNames = @("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
   
-    $test = Test-BiosValueRead $UUIDNames
-
-    if ( $test )
+    if ( (Test-BiosValueRead $UUIDNames) )
     {
         write-host "  Success"
-        $result = $true
+        return $true
     }
     else
     {
@@ -202,21 +205,19 @@ function Test-BiosCommunication()
         write-host "  Trying to read Serial Number (S/N)..." -NoNewline
        
         $SNNames = @("Serial Number", "S/N")
-        $test = Test-BiosValueRead $SNNames
        
-        if ( $test )
+        if ( (Test-BiosValueRead $SNNames) )
         {
             write-host "  Success"
-            $result = $true
+            return $true
         }
         else
         {
             write-host "  Failed."
+            throw "BCU is unable to communicate with BIOS. Can't continue."
         }
     }
 
-  
-    return $result
 }
 
 function Test-BiosValueRead()
@@ -458,7 +459,7 @@ function Get-BiosValue()
                 #single text file with the name of the setting to the current working directory. 
                 #We change the current directory to TEMP to avoid any issues.
                 $previousLocation = Get-Location         
-                Set-Location $(Get-TempFolder) | Out-Null
+                Set-Location $($TEMP_FOLDER) | Out-Null
          
                 #$output=&$BCU_EXE -getvalue $Name | Out-String
                 $output = &$BCU_EXE /GetValue:`"$Name`" | Out-String
@@ -1054,7 +1055,7 @@ function Copy-FileToTemp()
     #This line can cause issues later on. On some system this will be a path with "~1" in it and this can cause Remove-Item do freak out. 
     #$newfullpath="$env:temp\$filenameonly"
  
-    $newfullpath = "$(Get-TempFolder)\$filenameonly"
+    $newfullpath = "$($TEMP_FOLDER)\$filenameonly"
 
     Copy-Item -Path $SourceFilename -Destination $newfullpath -Force
 
@@ -2002,7 +2003,7 @@ function Copy-FolderForExec()
     {
         #When using $env:temp, we might get a path with "~" in it
         #Remove-Item does not like these path, no idea why...
-        $dest = Join-Path -Path $(Get-TempFolder) -ChildPath (Split-Path $SourceFolder -Leaf)
+        $dest = Join-Path -Path $($TEMP_FOLDER) -ChildPath (Split-Path $SourceFolder -Leaf)
 
         #If it exists, kill it
         if ( (Test-DirectoryExists $dest) )
@@ -2322,18 +2323,17 @@ function Update-MEFirmware()
     {    
         write-host "Starting Intel SA-00075 discovery tool to get ME data..."
 
-        $tempFolder = Get-TempFolder
         $runToolOK = $false
   
         #We use the XML output method, so the tool will generate a file called [DEVICENAME].xml.    
-        $xmlFilename = "$tempFolder\$($env:computername).xml"
+        $xmlFilename = "$TEMP_FOLDER\$($env:computername).xml"
  
         #If a file by the name already exists, delete it
         $ignored = Remove-Item -Path $xmlFilename -Force -ErrorAction SilentlyContinue
     
         try
         {
-            $runToolResult = &"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $tempFolder | out-string
+            $runToolResult = &"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $TEMP_FOLDER | out-string
             $runToolOK = $true
         }
         catch
@@ -2683,10 +2683,9 @@ function Write-HostOutputFromProgram()
 }
 
 
-
 ##########################################################################
-
-
+##########################################################################
+##########################################################################
 
 if ( -not $DebugMode ) 
 {
@@ -2701,51 +2700,28 @@ if ( -not $DebugMode )
 
  
 
-$can_start = $false
- 
 #set returncode to error by default
 $returncode = 666
 
-#verify that our environment is ready
-if ( Test-Environment ) 
+try 
 {
+    #verify that our environment is ready
+    $ignored = Test-Environment
+
     #For performance reasons, copy the BCU to TEMP
     $BCU_EXE = Copy-FileToTemp $BCU_EXE_SOURCE
 
-    #First try if we are able to communicate with the BIOS
-    if ( Test-BiosCommunication ) 
-    {
-        write-host "Communication with BIOS works, will continue."
-		
-        $can_start = $True
-    }
-    else
-    {
-        write-error "Unable to communicate with BIOS. Can't continue."
-
-        #If we are unable to communicate with the BIOS, we might be running on a non-HP device.
-        #However, this should have been prevented by Test-Environment. Hence, we will return an error code
-    }           
-}
-
+    #Test BCU can communicate with BIOS
+    $ignored = Test-BiosCommunication
   
-if ( !($can_start) ) 
-{
-    write-error "Unable to start (see previous errors)"  
-}
-else
-{
-    <#
-    We need to do the following in the correct order
-    
-    (1) BIOS Update - Because a possible TPM update requires an updated BIOS 
-    (2) ME Update - Because some BIOS version recommand an ME firmware update, e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html
-    (3a) TPM BIOS Changes - Modern systems do not allow an TPM Update in case SGX or TXT is activated
-    (3b) TPM Update - Because some settings might require a newer TPM firmware
-    (4) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set
-    (5) BIOS Settings
-
-   #>
+    #We need to do the following in the correct order
+    #
+    #(1) BIOS Update - Because a possible TPM update requires an updated BIOS     
+    #(2) ME Update - Because some BIOS version recommand an ME firmware update, e.g. for the ProDesk 600 G2 - https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html    
+    #(3a) TPM BIOS Changes - Modern systems do not allow an TPM Update in case SGX or TXT is activated    
+    #(3b) TPM Update - Because some settings might require a newer TPM firmware    
+    #(4) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set    
+    #(5) BIOS Settings
 
     write-host "Collecting system information..."
 
@@ -2918,10 +2894,6 @@ else
                                     $tpmUpdated = $null
                                 }                            
 
-                                #if ( $TPMDetails.Parsed )
-                                #{                                
-                                #}
-
                                 if ($tpmUpdated -eq $null)
                                 {
                                     #I know this is unecessary and it will be removed with the 4.0 rewrite             
@@ -2984,8 +2956,14 @@ else
 
         }  #MAIN PROCESS
     }
-}
+    #}
 
+}
+catch
+{
+    write-error "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)" -Category OperationStopped
+    #Not used right now `n$($_.Exception.StackTrace)
+}
 
 
 #Clean up
