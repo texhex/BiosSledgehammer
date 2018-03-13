@@ -157,6 +157,7 @@ function Test-Environment()
         }
 
         $Make = (Get-CimInstance Win32_ComputerSystem).Manufacturer
+        
         if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
         {
             #All seems to be fine
@@ -1379,9 +1380,9 @@ function Invoke-BitLockerDecryption()
             {
                 write-verbose "Checking volume $($volume.DeviceID)"
 
-                #There might be drives that are BitLocker encrypted but do not have a drive letter
+                #There might be drives that are BitLocker encrypted but do not have a drive letter.
                 #The system drive will always have a drive letter, so we can simply rule them out.
-                #This should be the fix for issue #43. 
+                #This should be the fix for issue #43 - https://github.com/texhex/BiosSledgehammer/issues/43
                 if ( $volume.DriveLetter -ne $null )
                 {
 

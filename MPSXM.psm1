@@ -1,5 +1,5 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.27.0
+# Version 3.27.1
 # https://github.com/texhex/MPSXM
 #
 # Copyright © 2010-2018 Michael 'Tex' Hex 
@@ -609,7 +609,7 @@ Function Start-TranscriptIfSupported()
 
         [uint32]$value = 1
 
-        #If the path does not exist, this line crashes with "A parameter can not be found that maches parameter FILE" which does not make any sense IMHO
+        #If the path does not exist, this line will crash with "A parameter can not be found that maches parameter FILE" which does not make any sense IMHO
         try
         {
             $existing_files = Get-ChildItem -Path $Path -File -Filter $filter -Force -ErrorAction Stop
@@ -2514,6 +2514,7 @@ Function Test-IsHashtable()
     [OutputType([bool])] 
     param (
         [Parameter(Mandatory = $True, Position = 1)]
+        [AllowNull()]  #We should be able to check if NULL if a hashtable (Else well get "Cannot bind argument to parameter 'InputObject' because it is null.")
         $InputObject
     ) 
   
