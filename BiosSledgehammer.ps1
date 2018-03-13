@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "3.4.0"
+$scriptversion = "3.4.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1375,34 +1375,44 @@ function Invoke-BitLockerDecryption()
 
         if ( $encryptableVolumes -ne $null ) 
         {
-            foreach ($drivestatus in $encryptableVolumes)
+            foreach ($volume in $encryptableVolumes)
             {
-                if ( $drivestatus.DriveLetter.ToUpper() -eq $systemdrive )
-                {           
-                    write-verbose "Found entry for system drive"
-                               
-                    #The property ProtectionStatus will also be 0 if BitLocker was just suspended, so we can't use this property.
-                    #We go for EncryptionMethod which will report 0 if no BitLocker encryption is used
+                write-verbose "Checking volume $($volume.DeviceID)"
 
-                    #As @GregoryMachin reported, some versions of Windows do not have this property at all so need to make sure to have access to it
-                    #See https://github.com/texhex/BiosSledgehammer/issues/21
-                    if ( Get-Member -InputObject $drivestatus -Name "EncryptionMethod" -Membertype Properties )
-                    {
-                        #Some computers reported NULL/NIL as the output, so we need to make sure it's uint32 what is returned
-                        #See https://msdn.microsoft.com/en-us/library/windows/desktop/aa376434(v=vs.85).aspx
-                        if ( $drivestatus.EncryptionMethod -is [uint32] )
+                #There might be drives that are BitLocker encrypted but do not have a drive letter
+                #The system drive will always have a drive letter, so we can simply rule them out.
+                #This should be the fix for issue #43. 
+                if ( $volume.DriveLetter -ne $null )
+                {
+
+                    if ( $volume.DriveLetter.ToUpper() -eq $systemdrive )
+                    {           
+                        write-verbose "Found entry for system drive"
+                               
+                        #The property ProtectionStatus will also be 0 if BitLocker was just suspended, so we can't use this property.
+                        #We go for EncryptionMethod which will report 0 if no BitLocker encryption is used
+
+                        #As @GregoryMachin reported, some versions of Windows do not have this property at all so need to make sure to have access to it
+                        #See https://github.com/texhex/BiosSledgehammer/issues/21
+                        if ( Get-Member -InputObject $volume -Name "EncryptionMethod" -Membertype Properties )
                         {
-                            if ( $drivestatus.EncryptionMethod -ne 0 )
+                            #Some computers reported NULL/NIL as the output, so we need to make sure it's uint32 what is returned
+                            #See https://msdn.microsoft.com/en-us/library/windows/desktop/aa376434(v=vs.85).aspx
+                            if ( $volume.EncryptionMethod -is [uint32] )
                             {
-                                $bitLockerActive = $true
-                                write-host "BitLocker is active for system drive ($systemdrive)!"
-                            }                        
-                            else
-                            {
-                                write-verbose "BitLocker is not used"
+                                if ( $volume.EncryptionMethod -ne 0 )
+                                {
+                                    $bitLockerActive = $true
+                                    write-host "BitLocker is active for system drive ($systemdrive)!"
+                                }                        
+                                else
+                                {
+                                    write-verbose "BitLocker is not used"
+                                }
                             }
                         }
                     }
+
                 }
             }
         }
