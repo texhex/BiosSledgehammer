@@ -1,0 +1,21 @@
+# 9470m BIOS Update
+
+#The BIOS version the device should be on
+Version == F.69
+
+#Command to be executed for the BIOS update
+Command==hpqFlash64.exe
+
+#There can be spaces before the argument since leading and trailing white spaces are removed
+
+# Silent
+Arg1 == -s
+
+# Password file (will be removed if empty password)
+Arg2 == -p"@@PASSWORD_FILE@@"
+
+# Do not restart automatically
+Arg3 == -r
+
+
+
