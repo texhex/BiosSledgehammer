@@ -1,0 +1,19 @@
+# 9480m BIOS Update
+
+#The BIOS version the device should be on
+Version == 1.42
+
+# Command to be executed for the BIOS update
+Command==HPBiosUpdRec64.exe 
+
+# Arguments passed to COMMAND
+
+# Silent
+Arg1 == -s
+
+# Do not restart automatically
+Arg2 == -r
+
+
+
+

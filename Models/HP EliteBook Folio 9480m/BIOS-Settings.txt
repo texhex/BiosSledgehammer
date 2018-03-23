@@ -1,4 +1,4 @@
-# 9470m
+# 9480m
 
 #Boot Mode==UEFI Native (Without CSM)
 #SecureBoot==Enable
@@ -12,10 +12,10 @@
 
 Data Execution Prevention==Enable
 
-#Virtualization Technology (VTx)==Enable
+Virtualization Technology (VTx)==Enable
 
 # Might cause issues with the GPU
-#Virtualization Technology for Directed I/O (VTd)==Disable
+Virtualization Technology for Directed I/O (VTd)==Disable
                                      
 LAN/WLAN Switching==Enable
 Fast Boot==Disable
@@ -26,15 +26,5 @@ Intel (R) HT Technology == Enable
 
 Asset Tracking Number == @@COMPUTERNAME@@
 
-#Ownership Tag == Property of ...
+#Ownership Tag == Property of ....
 
-
-#Other settings...
-#Flash media reader == Enable
-#USB Port == Enable
-#Smart Card == Enable
-#eSATA Port == Disable
-#CD-ROM boot == Enable
-#SD Card boot == Enable
-#Floppy boot == Enable
-#PXE Internal NIC boot == Enable
