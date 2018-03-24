@@ -2,7 +2,7 @@
 
 
 # The BIOS version the device should be on
-Version == 1.13
+Version == 1.15
 
 # Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
