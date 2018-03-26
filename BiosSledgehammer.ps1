@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "3.4.1"
+$scriptversion = "4.0.0.BETA_1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -114,8 +114,9 @@ Set-Variable CurrentPasswordFile "" -Force
 #Path to model files
 Set-Variable MODELS_PATH "$PSScriptRoot\Models" -option ReadOnly -Force
 
-#Common exit code
+#Common exit codes
 Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 -option ReadOnly -Force
+Set-Variable ERROR_RETURN 666 -option ReadOnly -Force
 
 
 
@@ -156,7 +157,7 @@ function Test-Environment()
             throw "TEMP folder [$TEMP_FOLDER] not found"
         }
 
-        $Make = (Get-CimInstance Win32_ComputerSystem).Manufacturer
+        $Make = (Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10).Manufacturer
         
         if ( (Test-String $Make -StartsWith "HP") -or (Test-String $Make -StartsWith "Hewlett") )
         {
@@ -244,27 +245,26 @@ function Test-BiosValueRead()
 
 function Get-ModelFolder()
 {
-    param(
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Model
-    )
     $result = $null
-  
+
+    $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10    
+    $Model = Get-PropertyValueSafe $compSystem "Model" ""
+    $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
+
     Write-HostSection "Locate Model Folder"
     write-Host "Searching [$MODELS_PATH]"
-    write-Host "      for [$Model] ..."
+    write-Host "      for [$Model] or SKU [$SKU] ..."
 
     #get all folders
     $folders = Get-ChildItem -Path $MODELS_PATH -Directory -Force
 
-    #First try is to locate a folder matching EXACTLY the model name  
-    write-host "  Searching for exactly matching folder for this model..."
+    #Try is to locate a folder matching the SKU number
+    write-host "  Searching for SKU folder..."
     foreach ($folder in $folders) 
     {
         $name = $folder.Name.ToUpper()
-
-        if ( $name -eq $model.ToUpper() )
+    
+        if ( $name -eq $SKU.ToUpper() )
         {
             $result = $folder.FullName
             write-host "    Matching folder: [$result]"
@@ -273,8 +273,26 @@ function Get-ModelFolder()
     }
     if ( $result -eq $null ) {  write-host "    No folder found" }
 
+        
+    #Try is to locate a folder matching EXACTLY the model name  
+    if ( $result -eq $null )
+    {
+        write-host "  Searching for exactly matching folder for this model..."
+        foreach ($folder in $folders) 
+        {
+            $name = $folder.Name.ToUpper()
 
-    #Second try if the first one didn't yield any results
+            if ( $name -eq $Model.ToUpper() )
+            {
+                $result = $folder.FullName
+                write-host "    Matching folder: [$result]"
+                break
+            }
+        }
+        if ( $result -eq $null ) {  write-host "    No folder found" }
+    }
+
+    #Try a partitial model name search
     if ( $result -eq $null )
     {
         write-host "  Searching for partially matching folder..."
@@ -283,7 +301,7 @@ function Get-ModelFolder()
         {
             $name = $folder.Name
         
-            if ( Test-String $model -Contains $name )
+            if ( Test-String $Model -Contains $name )
             {
                 $result = $folder.FullName
                 write-host "    Matching folder: [$result]"
@@ -291,10 +309,16 @@ function Get-ModelFolder()
             }
         }
     }
+    if ( $result -eq $null ) {  write-host "    No folder found" }
+
 
     if ( $result -ne $null )
     {
         Write-Host "Model folder is [$result]"
+    }
+    else
+    {
+        throw "A matching model specifc folder was not found in [$MODELS_PATH]. This device ($Model - $SKU) is not supported by BIOS Sledgehammer."
     }
 
     Write-HostSection -End "Model Folder"
@@ -2712,7 +2736,7 @@ if ( -not $DebugMode )
  
 
 #set returncode to error by default
-$returncode = 666
+$returncode = $ERROR_RETURN
 
 try 
 {
@@ -2736,12 +2760,16 @@ try
 
     write-host "Collecting system information..."
 
-    $Model = (Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10).Model
+    $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10
+    
+    $Model = Get-PropertyValueSafe $compSystem "Model" ""
+    $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
     $computername = $env:computername
 
     write-host " "
     write-host "  Name.........: $computername"
     write-host "  Model........: $Model"
+    write-host "  SKU..........: $SKU"
    
     ########################################
     #Retrieve and parse BIOS version 
@@ -2796,148 +2824,139 @@ try
 
 
     #First try to locate the model folder
-    $modelfolder = Get-ModelFolder $model
+    $modelfolder = Get-ModelFolder 
+    #Model specifc folder found and stored in $modelfolder
 
-    if ( Test-String -IsNullOrWhiteSpace $modelfolder ) 
+    
+    #Now search for the password
+    $foundPwdFile = Test-BiosPasswordFiles -PwdFilesFolder $PWDFILES_PATH
+      
+    if ( ($foundPwdFile -eq $null) ) 
     {
-        #When we are here, we are pretty sure we can communicate with the machine, but no model folder was found        
-        write-error "The model specifc folder was not found in [$MODELS_PATH]. This device ($Model) is not supported by BIOS Sledgehammer."
-
-        #let returncode as is, which means we exit with an fatal error  
-    }
+        write-error "Unable to determin BIOS password, unable to continue!"
+    } 
     else
     {
-        #Model specifc folder found and stored in $modelfolder
-      
-        #Now search for the password
-        $foundPwdFile = Test-BiosPasswordFiles -PwdFilesFolder $PWDFILES_PATH
-      
-        if ( ($foundPwdFile -eq $null) ) 
-        {
-            write-error "Unable to determin BIOS password, unable to continue!"
-        } 
-        else
-        {
 
-            #Copy the password file locally 
-            #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
-            #           Never set $CurrentPasswordFile to a file on the source!
-            $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
+        #Copy the password file locally 
+        #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
+        #           Never set $CurrentPasswordFile to a file on the source!
+        $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
         
         
-            #Now we have everything ready to make changes to this system
-            #If ActivateUEFIBoot is set, we only perform this change and nothing else
+        #Now we have everything ready to make changes to this system
+        #If ActivateUEFIBoot is set, we only perform this change and nothing else
 
-            if ( $ActivateUEFIBoot )
+        if ( $ActivateUEFIBoot )
+        {
+            ########################
+            #Switch UEFI Boot mode
+
+            $uefiModeSwitched = Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+            if ( ($uefiModeSwitched -lt 0) )
             {
-                ########################
-                #Switch UEFI Boot mode
-
-                $uefiModeSwitched = Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                if ( ($uefiModeSwitched -lt 0) )
-                {
-                    write-error "Error switching UEFI Boot Mode!"
-                }
-                else
-                {
-                    $returncode = 0
-                }
-
+                write-error "Error switching UEFI Boot Mode!"
             }
             else
             {
-                ########################
-                #Normal process 
+                $returncode = 0
+            }
+
+        }
+        else
+        {
+            ########################
+            #Normal process 
 
 
-                #BIOS Update
-                $biosUpdated = $false
-                try
+            #BIOS Update
+            $biosUpdated = $false
+            try
+            {
+                $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+            }
+            catch 
+            {
+                $biosUpdated = $null
+            }
+
+            if ( $biosUpdated -eq $null) 
+            {   
+                #I know this is unecessary and it will be removed with the 4.0 rewrite             
+            }        
+            else
+            {
+                if ( $biosupdated ) 
                 {
-                    $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+                    #A BIOS update was done. Stop and continue later on
+                    $ignored = Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
+                    $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                 }
-                catch 
+                else 
                 {
-                    $biosUpdated = $null
-                }
+                    #ME update/check                    
+                    $mefwUpdated = $false                     
+                    $mefwUpdated = Update-MEFirmware -Modelfolder $modelfolder
 
-                if ( $biosUpdated -eq $null) 
-                {   
-                    #I know this is unecessary and it will be removed with the 4.0 rewrite             
-                }        
-                else
-                {
-                    if ( $biosupdated ) 
+                    if ($mefwUpdated -eq $null)
                     {
-                        #A BIOS update was done. Stop and continue later on
-                        $ignored = Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
-                        $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                        Write-Error "ME update failed!"
                     }
-                    else 
+                    else
                     {
-                        #ME update/check                    
-                        $mefwUpdated = $false                     
-                        $mefwUpdated = Update-MEFirmware -Modelfolder $modelfolder
-
-                        if ($mefwUpdated -eq $null)
+                        if ( $mefwUpdated )
                         {
-                            Write-Error "ME update failed!"
+                            $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
+                            $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                         }
                         else
                         {
-                            if ( $mefwUpdated )
+                            #TPM Update
+                            $tpmUpdated = $false
+
+                            try
                             {
-                                $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
-                                $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                                $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                            }
+                            catch
+                            {
+                                $tpmUpdated = $null
+                            }                            
+
+                            if ($tpmUpdated -eq $null)
+                            {
+                                #I know this is unecessary and it will be removed with the 4.0 rewrite             
                             }
                             else
                             {
-                                #TPM Update
-                                $tpmUpdated = $false
-
-                                try
+                                if ( $tpmUpdated )
                                 {
-                                    $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
-                                }
-                                catch
-                                {
-                                    $tpmUpdated = $null
-                                }                            
-
-                                if ($tpmUpdated -eq $null)
-                                {
-                                    #I know this is unecessary and it will be removed with the 4.0 rewrite             
+                                    $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                                    $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                                 }
                                 else
-                                {
-                                    if ( $tpmUpdated )
+                                {                     
+                                    #BIOS Password update
+                                    $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                                    if ( $updatedPasswordFile -ne $null )
                                     {
-                                        $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                                        $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                                        #File has changed - remove old password file
+                                        $ignored = Remove-FileExact -Filename $CurrentPasswordFile
+                                        $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                                    }
+
+                                    #Apply BIOS Settings
+                                    $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                                    if ( ($settingsApplied -lt 0) )
+                                    {
+                                        write-error "Error applying BIOS settings!"
                                     }
                                     else
-                                    {                     
-                                        #BIOS Password update
-                                        $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
-
-                                        if ( $updatedPasswordFile -ne $null )
-                                        {
-                                            #File has changed - remove old password file
-                                            $ignored = Remove-FileExact -Filename $CurrentPasswordFile
-                                            $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                                        }
-
-                                        #Apply BIOS Settings
-                                        $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                                        if ( ($settingsApplied -lt 0) )
-                                        {
-                                            write-error "Error applying BIOS settings!"
-                                        }
-                                        else
-                                        {
-                                            <#
+                                    {
+                                        <#
                                            Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
                                            does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
                                            value as before. 
@@ -2954,26 +2973,28 @@ try
                                          }
                                          #>
                  
-                                            $returncode = 0
-                                        }
+                                        $returncode = 0
                                     }
                                 }
                             }
                         }
                     }
-                }     
-            }
+                }
+            }     
+        }
         
 
-        }  #MAIN PROCESS
-    }
-    #}
+    }  #MAIN PROCESS
+    
+    
 
 }
 catch
 {
     write-error "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)" -Category OperationStopped
-    #Not used right now `n$($_.Exception.StackTrace)
+    #Not used right now: `n$($_.Exception.StackTrace)
+
+    $returncode = $ERROR_RETURN
 }
 
 

@@ -1,5 +1,5 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.27.1
+# Version 3.28.1
 # https://github.com/texhex/MPSXM
 #
 # Copyright © 2010-2018 Michael 'Tex' Hex 
@@ -2514,7 +2514,7 @@ Function Test-IsHashtable()
     [OutputType([bool])] 
     param (
         [Parameter(Mandatory = $True, Position = 1)]
-        [AllowNull()]  #We should be able to check if NULL if a hashtable (Else well get "Cannot bind argument to parameter 'InputObject' because it is null.")
+        [AllowNull()]  #We should be able to check if NULL if a hashtable (Else we'll get "Cannot bind argument to parameter 'InputObject' because it is null.")
         $InputObject
     ) 
   
@@ -2716,5 +2716,105 @@ Function Test-RunningInEditor()
     }
     
     return $result
+}
+
+
+#Changes 3.28.0
+
+Function Get-PropertyValueSafe()
+{
+    #.SYNOPSIS
+    # Tries to get a property value from the object and returns the replacement value if the property was not found on the object
+    #
+    #.PARAMETER InputObject
+    # The object to operate on
+    #
+    #.PARAMETER Property
+    # The name of the property to query
+    #
+    #.PARAMETER Default
+    # The value that should be used in case the property does not exist
+    #
+    #.OUTPUTS
+    # The value of the property or replacement value  
+
+    param (
+        [Parameter(Mandatory = $False, Position = 1)]
+        [AllowNull()]
+        $InputObject = $null,
+
+        [Parameter(Mandatory = $False, Position = 2)]
+        [AllowNull()]
+        $Property = $null,
+
+        [Parameter(Mandatory = $False, Position = 3)]
+        [ValidateNotNull()]
+        $Default = ""
+    )
+
+    #If either inputobject or the proerty are null, we can't do anything
+    if ( ($InputObject -eq $null) -or ($Property -eq $null) )
+    {
+        return $Default
+    }
+    else
+    {
+        #Check if the InputObject is a "normal" object or a hash table
+        if ( Test-IsHashtable $InputObject)
+        {
+            try
+            {
+                if ( $InputObject.Contains($Property) )
+                {
+                    $value = $InputObject[$Property]    
+                
+                    if ($value -ne $null)
+                    {
+                        return $value
+                    }
+                    else
+                    {
+                        return $Default
+                    }                
+                }
+                else
+                {
+                    return $Default
+                }
+            }            
+            catch 
+            {
+                return $Default
+            }      
+        }        
+        else 
+        {
+            #No hash table but normal object
+            if ( Get-Member -InputObject $InputObject -Name $Property -Membertype Properties )
+            {
+                try
+                {
+                    $value = Select-Object -InputObject $InputObject -ExpandProperty $Property
+
+                    if ($value -ne $null)
+                    {
+                        return $value
+                    }
+                    else
+                    {
+                        return $Default
+                    }
+                }            
+                catch 
+                {
+                    return $Default
+                }            
+            }
+            else
+            {
+                return $Default
+            }
+        }
+    }
 }
 
