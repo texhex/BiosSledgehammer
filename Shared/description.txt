@@ -1,0 +1,1 @@
+This directory stores shared files that are used when a Shared-<Setting Name>.txt file is used for a model

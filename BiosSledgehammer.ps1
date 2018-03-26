@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.0.BETA_1"
+$scriptversion = "4.0.0.BETA_2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -114,6 +114,10 @@ Set-Variable CurrentPasswordFile "" -Force
 #Path to model files
 Set-Variable MODELS_PATH "$PSScriptRoot\Models" -option ReadOnly -Force
 
+#Path to shared files
+Set-Variable SHARED_PATH "$PSScriptRoot\Shared" -option ReadOnly -Force
+
+
 #Common exit codes
 Set-Variable ERROR_SUCCESS_REBOOT_REQUIRED 3010 -option ReadOnly -Force
 Set-Variable ERROR_RETURN 666 -option ReadOnly -Force
@@ -150,6 +154,11 @@ function Test-Environment()
         if ( -not (Test-DirectoryExists $MODELS_PATH) )
         {
             throw "Folder for model specific files [$MODELS_PATH] not found"
+        }
+
+        if ( -not (Test-DirectoryExists $SHARED_PATH) )
+        {
+            throw "Folder for shared files [$SHARED_PATH] not found"
         }
 
         if ( -not (Test-DirectoryExists $TEMP_FOLDER) )
@@ -216,7 +225,7 @@ function Test-BiosCommunication()
         else
         {
             write-host "  Failed."
-            throw "BCU is unable to communicate with BIOS. Can't continue."
+            throw "BCU is unable to communicate with BIOS, can't continue."
         }
     }
 
@@ -245,6 +254,12 @@ function Test-BiosValueRead()
 
 function Get-ModelFolder()
 {
+    param(
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ModelsFolder
+    )   
+
     $result = $null
 
     $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10    
@@ -252,11 +267,11 @@ function Get-ModelFolder()
     $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
 
     Write-HostSection "Locate Model Folder"
-    write-Host "Searching [$MODELS_PATH]"
+    write-Host "Searching [$ModelsFolder]"
     write-Host "      for [$Model] or SKU [$SKU] ..."
 
     #get all folders
-    $folders = Get-ChildItem -Path $MODELS_PATH -Directory -Force
+    $folders = Get-ChildItem -Path $ModelsFolder -Directory -Force
 
     #Try is to locate a folder matching the SKU number
     write-host "  Searching for SKU folder..."
@@ -318,12 +333,127 @@ function Get-ModelFolder()
     }
     else
     {
-        throw "A matching model specifc folder was not found in [$MODELS_PATH]. This device ($Model - $SKU) is not supported by BIOS Sledgehammer."
+        throw "A matching model specifc folder was not found in [$ModelsFolder]. This device ($Model - $SKU) is not supported by BIOS Sledgehammer."
     }
 
     Write-HostSection -End "Model Folder"
     return $result
 }
+
+
+function Get-ModelSettingsFile()
+{
+    param(
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ModelFolder,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name        
+    )   
+
+    $fileName = $null
+
+    #First check for a direct file
+    $checkFile = "$($ModelFolder)\$($Name)"
+    write-host "Checking for file [$checkFile]..."
+    
+    if ( Test-FileExists $checkFile ) 
+    {
+        #File found, use it
+        $fileName = $checkFile
+    }
+    else
+    {
+        write-host "  File does not exist"
+        #Not found, check if a shared file exists
+        $checkFile = "$($ModelFolder)\Shared-$($Name)"
+
+        write-host "Checking for shared settings [$checkFile]"
+
+        if ( Test-FileExists $checkFile ) 
+        {            
+            #Shared file exists, try to read it to get the name
+            write-host "  File found"
+            $settings = Read-StringHashtable $checkFile
+
+            if ( -not ($settings.ContainsKey("Directory")) )
+            {
+                throw "Shared settings file [$checkFile] is missing Directory setting"
+            }
+            else
+            {
+                $checkPath = Join-Path -Path $SHARED_PATH -ChildPath $settings.Directory
+
+                if ( -not (Test-DirectoryExists $checkPath) )
+                {
+                    throw "Directory [$checkPath] specified in [$checkFile] does not exist"
+                }                   
+                else
+                {
+                    #Given folder exists, does the file also exist?
+                    $checkFile = Join-Path -Path $checkPath -ChildPath $Name
+
+                    if ( -not (Test-FileExists $checkFile) ) 
+                    {
+                        throw "Settings file [$Name] not found in shared directory [$checkPath]"
+                    }
+                    else
+                    {
+                        write-host "Using settings from [$checkFile]"
+                        $FileName = $checkFile                        
+                    }
+                    
+                }
+            }
+
+        }
+        else
+        {
+            #Shared file does also not exist
+            $fileName = $null
+        }        
+    }
+
+    if ( $fileName -eq $null)
+    {
+        write-host "No settings file found"
+    }
+
+    return $fileName
+}
+
+
+function Get-UpdateFolder()
+{
+    param(
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SettingsFilePath,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name             
+    )   
+
+    #$folderPath=$null
+
+    $baseFolder = Get-ContainingDirectory -Path $SettingsFilePath
+    
+    $folder = Join-Path -Path $baseFolder -ChildPath $Name
+
+    if ( Test-DirectoryExists $folder )
+    {
+        return $folder
+    }
+    else
+    {
+        throw "Folder [$folder] does not exist"
+    }
+
+}
+
 
 
 function ConvertTo-DescriptionFromBCUReturncode()
@@ -890,8 +1020,8 @@ function Test-BiosPasswordFiles()
     #Start testing	 
     write-host "Testing BIOS passwords..."
 
-    $assettag_old = get-biosvalue -Name $ASSET_NAME
-    write-host "Original Asset Tag [$assettag_old]"
+    $oldAssettag = get-biosvalue -Name $ASSET_NAME
+    write-host "Original Asset Tag [$oldAssettag]"
 
     $testvalue = Get-RandomString 14
     write-host "Asset Tag used for testing [$testvalue]"
@@ -909,14 +1039,20 @@ function Test-BiosPasswordFiles()
             write-host "Password file is [$file]!"
             write-host "Restoring old Asset Tag..."
         
-            $ignored = Set-BiosValue -Name $ASSET_NAME -Value $assettag_old -Passwordfile $file -Silent
+            $ignored = Set-BiosValue -Name $ASSET_NAME -Value $oldAssettag -Passwordfile $file -Silent
 
             $matchingPwdFile = $file
             break
         }
      
     }
-  
+
+    #Check if we were able to locate a password file
+    if ( $matchingPwdFile -eq $null )
+    {
+        throw "Unable to find matching BIOS password file in [$PwdFilesFolder]"
+    }
+      
     Write-HostSection -End "Determine BIOS Password"
 
     return $matchingPwdFile
@@ -1233,30 +1369,23 @@ function Update-BiosFirmware()
     #No idea if we should check for this file if we detect HPQFlash and WinPE. 
 
     $result = $false
-    $updatefile = "$ModelFolder\BIOS-Update.txt"
 
     Write-HostSection "BIOS Update"
-    write-host "Reading BIOS update information from [$updatefile]..."
+    $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "BIOS-Update.txt"
 
-    if ( !(Test-FileExists $updatefile) ) 
-    {
-        write-host "File does not exist, ignoring BIOS update"
-    } 
-    else
+    if ( $settingsFile -ne $null)
     {
         #Check if the BIOS data was parsed
         if ( -not $BIOSDetails.Parsed) 
         {
-            write-error "BIOS data could not be parsed, unable to check if update is required"
-            throw New-Exception -InvalidFormat "BIOS data not parsed"
+            throw "BIOS data could not be parsed, unable to check if update is required"
         }
 
-        $details = Read-StringHashtable $updatefile
+        $details = Read-StringHashtable $settingsFile
 
         if ( -not($details.ContainsKey("Version")) -or -not($details.ContainsKey("Command"))  ) 
         {
-            write-error "Update configuration file is missing Version or Command settings"
-            throw New-Exception -InvalidFormat "Configuration error"
+            throw "Settings file is missing Version or Command settings"
         } 
         else
         {       
@@ -1267,8 +1396,7 @@ function Update-BiosFirmware()
 
             if ( $versionDesired -eq $null ) 
             {
-                write-error "Unable to parse [$versionDesiredText] as a version"
-                throw New-Exception -InvalidFormat "Configuration error"
+                throw "Unable to parse [$versionDesiredText] as a version"
             }
             else
             {
@@ -1284,7 +1412,7 @@ function Update-BiosFirmware()
                 {
                     write-host "BIOS update required!"
 
-                    $updateFolder = "$ModelFolder\BIOS-$versionDesiredText"
+                    $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "BIOS-$versionDesiredText"
 
                     #check if we need to pass a firmware file based on the BIOS Family
                     $firmwareFile = ""
@@ -1312,13 +1440,11 @@ function Update-BiosFirmware()
 
                         if ( $returnCode -eq $null )
                         {
-                            write-error "Running BIOS update program failed"
-                            throw New-Exception -InvalidArgument "BIOS update program failed"
+                            throw "Running BIOS update program failed"
                         }
                         else
                         {
-                            write-error "BIOS update failed, update program returned code $($returnCode)"
-                            throw New-Exception -InvalidArgument "BIOS update program failed"
+                            throw "BIOS update failed, update program returned code $($returnCode)"
                         }
                     }
 
@@ -2823,140 +2949,135 @@ try
     write-host " "
 
 
-    #First try to locate the model folder
-    $modelfolder = Get-ModelFolder 
-    #Model specifc folder found and stored in $modelfolder
-
-    
+    #Locate Model folder
+    $modelfolder = Get-ModelFolder -ModelsFolder $MODELS_PATH
+        
     #Now search for the password
     $foundPwdFile = Test-BiosPasswordFiles -PwdFilesFolder $PWDFILES_PATH
       
-    if ( ($foundPwdFile -eq $null) ) 
+    #Copy the password file locally 
+    #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
+    #           Never set $CurrentPasswordFile to a file on the source!
+    $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
+                
+    #Now we have everything ready to make changes to this system
+    
+    #If ActivateUEFIBoot is set, we only perform this change and nothing else
+    if ( $ActivateUEFIBoot )
     {
-        write-error "Unable to determin BIOS password, unable to continue!"
-    } 
-    else
-    {
+        ########################
+        #Switch UEFI Boot mode
 
-        #Copy the password file locally 
-        #IMPORTANT: If we later on change the password this file in TEMP will be deleted!
-        #           Never set $CurrentPasswordFile to a file on the source!
-        $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $foundPwdFile
-        
-        
-        #Now we have everything ready to make changes to this system
-        #If ActivateUEFIBoot is set, we only perform this change and nothing else
+        $uefiModeSwitched = Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
 
-        if ( $ActivateUEFIBoot )
+        if ( ($uefiModeSwitched -lt 0) )
         {
-            ########################
-            #Switch UEFI Boot mode
-
-            $uefiModeSwitched = Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-            if ( ($uefiModeSwitched -lt 0) )
-            {
-                write-error "Error switching UEFI Boot Mode!"
-            }
-            else
-            {
-                $returncode = 0
-            }
-
+            write-error "Error switching UEFI Boot Mode!"
         }
         else
         {
-            ########################
-            #Normal process 
+            $returncode = 0
+        }
+
+    }
+    else
+    {
+        ########################
+        #Normal process 
 
 
-            #BIOS Update
-            $biosUpdated = $false
-            try
+        #BIOS Update
+        <#
+        $biosUpdated = $false
+        try
+        {
+            $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+        }
+        catch 
+        {
+            $biosUpdated = $null
+        }
+
+        if ( $biosUpdated -eq $null) 
+        {   
+            #I know this is unecessary and it will be removed with the 4.0 rewrite             
+        }        
+        else
+        {
+        #>
+        $biosUpdated = $false
+        $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+
+        if ( $biosupdated ) 
+        {
+            #A BIOS update was done. Stop and continue later on
+            $ignored = Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
+            $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+        }
+        else 
+        {
+            #ME update/check                    
+            $mefwUpdated = $false                     
+            $mefwUpdated = Update-MEFirmware -Modelfolder $modelfolder
+
+            if ($mefwUpdated -eq $null)
             {
-                $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
+                Write-Error "ME update failed!"
             }
-            catch 
-            {
-                $biosUpdated = $null
-            }
-
-            if ( $biosUpdated -eq $null) 
-            {   
-                #I know this is unecessary and it will be removed with the 4.0 rewrite             
-            }        
             else
             {
-                if ( $biosupdated ) 
+                if ( $mefwUpdated )
                 {
-                    #A BIOS update was done. Stop and continue later on
-                    $ignored = Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
+                    $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
                     $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                 }
-                else 
+                else
                 {
-                    #ME update/check                    
-                    $mefwUpdated = $false                     
-                    $mefwUpdated = Update-MEFirmware -Modelfolder $modelfolder
+                    #TPM Update
+                    $tpmUpdated = $false
 
-                    if ($mefwUpdated -eq $null)
+                    try
                     {
-                        Write-Error "ME update failed!"
+                        $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                    }
+                    catch
+                    {
+                        $tpmUpdated = $null
+                    }                            
+
+                    if ($tpmUpdated -eq $null)
+                    {
+                        #I know this is unecessary and it will be removed with the 4.0 rewrite             
                     }
                     else
                     {
-                        if ( $mefwUpdated )
+                        if ( $tpmUpdated )
                         {
-                            $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
+                            $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
                             $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                         }
                         else
-                        {
-                            #TPM Update
-                            $tpmUpdated = $false
+                        {                     
+                            #BIOS Password update
+                            $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
 
-                            try
+                            if ( $updatedPasswordFile -ne $null )
                             {
-                                $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                                #File has changed - remove old password file
+                                $ignored = Remove-FileExact -Filename $CurrentPasswordFile
+                                $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
                             }
-                            catch
-                            {
-                                $tpmUpdated = $null
-                            }                            
 
-                            if ($tpmUpdated -eq $null)
+                            #Apply BIOS Settings
+                            $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                            if ( ($settingsApplied -lt 0) )
                             {
-                                #I know this is unecessary and it will be removed with the 4.0 rewrite             
+                                write-error "Error applying BIOS settings!"
                             }
                             else
                             {
-                                if ( $tpmUpdated )
-                                {
-                                    $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                                    $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
-                                }
-                                else
-                                {                     
-                                    #BIOS Password update
-                                    $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
-
-                                    if ( $updatedPasswordFile -ne $null )
-                                    {
-                                        #File has changed - remove old password file
-                                        $ignored = Remove-FileExact -Filename $CurrentPasswordFile
-                                        $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                                    }
-
-                                    #Apply BIOS Settings
-                                    $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                                    if ( ($settingsApplied -lt 0) )
-                                    {
-                                        write-error "Error applying BIOS settings!"
-                                    }
-                                    else
-                                    {
-                                        <#
+                                <#
                                            Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
                                            does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
                                            value as before. 
@@ -2973,18 +3094,18 @@ try
                                          }
                                          #>
                  
-                                        $returncode = 0
-                                    }
-                                }
+                                $returncode = 0
                             }
                         }
                     }
                 }
-            }     
+            }
         }
+             
+    }
         
 
-    }  #MAIN PROCESS
+    #MAIN PROCESS
     
     
 
