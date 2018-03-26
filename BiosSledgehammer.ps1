@@ -357,7 +357,7 @@ function Get-ModelSettingsFile()
 
     #First check for a direct file
     $checkFile = "$($ModelFolder)\$($Name)"
-    write-host "Checking for file [$checkFile]..."
+    write-host "Reading settings from [$checkFile]..."
     
     if ( Test-FileExists $checkFile ) 
     {
@@ -366,11 +366,10 @@ function Get-ModelSettingsFile()
     }
     else
     {
-        write-host "  File does not exist"
         #Not found, check if a shared file exists
         $checkFile = "$($ModelFolder)\Shared-$($Name)"
 
-        write-host "Checking for shared settings [$checkFile]"
+        write-host "File does not exist, checking shared settings [$checkFile]"
 
         if ( Test-FileExists $checkFile ) 
         {            
@@ -2464,27 +2463,13 @@ function Update-MEFirmware()
     )
 
     Write-HostSection "Management Engine (ME) Update"
-    $result = $null
+    $result = $false
 
-    $checkFile = "$ModelFolder\ME-VulnerabilityScan.txt"
-    $updateSettingsFile = "$ModelFolder\ME-Update.txt"
-    
-    write-host "Checking if [$checkFile] or"
-    write-host "            [$updateSettingsFile] exist..."
+    $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "ME-Update.txt"
 
-    $performSecurityCheck = Test-FileExists $checkFile
-    $performUpdateIfNeeded = Test-FileExists $updateSettingsFile 
-
-    if ( -not ( $performSecurityCheck -or $performUpdateIfNeeded)  ) 
-    {
-        write-host "No ME setting file found, nothing to do"
-        $result = $false
-    } 
-    else
+    if ( $settingsFile -ne $null )
     {    
-        write-host "Starting Intel SA-00075 discovery tool to get ME data..."
-
-        $runToolOK = $false
+        write-host "Starting SA-00075 discovery tool to get ME data..."
   
         #We use the XML output method, so the tool will generate a file called [DEVICENAME].xml.    
         $xmlFilename = "$TEMP_FOLDER\$($env:computername).xml"
@@ -2495,137 +2480,98 @@ function Update-MEFirmware()
         try
         {
             $runToolResult = &"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $TEMP_FOLDER | out-string
-            $runToolOK = $true
         }
         catch
         {
-            write-error "Launching [$ISA75DT_EXE_SOURCE] failed; error: $($error[0])"
+            throw "Launching [$ISA75DT_EXE_SOURCE] failed; error: $($error[0])"
         }
     
-        if ( -not $runToolOK )
+        #Output console output to make sure we have something in the log even if the XML parsing fails
+        Write-HostOutputFromProgram -Name "Discovery Tool Output" -Content $runToolResult
+
+        write-host "Processing XML result [$xmlFilename]..."        
+
+        if ( -not (Test-FileExists $xmlFilename) ) 
         {
-            write-error "Failed to run detection tool, aborting"
+            throw "SA-00075 discovery tool XML output file not found"
         }
         else
         {
-            #Output console output to make sure we have something in the log even if the XML parsing fails
-            Write-HostOutputFromProgram -Name "Discovery Tool Output" -Content $runToolResult
+            $MEData = @{"Parsed" = $false; "VersionText" = "0.0.0"; "VersionParsed" = $false; "Provisioned" = "Unknown"; "DriverInstalled" = $false }
 
-            write-host "Processing XML result [$xmlFilename]..."        
-
-            if ( -not (Test-FileExists $xmlFilename) ) 
+            try 
             {
-                write-error "XML file not found!"
-            }
-            else
-            {
-                $MEData = [PSObject]@{"Parsed" = $false; "VersionText" = "0.0.0"; "VersionParsed" = $false; "FeatureLevel" = "Unkown"; "Provisioned" = "Unknown"; "VulnerableText" = "Unknown"; "Vulnerable" = $false; "ExposedText" = "Unknown"; "DriverInstalled" = $false }
+                $xmlContent = Get-Content $xmlFilename -Raw
+                [xml]$xml = $xmlContent
 
-                try 
+                $MEData.VersionText = $xml.System.ME_Firmware_Information.ME_Version
+
+                #In some cases, the Intel tool will report "Unknown" for the version. 
+                #If this happens, no ME update is possible
+                if ($MEData.VersionText.ToUpper() -ne "UNKNOWN")
                 {
-                    $xmlContent = Get-Content $xmlFilename -Raw
-                    [xml]$xml = $xmlContent
-
-                    $MEData.VersionText = $xml.System.ME_Firmware_Information.ME_Version
-
-                    #In some cases, the Intel tool will report "Unknown" for the version. 
-                    #If this happens, no ME update is possible
-                    if ($MEData.VersionText.ToUpper() -ne "UNKNOWN")
-                    {
-                        $MEData.Version = ConvertTo-Version -Text $MEData.VersionText
-                        $MEData.VersionParsed = $true
-                    }
+                    $MEData.Version = ConvertTo-Version -Text $MEData.VersionText
+                    $MEData.VersionParsed = $true
+                }
                 
-                    #IS75DT 1.0.3 does no longer contain the entry SKU in the XML. Still in the normal output though...
-                    $MEData.Provisioned = $xml.System.ME_Firmware_Information.ME_Provisioning_State
-                    $MEData.VulnerableText = $xml.System.System_Status.System_Risk
-                    $MEData.ExposedText = $xml.System.System_Status.System_Exposure
+                #IS75DT 1.0.3 does no longer contain the entry SKU in the XML. Still in the normal output though...
+                $MEData.Provisioned = $xml.System.ME_Firmware_Information.ME_Provisioning_State
 
-                    if ( $xml.System.ME_Firmware_Information.ME_Driver_Installed -eq "True" )
-                    {
-                        $MEData.DriverInstalled = $true
-                    }    
-
-                    #As of version 1.0.3, the vulnerable status is a sentence and the important part is "is vulnerable / is not vulnerable"
-                    if ( Test-String $MEData.VulnerableText -Contains "is vulnerable" ) 
-                    {
-                        $MEData.Vulnerable = $true
-                    }
+                if ( $xml.System.ME_Firmware_Information.ME_Driver_Installed -eq "True" )
+                {
+                    $MEData.DriverInstalled = $true
+                }    
                              
-                    $MEData.Parsed = $true
-                    write-host "Reading finished"
+                $MEData.Parsed = $true
+                write-host "Reading finished"
 
-                }
-                catch
-                {
-                    write-error "Unable to read; error: $($error[0])"
-                }
+            }
+            catch
+            {
+                throw "Unable to parse SA-00075 discovery XML file; error: $($error[0])"
+            }
 
-                if ( $MEData.Parsed ) 
-                {
+            if ( $MEData.Parsed ) 
+            {
 
-                    write-host "Management Engine information:"
-                    write-host " "
-                    write-host "  Firmware Version ..: $($MEData.VersionText)"
-                    write-host "  Provisioned .......: $($MEData.Provisioned)"
-                    write-host " "
-
-                    #Only add the following information if a security check is wanted
-                    if ( $performSecurityCheck )
-                    {
-
-                        write-host "  SA-75 Vulnerable ..: $($MEData.VulnerableText)"
-                        write-host "  Exposed ...........: $($MEData.ExposedText)"                              
-                        write-host "  Is ME vulnerable ..: $($MEData.Vulnerable)"
-                        write-host " "
-
-                        if ( $MEData.Vulnerable ) 
-                        {
-                            write-warning "The ME firmware is affected by the Intel-SA-00075 security vulnerability!"
-
-                            $header = "Intel-SA-00075 affected"
-                            $text = @("This device is affected by SA-00075 security vulnerability.")
-                            $footer = "An ME update is recommended"
-                    
-                            Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true
-                        }
-                    }
+                write-host "ME Firmware Version...: $($MEData.VersionText)"
+                write-host "ME Driver Installed...: $($MEData.DriverInstalled)"
                 
-                    #Perform ME Update?
-                    if ( $performUpdateIfNeeded )
-                    {
-                        #First check if we were able to parse the version
+                #Perform ME Update?
+                #if ( $performUpdateIfNeeded )
+                #{
+                #First check if we were able to parse the version
 
-                        if ( -not $MEData.VersionParsed )
+                if ( -not $MEData.VersionParsed )
+                {
+                    throw "The SA-00075 detection tool was unable to determine the installed ME firmware version, no update possible"
+                }
+                else
+                {
+                    $settings = Read-StringHashtable $updateSettingsFile
+                    
+                    $versionDesiredText = $settings["version"]                   
+                    [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
+
+                    if ( $versionDesired -eq $null ) 
+                    {
+                        throw "Unable to parse configured version [$versionDesiredText] as a version"
+                    }
+                    else
+                    {
+                        write-host "Current ME firmware version: $($MEData.Version)"
+                        write-host "Desired ME firmware version: $($versionDesired)"
+                    
+                        if ( $versionDesired -le $MEData.Version ) 
                         {
-                            write-error "The detection tool was unable to determine the installed ME firmware version, no update possible"
+                            write-host "  ME firmware update not required"
+                            $result = $false
                         }
                         else
                         {
-                            $settings = Read-StringHashtable $updateSettingsFile
-                    
-                            $versionDesiredText = $settings["version"]                   
-                            [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
-
-                            if ( $versionDesired -eq $null ) 
-                            {
-                                write-error "Unable to parse [$versionDesiredText] as a version"
-                            }
-                            else
-                            {
-                                write-host "Current ME firmware version: $($MEData.Version)"
-                                write-host "Desired ME firmware version: $($versionDesired)"
-                    
-                                if ( $versionDesired -le $MEData.Version ) 
-                                {
-                                    write-host "  ME firmware update not required"
-                                    $result = $false
-                                }
-                                else
-                                {
-                                    write-host "  ME update required!"
+                            write-host "  ME update required!"
                             
-                                    <#
+                            <#
                                  All ME firmware downloads from HP advise that the driver needs to be installed before:                            
                                   "Intel Management Engine Components Driver must be installed before this package is installed."
 
@@ -2635,41 +2581,43 @@ function Update-MEFirmware()
                                  Therefore we will only execute the update if a driver was detected.
                                 #>
 
-                                    if ( -not $MEData.DriverInstalled )
-                                    {
-                                        write-error "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
-                                    }
-                                    else
-                                    {
-                                        write-host "The ME update will take some time, please be patient."
+                            if ( -not $MEData.DriverInstalled )
+                            {
+                                throw "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
+                            }
+                            else
+                            {
+                                write-host "The ME update will take some time, please be patient."
                                 
-                                        $updatefolder = "$ModelFolder\ME-$versionDesiredText"
+                                #$updatefolder = "$ModelFolder\ME-$versionDesiredText"
+                                $updateFolder = Get-UpdateFolder -SettingsFilePath $updateSettingsFile -Name "ME-$versionDesiredText"
 
-                                        $result = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
+                                $result = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
                             
-                                        if ( $result -eq $null )
-                                        {
-                                            write-error "Running ME update command failed!"
-                                        }
-                                        else
-                                        {                  
-                                            write-host "ME update success"
-                                            $result = $true
-                                        }
-
-                                        #All done
-                                    }
+                                if ( $result -eq $null )
+                                {
+                                    throw "Running ME update command failed!"
                                 }
-                            }    
-                        }                            
-                    }                
-                }                                
-            }
+                                else
+                                {                  
+                                    write-host "ME update success"
+                                    $result = $true
+                                }
+
+                                #All done
+                            }
+                        }
+                    }    
+                }                            
+                              
+            }                                
         }
+        
     }
 
  
     Write-HostSection -End "ME Update"
+    
     return $result
 }
 
@@ -2985,26 +2933,6 @@ try
         ########################
         #Normal process 
 
-
-        #BIOS Update
-        <#
-        $biosUpdated = $false
-        try
-        {
-            $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
-        }
-        catch 
-        {
-            $biosUpdated = $null
-        }
-
-        if ( $biosUpdated -eq $null) 
-        {   
-            #I know this is unecessary and it will be removed with the 4.0 rewrite             
-        }        
-        else
-        {
-        #>
         $biosUpdated = $false
         $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
 
@@ -3020,64 +2948,58 @@ try
             $mefwUpdated = $false                     
             $mefwUpdated = Update-MEFirmware -Modelfolder $modelfolder
 
-            if ($mefwUpdated -eq $null)
+            if ( $mefwUpdated )
             {
-                Write-Error "ME update failed!"
+                $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
+                $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
             }
             else
             {
-                if ( $mefwUpdated )
+                #TPM Update
+                $tpmUpdated = $false
+
+                try
                 {
-                    $ignored = Write-HostPleaseRestart -Reason "A ME firmware update was performed."              
-                    $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                    $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
+                }
+                catch
+                {
+                    $tpmUpdated = $null
+                }                            
+
+                if ($tpmUpdated -eq $null)
+                {
+                    #I know this is unecessary and it will be removed with the 4.0 rewrite             
                 }
                 else
                 {
-                    #TPM Update
-                    $tpmUpdated = $false
-
-                    try
+                    if ( $tpmUpdated )
                     {
-                        $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
-                    }
-                    catch
-                    {
-                        $tpmUpdated = $null
-                    }                            
-
-                    if ($tpmUpdated -eq $null)
-                    {
-                        #I know this is unecessary and it will be removed with the 4.0 rewrite             
+                        $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                        $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                     }
                     else
-                    {
-                        if ( $tpmUpdated )
+                    {                     
+                        #BIOS Password update
+                        $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                        if ( $updatedPasswordFile -ne $null )
                         {
-                            $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                            $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                            #File has changed - remove old password file
+                            $ignored = Remove-FileExact -Filename $CurrentPasswordFile
+                            $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                        }
+
+                        #Apply BIOS Settings
+                        $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                        if ( ($settingsApplied -lt 0) )
+                        {
+                            write-error "Error applying BIOS settings!"
                         }
                         else
-                        {                     
-                            #BIOS Password update
-                            $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
-
-                            if ( $updatedPasswordFile -ne $null )
-                            {
-                                #File has changed - remove old password file
-                                $ignored = Remove-FileExact -Filename $CurrentPasswordFile
-                                $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                            }
-
-                            #Apply BIOS Settings
-                            $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                            if ( ($settingsApplied -lt 0) )
-                            {
-                                write-error "Error applying BIOS settings!"
-                            }
-                            else
-                            {
-                                <#
+                        {
+                            <#
                                            Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
                                            does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
                                            value as before. 
@@ -3094,12 +3016,12 @@ try
                                          }
                                          #>
                  
-                                $returncode = 0
-                            }
+                            $returncode = 0
                         }
                     }
                 }
             }
+            
         }
              
     }
