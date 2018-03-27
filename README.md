@@ -26,14 +26,14 @@ Automated BIOS, ME, TPM firmware update and BIOS settings for HP devices.
 ```
 ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
-## <a name="warning">Disclaimer</a> 
+## Disclaimer
 
 * BIOS Sledgehammer is **NOT** an official HP or Intel tool.
 * This is **NOT** sponsored or endorsed by HP or Intel.
 * HP or Intel were **NOT** involved in developing BIOS Sledgehammer.
 * The device can become [FUBAR](https://en.wikipedia.org/wiki/List_of_military_slang_terms#FUBAR) in the process. 
 
-## <a name="about">About</a>
+## About
 
 Suppose you get a workitem like this: 
 
