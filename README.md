@@ -51,7 +51,7 @@ You can now waste precious life time to try to script this, or you can just use 
 * You can use it directly from MDT/SCCM, it will detect if a OSD is active and store the log(s) in the same path the task sequence uses. If desired, it can also be executed visible to see what it does.
 * It offers a command line switch to be used during an in-place BIOS to UEFI boot mode conversion (Windows 10 1703 using MBR2GPT.exe), so the computer will start in UEFI mode (requires Windows 10 1703 or later).
 
-If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view how to use it in [MDT or SCCM](#sccmmdt) or download it directly from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
+If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works, view how to use it in [MDT or SCCM](#using-it-from-MDT-or-SCCM) or download it directly from [Releases](https://github.com/texhex/BiosSledgehammer/releases).
 
 ## System requirements
 
@@ -67,10 +67,10 @@ desktops, notebooks, and workstations.*
 * TPM update files if a TPM specification or TPM firmware update is desired 
   * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
 * ME updates if a Management Engine (vPro) update is desired
-  * For ME firmware files, see [HPSBHF03571 Advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
+  * See [HPSBHF03571 Advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
   [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) ([Intel-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr)) or the driver download page from HP for the model
 * [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
-* Note: Several BIOS, TPM and ME files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#installation).
+* Note: Several BIOS, TPM and ME files for the example models that are included can be downloaded automatically - see [Installation](#installation).
 
 ## Process
 
@@ -273,7 +273,7 @@ If anything goes wrong during the process, an error is generated.
 # See https://downloadcenter.intel.com/download/26755
 ```
 
-~~If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#meupdate) process.~~
+~~If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#management-engine-me-update) process.~~
 
 ## TPM Update
 
@@ -290,7 +290,7 @@ Manufacturer == 1229346816
 # The TPM Spec version we want this device to have
 SpecVersion == 2.0
 
-# The Firmware version we want this device to have 
+# The Firmware version we want this device to have
 FirmwareVersion == 7.41
 
 # Define the upgrade file to be used for each firmware
@@ -348,7 +348,7 @@ BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM 
 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated.
 
-To support this, these BIOS settings can be disabled just before the TPM update takes place using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
+To support this, these BIOS settings can be disabled just before the TPM update takes place using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
@@ -358,7 +358,7 @@ Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
 ```
 
-**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect.
+**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
 
 ### Disable automatic BitLocker decryption
 
