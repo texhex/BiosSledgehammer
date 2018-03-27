@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.0.BETA_2"
+$scriptversion = "4.0.0.BETA_3"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -260,34 +260,45 @@ function Get-ModelFolder()
         [string]$ModelsFolder
     )   
 
-    $result = $null
-
     $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10    
+    
     $Model = Get-PropertyValueSafe $compSystem "Model" ""
     $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
 
     Write-HostSection "Locate Model Folder"
     write-Host "Searching [$ModelsFolder]"
-    write-Host "      for [$Model] or SKU [$SKU] ..."
+    
+    if ( Test-String -HasData $SKU )
+    {
+        write-Host "  for SKU [$SKU] or [$Model]..."
+    }
+    else
+    {
+        write-Host "      for [$Model]..."    
+    }
+    
+    $result = $null
 
     #get all folders
     $folders = Get-ChildItem -Path $ModelsFolder -Directory -Force
 
     #Try is to locate a folder matching the SKU number
-    write-host "  Searching for SKU folder..."
-    foreach ($folder in $folders) 
+    if ( Test-String -HasData $SKU )
     {
-        $name = $folder.Name.ToUpper()
-    
-        if ( $name -eq $SKU.ToUpper() )
+        write-host "  Searching for SKU folder..."
+        foreach ($folder in $folders) 
         {
-            $result = $folder.FullName
-            write-host "    Matching folder: [$result]"
-            break
+            $name = $folder.Name.ToUpper()
+    
+            if ( $name -eq $SKU.ToUpper() )
+            {
+                $result = $folder.FullName
+                write-host "    Matching folder: [$result]"
+                break
+            }
         }
+        if ( $result -eq $null ) {  write-host "    No folder found" }
     }
-    if ( $result -eq $null ) {  write-host "    No folder found" }
-
         
     #Try is to locate a folder matching EXACTLY the model name  
     if ( $result -eq $null )
@@ -333,7 +344,7 @@ function Get-ModelFolder()
     }
     else
     {
-        throw "A matching model specifc folder was not found in [$ModelsFolder]. This device ($Model - $SKU) is not supported by BIOS Sledgehammer."
+        throw "A matching model folder was not found in [$ModelsFolder]. This model [$Model] (SKU $SKU) is not supported by BIOS Sledgehammer."
     }
 
     Write-HostSection -End "Model Folder"
@@ -374,7 +385,7 @@ function Get-ModelSettingsFile()
         if ( Test-FileExists $checkFile ) 
         {            
             #Shared file exists, try to read it to get the name
-            write-host "  File found"
+            write-host "  Shared settings file found"
             $settings = Read-StringHashtable $checkFile
 
             if ( -not ($settings.ContainsKey("Directory")) )
@@ -417,7 +428,7 @@ function Get-ModelSettingsFile()
 
     if ( $fileName -eq $null)
     {
-        write-host "No settings file found"
+        write-host "No settings exist, ignoring"
     }
 
     return $fileName
@@ -1238,11 +1249,11 @@ function Update-BiosSettings()
     )
 
     $displayText = "BIOS Settings"
-    $settingsfile = "$modelfolder\BIOS-Settings.txt"
  
-
     Write-HostSection -Start $displayText
-    $result = Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile 
+    
+    $result = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile 
+
     Write-HostSection -End $displayText
 
     return $result
@@ -1260,10 +1271,11 @@ function Set-UEFIBootMode()
     )
 
     $displayText = "Activate UEFI Boot Mode"
-    $settingsfile = "$modelfolder\Activate-UEFIBoot.txt"
 
     Write-HostSection -Start $displayText
-    $result = Update-BiosSettingsEx -ConfigFileFullPath $settingsfile -PasswordFile $PasswordFile
+
+    $result = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "Activate-UEFIBoot.txt" -PasswordFile $PasswordFile
+
     Write-HostSection -End $displayText
 
     return $result
@@ -1275,7 +1287,11 @@ function Update-BiosSettingsEx()
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $False)]
         [ValidateNotNullOrEmpty()]
-        [string]$ConfigFileFullPath,
+        [string]$ModelFolder,
+      
+        [Parameter(Mandatory = $True, ValueFromPipeline = $False)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Filename,
 
         [Parameter(Mandatory = $False, ValueFromPipeline = $False)]
         [string]$PasswordFile = "",
@@ -1285,11 +1301,20 @@ function Update-BiosSettingsEx()
         [switch]$IgnoreNonExistingConfigFile
     )
 
-    write-host "Reading BIOS settings from [$ConfigFileFullPath]..."
-
-    $configFileExists = Test-FileExists $ConfigFileFullPath
-
     $result = -1
+
+    $configFileFullPath = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name $Filename
+
+    if ( $configFileFullPath -ne $null )
+    {
+        $configFileExists = Test-FileExists $ConfigFileFullPath
+    }
+    else
+    {
+        $configFileExists = $false
+    }
+
+        
     #Define we can change settings or not
     $change_settings = $false
 
@@ -1301,12 +1326,11 @@ function Update-BiosSettingsEx()
     {
         if ( $IgnoreNonExistingConfigFile )
         {
-            Write-Host "File does not exist, ignoring BIOS settings"
             $result = 0               
         } 
         else
         {
-            write-error "Setting file ($ConfigFileFullPath) does not exist!"
+            throw "Setting file ($ConfigFileFullPath) does not exist!"
             $result = -1
         }
     }
@@ -1332,7 +1356,7 @@ function Update-BiosSettingsEx()
             if ( $changeresult -lt 0 ) 
             {
                 #Something went wrong applying our settings
-                write-error "Applying BIOS Setting failed!"
+                throw "Applying BIOS Setting failed!"
             }
        
             if ( $changeresult -eq 1 )
@@ -1668,127 +1692,113 @@ function Update-TPMFirmware()
 
     Write-HostSection "TPM Update"
 
-    $result = $null
+    $result = $false
 
-    $updatefile = "$ModelFolder\TPM-Update.txt"   
-    write-host "Reading TPM update information from [$updatefile]..."
+    $updateFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "TPM-Update.txt"
 
-    if ( -not (Test-FileExists $updatefile) ) 
-    {
-        write-host "File does not exist, ignoring TPM update"
-        $result = $false
-    } 
-    else
+    if ( $updatefile -ne $null ) 
     {
         if ( -not ($TPMDetails.Parsed) ) 
         {
-            write-error "TPM not found or unable to parse data, unable to check if update is required"
-            throw New-Exception -InvalidFormat "TPM data not parsed"
+            throw "TPM not found or unable to parse data, unable to check if update is required"
         }
     
         $settings = Read-StringHashtable $updatefile
 
         if ( !($settings.ContainsKey("SpecVersion")) -or !($settings.ContainsKey("FirmwareVersion")) -or !($settings.ContainsKey("Command"))  ) 
         {
-            write-error "Configuration file is missing SpecVersion, FirmwareVersion or Command settings"
-            throw New-Exception -InvalidFormat "Configuration error"
+            throw "Configuration file is missing SpecVersion, FirmwareVersion or Command settings"
         }
-        else
-        {
-            #Check if a Manufacturer was given. If so, we need to check if it matches the vendor of this machine
-            $manufacturerOK = $true
+          
+        #Check if a Manufacturer was given. If so, we need to check if it matches the vendor of this machine
+        $manufacturerOK = $true
       
-            if ( $settings.ContainsKey("Manufacturer") )
-            {       
-                $tpmManufacturer = $settings["Manufacturer"]
+        if ( $settings.ContainsKey("Manufacturer") )
+        {       
+            $tpmManufacturer = $settings["Manufacturer"]
 
-                write-host "TPM manufacturer ID of this device: $($TPMDetails.ManufacturerId)"
-                write-host "TPM manufacturer ID required......: $tpmManufacturer"
+            write-host "TPM manufacturer ID of this device: $($TPMDetails.ManufacturerId)"
+            write-host "TPM manufacturer ID required......: $tpmManufacturer"
 
-                #Yes, I'm aware this are numbers, but the day they will use chars this line will save me some debugging
-                if ( $tpmManufacturer.ToLower() -ne $TPMDetails.ManufacturerId.ToLower() )
-                {
-                    write-warning "  TPM manufacturer IDs do not match! Unable to update TPM."
-                    $manufacturerOK = $false
-                }
-                else
-                {
-                    write-host "  TPM manufacturer IDs match"
-                }         
+            #Yes, I'm aware this are numbers, but the day they will use chars this line will save me some debugging
+            if ( $tpmManufacturer.ToLower() -ne $TPMDetails.ManufacturerId.ToLower() )
+            {
+                write-warning "  TPM manufacturer IDs do not match, unable to update TPM"
+                $manufacturerOK = $false
             }
             else
             {
-                write-host "[Manufacturer] not defined in configuration file, will not check TPM manufacturer ID"
-            }
+                write-host "  TPM manufacturer IDs match"
+            }         
+        }
+        else
+        {
+            write-host "Manufacturer not defined in configuration file, will not check TPM manufacturer ID"
+        }
   
-            if ( $manufacturerOK )
+        if ( $manufacturerOK )
+        {
+            #Get TPM Spec and firmwarwe version from settings
+            $tpmSpecDesiredText = $settings["SpecVersion"]
+            $tpmSpecDesired = ConvertTo-Version $tpmSpecDesiredText
+
+            if ( $tpmSpecDesired -eq $null ) 
             {
-                #Verify TPM spec version
-                $tpmSpecDesiredText = $settings["SpecVersion"]
-                $tpmSpecDesired = ConvertTo-Version $tpmSpecDesiredText
+                throw "Unable to convert value of SpecVersion [$tpmSpecDesiredText] to a version!"
+            }
 
-                if ( $tpmSpecDesired -eq $null ) 
-                {
-                    write-error "Unable to convert [$tpmSpecDesiredText] to a version!"
-                    throw New-Exception -InvalidFormat "Configuration error"
-                }
-                else
-                {
-                    $updateBecauseTPMSpec = $false
+            #Check TPM spec version
+            $updateBecauseTPMSpec = $false
+            write-host "Current TPM Spec: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
+            write-host "Desired TPM Spec: $(Get-VersionTextAndNumerical $tpmSpecDesiredText $tpmSpecDesired)"  
 
-                    write-host "Current TPM Spec: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
-                    write-host "Desired TPM Spec: $(Get-VersionTextAndNumerical $tpmSpecDesiredText $tpmSpecDesired)"  
+            if ( $TPMDetails.SpecVersion -lt $tpmSpecDesired )
+            {
+                write-host "  TPM Spec is lower than desired, update required"            
+                $updateBecauseTPMSpec = $true
+            }
+            else
+            {
+                write-host "  TPM Spec version matches"
+            }
 
-                    if ( $TPMDetails.SpecVersion -lt $tpmSpecDesired )
-                    {
-                        write-host "  TPM Spec is lower than desired, update required"            
-                        $updateBecauseTPMSpec = $true
-                    }
-                    else
-                    {
-                        write-host "  TPM Spec version matches"
-                    }
+            #Verify firmware version
+            $firmwareVersionDesiredText = $settings["FirmwareVersion"]
+            $firmwareVersionDesired = ConvertTo-Version $firmwareVersionDesiredText
 
-                    #Verify firmware version
-                    $firmwareVersionDesiredText = $settings["FirmwareVersion"]
-                    $firmwareVersionDesired = ConvertTo-Version $firmwareVersionDesiredText
+            if ( $firmwareVersionDesired -eq $null ) 
+            {
+                throw "Unable to convert value of FirmwareVersion [$firmwareVersionDesiredText] to a version!"
+            }
+                        
+            $updateBecauseFirmware = $false
+            write-host "Current TPM firmware: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
+            write-host "Desired TPM firmware: $(Get-VersionTextAndNumerical $firmwareVersionDesiredText $firmwareVersionDesired)"
 
-                    if ( $firmwareVersionDesired -eq $null ) 
-                    {
-                        write-error "Unable to convert [$firmwareVersionDesiredText] to a version!"
-                        throw New-Exception -InvalidFormat "Configuration error"
-                    }
-                    else
-                    {
-                        $updateBecauseFirmware = $false
+            if ( $TPMDetails.Version -lt $firmwareVersionDesired )
+            {
+                write-host "  Firmware version is lower than desired, update required"            
+                $updateBecauseFirmware = $true
+            }
+            else
+            {
+                write-host "  Firmware version matches or is newer"
+            }
 
-                        write-host "Current TPM firmware: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
-                        write-host "Desired TPM firmware: $(Get-VersionTextAndNumerical $firmwareVersionDesiredText $firmwareVersionDesired)"
-
-                        if ( $TPMDetails.Version -lt $firmwareVersionDesired )
-                        {
-                            write-host "  Firmware version is lower than desired, update required"            
-                            $updateBecauseFirmware = $true
-                        }
-                        else
-                        {
-                            write-host "  Active firmware version matches or is newer"
-                        }
-
-                        write-host "Update required result:"
-                        write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
-                        write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
+            write-host "Update required result:"
+            write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
+            write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
              
-                        if ( -not ($updateBecauseTPMSpec -or $updateBecauseFirmware) )
-                        {
-                            write-host "TPM update not required"
-                            $result = $false
-                        }
-                        else
-                        {
-                            write-host "TPM update required!"
+            if ( -not ($updateBecauseTPMSpec -or $updateBecauseFirmware) )
+            {
+                write-host "TPM update not required"
+                $result = $false
+            }
+            else
+            {
+                write-host "TPM update required!"
 
-                            <#
+                <#
                  We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
                 
                  However, we have a problem with the 6.41 firmware that is included in the firmware pack for 7.61 and upwards:
@@ -1803,219 +1813,180 @@ function Update-TPMFirmware()
                  Hence we need to perform a double try in this special case.
                 #>
 
-                            $firmmwareVersionText = $TPMDetails.VersionText                
-                            Write-host "Searching firmware file entry for [$firmmwareVersionText]..."
+                $firmmwareVersionText = $TPMDetails.VersionText                
+                Write-host "Searching firmware file entry for [$firmmwareVersionText]..."
 
-                            $firmwareFile_A = ""
-                            $firmwareFile_B = ""
+                $firmwareFile_A = ""
+                $firmwareFile_B = ""
                 
-                            $firmwareEntryFound = $false
+                $firmwareEntryFound = $false
 
-                            #First check for a drirect match, e.g. if the TPM firmware is 6.40, search for 6.40==XXXXX
-                            if ( $settings.ContainsKey($firmmwareVersionText) )
-                            {
-                                $firmwareFile_A = $settings[$firmmwareVersionText]
-                                write-host "Firmware file found:"
-                                write-host "  [$firmwareFile_A]"
+                #First check for a drirect match, e.g. if the TPM firmware is 6.40, search for 6.40==XXXXX
+                if ( $settings.ContainsKey($firmmwareVersionText) )
+                {
+                    $firmwareFile_A = $settings[$firmmwareVersionText]
+                    write-host "Firmware file found:"
+                    write-host "  [$firmwareFile_A]"
 
-                                $firmwareEntryFound = $true
-                            }
-                            else
-                            {
-                                #If nothing was found, check if this is a special update process so we expect VERSION.A and VERSION.B
-                                #We expect two entries in this case, a single entry is a failure
-                                if ( ($settings.ContainsKey("$firmmwareVersionText.A")) -and ($settings.ContainsKey("$firmmwareVersionText.B")) )
-                                {                                                
-                                    $firmwareFile_A = $settings["$firmmwareVersionText.A"]
-                                    $firmwareFile_B = $settings["$firmmwareVersionText.B"]
+                    $firmwareEntryFound = $true
+                }
+                else
+                {
+                    #If nothing was found, check if this is a special update process so we expect VERSION.A and VERSION.B
+                    #We expect two entries in this case, a single entry is a failure
+                    if ( ($settings.ContainsKey("$firmmwareVersionText.A")) -and ($settings.ContainsKey("$firmmwareVersionText.B")) )
+                    {                                                
+                        $firmwareFile_A = $settings["$firmmwareVersionText.A"]
+                        $firmwareFile_B = $settings["$firmmwareVersionText.B"]
 
-                                    write-host "Two firmware files found:"
-                                    write-host "  [$firmwareFile_A]"
-                                    write-host "  [$firmwareFile_B]"
+                        write-host "Two firmware files found:"
+                        write-host "  [$firmwareFile_A]"
+                        write-host "  [$firmwareFile_B]"
 
-                                    $firmwareEntryFound = $true
-                                }
-                            }
-
+                        $firmwareEntryFound = $true
+                    }
+                }
                                 
-                            if ( -not $firmwareEntryFound )
+                if ( -not $firmwareEntryFound )
+                {
+                    throw "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
+                }
+                     
+                #$sourcefolder = "$ModelFolder\TPM-$firmwareVersionDesiredText"
+                $sourceFolder = Get-UpdateFolder -SettingsFilePath $updateFile -Name "TPM-$firmwareVersionDesiredText"
+
+                #Ensure the firmware file exist
+                $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_A"                  
+                if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
+                {
+                    throw "Firmware file [$testExistensFirmwareFullPath] does not exist!"
+                }
+                else
+                {
+                    #Check if File_B exist if the variable is filled
+                    if ( Test-String -HasData $firmwareFile_B )
+                    {
+                        $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_B"
+
+                        #Check if file B exists
+                        if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
+                        {
+                            throw "Firmware file [$testExistensFirmwareFullPath] does not exist!"                            
+                        }
+                    }
+                }
+                                      
+
+                #We might need to stop here, depending on the BitLockerStatus
+                $continueTPMUpgrade = $false
+
+                #In case of update scenarios, the operator can decide to just pause BitLocker encrpytion and does not want to have it fully decrypt
+                $ignoreBitLocker = $settings["IgnoreBitLocker"]
+                                                  
+                if ( $ignoreBitLocker -eq "Yes") 
+                {
+                    write-host "BitLocker status is ignored, will continue without checking BitLocker"
+                    $continueTPMUpgrade = $true
+                }
+                else
+                {
+                    #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
+                    #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
+                    $BitLockerDecrypted = Invoke-BitLockerDecryption
+
+                    if ($BitLockerDecrypted)
+                    {
+                        $continueTPMUpgrade = $true                                
+                    }
+                    else
+                    {
+                        throw "BitLocker is in use, TPM update not possible"
+                    }
+                }
+                                           
+                #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                #$continueTPMUpgrade=$true
+                #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
+                      
+                if ($continueTPMUpgrade)
+                {                
+                    #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                                              
+                    $displayText = "BIOS Settings for TPM Update"
+
+                    Write-HostSection -Start $displayText
+                    $biosChanges = -1
+                    $biosChanges = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "TPM-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    Write-HostSection -End $displayText -NoEmptyLineAtEnd
+
+                    #This should not be necessary since Update-BiosSettingsEx will throw an error
+                    if ( $biosChanges -lt 0 )
+                    {
+                        throw "BIOS changes failed, can not continue"
+                    }
+      
+                    #
+                    #Real update process starts here. We might need to do this two times in case two firmwares were found                            
+                    #
+                    $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
+
+                    if ( $returnCode -eq $null )
+                    {
+                        #In this case, no second execution will be done because something completly failed. 
+                        throw "TPM update failed!"
+                    }
+                    else
+                    {
+                        #If it's not null, we have two options:
+
+                        # (A) Only a single firmware file exist: Assume any return code is OK
+                        $updateSuccess = $false
+
+                        if ( -not (Test-String -HasData $firmwareFile_B) )
+                        {
+                            $updateSuccess = $true
+                        }
+                        else
+                        {
+                            # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
+                            if ( $returnCode -ne 275 )
                             {
-                                write-error "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
-                                throw New-Exception -InvalidFormat "Configuration error"
+                                #Different return code than 275, most likely the command was a success
+                                $updateSuccess = $true
                             }
                             else
                             {
-                                $sourcefolder = "$ModelFolder\TPM-$firmwareVersionDesiredText"
+                                #Return code was 275 - repeat with firmwareFile_B
+                                write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
+                                        
+                                $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
 
-                                #Check if the files noted in settings do exist
-                                $firmwareFilesExist = $False
-                   
-                                $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_A"                  
-                                if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
+                                if ( $returnCode -eq $null )
                                 {
-                                    write-error "Firmware file [$testExistensFirmwareFullPath] does not exist!"
-                                    throw New-Exception -InvalidFormat "Configuration error"
+                                    #Well, that didn't worked...
+                                    throw "TPM update failed!"
                                 }
                                 else
                                 {
-                                    #Check if File_B exist if the variable is filled
-                                    if ( Test-String -HasData $firmwareFile_B )
-                                    {
-                                        $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_B"
-
-                                        #Check if file B exists
-                                        if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
-                                        {
-                                            write-error "Firmware file [$testExistensFirmwareFullPath] does not exist!"
-                                            throw New-Exception -InvalidFormat "Configuration error"
-                                        }
-                                        else
-                                        {
-                                            $firmwareFilesExist = $true
-                                        }
-                            
-                                    }
-                                    else
-                                    {
-                                        #FileB is not filled, hence all is fine
-                                        $firmwareFilesExist = $true
-                                    }
+                                    $updateSuccess = $true
                                 }
-                   
-                   
-
-                                #Check if it exists
-                                if ( $firmwareFilesExist )
-                                {                      
-                                    #We might need to stop here, depending on the BitLockerStatus
-                                    $continueTPMUpgrade = $false
-
-
-                                    #In case of update scenarios, the operator can decide to just pause BitLocker encrpytion and does not want to have it fully decrypt
-                                    $ignoreBitLocker = $settings["IgnoreBitLocker"]
-                                                  
-                                    if ( $ignoreBitLocker -eq "Yes") 
-                                    {
-                                        write-host "BitLocker status is ignored, will continue without checking BitLocker"
-                                        $continueTPMUpgrade = $true
-                                    }
-                                    else
-                                    {
-                                        #Now we have everything we need, but we need to check if the SystemDrive (C:) is full decrypted. 
-                                        #BitLocker might not be using the TPM , but I think the TPM update simply checks if its ON or not. If it detects BitLocker, it fails.
-                                        $BitLockerDecrypted = Invoke-BitLockerDecryption
-
-                                        if ($BitLockerDecrypted)
-                                        {
-                                            $continueTPMUpgrade = $true                                
-                                        }
-                                        else
-                                        {
-                                            write-Error "BitLocker is in use, TPM update not possible"
-                                            throw New-Exception -InvalidOperation "BitLocker active"
-                                        }
-                                    }
-                                           
-                                    #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
-                                    #$continueTPMUpgrade=$true
-                                    #DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG 
-                      
-                                    if ($continueTPMUpgrade)
-                                    {                
-                                        #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                          
-                                        $displayText = "BIOS Settings for TPM Update"
-                                        $tpmBIOSSettingsFile = "$ModelFolder\TPM-BIOS-Settings.txt"   
-                                                        
-                                        Write-HostSection -Start $displayText
-                            
-                                        $biosChanges = -1
-                                        $biosChanges = Update-BiosSettingsEx -ConfigFileFullPath $tpmBIOSSettingsFile -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile
-                                                        
-                                        Write-HostSection -End $displayText -NoEmptyLineAtEnd
-
-
-                                        if ( $biosChanges -lt 0 )
-                                        {
-                                            write-error "BIOS changes failed, can not continue"
-                                            throw New-Exception -InvalidOperation "BIOS changes failed"
-                                        }
-                                        else
-                                        {
-                                            #
-                                            #Real update process starts here. We might need to do this two times in case two firmwares were found                            
-                                            #
-                                            $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
-
-                                            if ( $returnCode -eq $null )
-                                            {
-                                                #In this case, no second execution will be done because something completly failed. 
-                                                write-error "TPM update failed!"
-                                                throw New-Exception -InvalidArgument "TPM update program error"
-                                            }
-                                            else
-                                            {
-                                                #If it's not null, we have two options:
-
-                                                # (A) Only a single firmware file exist: Assume any return code is OK
-                                                $updateSuccess = $false
-
-                                                if ( -not (Test-String -HasData $firmwareFile_B) )
-                                                {
-                                                    $updateSuccess = $true
-                                                }
-                                                else
-                                                {
-                                                    # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
-                                                    if ( $returnCode -ne 275 )
-                                                    {
-                                                        #Different return code than 275, most likely the command was a success
-                                                        $updateSuccess = $true
-                                                    }
-                                                    else
-                                                    {
-                                                        #Return code was 275 - repeat with firmwareFile_B
-                                                        write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
-                                        
-                                                        $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
-
-                                                        if ( $returnCode -eq $null )
-                                                        {
-                                                            #Well, that didn't worked...
-                                                            write-error "TPM update failed!"
-                                                            throw New-Exception -InvalidArgument "TPM update program error"
-                                                        }
-                                                        else
-                                                        {
-                                                            $updateSuccess = $true
-                                                        }
-                                                    }                                                                        
-                                                }
+                            }                                                                        
+                        }
 
                                                                                                  
-                                                if ( $updateSuccess -eq $true )
-                                                {
-                                                    write-host "TPM update success"
-                                                    $result = $True
-                                                }
-                                                else
-                                                {
-                                                    #These lines are useles since we have stopped long ago
-                                                    write-error "Running TPM update command failed!"
-                                                    $result = $null
-                                                }
-
-                                
-                                            }
-
-                                        }                                                 
-                                    }
-                                }
-                            }
+                        if ( $updateSuccess -eq $true )
+                        {
+                            write-host "TPM update success"
+                            $result = $True
                         }
-                    }
-                }         
-            }
-        }
+                        else
+                        {
+                            #This should never be used, but still...
+                            throw "Running TPM update command failed!"
+                        }                                
+                    }                                                                   
+                }                            
+            }                                
+        }        
     }
 
     Write-HostSection -End "TPM Update"
@@ -2497,7 +2468,7 @@ function Update-MEFirmware()
         }
         else
         {
-            $MEData = @{"Parsed" = $false; "VersionText" = "0.0.0"; "VersionParsed" = $false; "Provisioned" = "Unknown"; "DriverInstalled" = $false }
+            $MEData = @{"VersionText" = "0.0.0"; "VersionParsed" = $false; "Provisioned" = "Unknown"; "DriverInstalled" = $false }
 
             try 
             {
@@ -2522,97 +2493,83 @@ function Update-MEFirmware()
                     $MEData.DriverInstalled = $true
                 }    
                              
-                $MEData.Parsed = $true
-                write-host "Reading finished"
-
+                write-host "XML processing finished"
             }
             catch
             {
                 throw "Unable to parse SA-00075 discovery XML file; error: $($error[0])"
             }
-
-            if ( $MEData.Parsed ) 
+                 
+                        
+            if ( -not $MEData.VersionParsed )
             {
+                throw "The SA-00075 detection tool was unable to determine the installed ME firmware version, no update possible"
+            }
+            else
+            {
+                $settings = Read-StringHashtable $settingsFile
+                    
+                $versionDesiredText = $settings["version"]                   
+                [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
 
-                write-host "ME Firmware Version...: $($MEData.VersionText)"
-                write-host "ME Driver Installed...: $($MEData.DriverInstalled)"
-                
-                #Perform ME Update?
-                #if ( $performUpdateIfNeeded )
-                #{
-                #First check if we were able to parse the version
-
-                if ( -not $MEData.VersionParsed )
+                if ( $versionDesired -eq $null ) 
                 {
-                    throw "The SA-00075 detection tool was unable to determine the installed ME firmware version, no update possible"
+                    throw "Unable to parse configured version [$versionDesiredText] as a version"
                 }
                 else
                 {
-                    $settings = Read-StringHashtable $updateSettingsFile
+                    write-host "ME Driver is installed.....: $($MEData.DriverInstalled)"
+                    write-host "Current ME firmware version: $($MEData.Version)"
+                    write-host "Desired ME firmware version: $($versionDesired)"
                     
-                    $versionDesiredText = $settings["version"]                   
-                    [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
-
-                    if ( $versionDesired -eq $null ) 
+                    if ( $versionDesired -le $MEData.Version ) 
                     {
-                        throw "Unable to parse configured version [$versionDesiredText] as a version"
+                        write-host "  ME firmware update not required"
+                        $result = $false
                     }
                     else
                     {
-                        write-host "Current ME firmware version: $($MEData.Version)"
-                        write-host "Desired ME firmware version: $($versionDesired)"
-                    
-                        if ( $versionDesired -le $MEData.Version ) 
+                        write-host "  ME update required!"
+                            
+                        <#
+                         All ME firmware downloads from HP advise that the driver needs to be installed before:                            
+                         "Intel Management Engine Components Driver must be installed before this package is installed."
+
+                         The Intel detection tool has the element "ME_Driver_Installed" which we also read into $MEData.DriverInstalled
+                         True/False value if the MEI driver is present on the computer"
+                            
+                         Therefore we will only execute the update if a driver was detected.
+                        #>
+
+                        if ( -not $MEData.DriverInstalled )
                         {
-                            write-host "  ME firmware update not required"
-                            $result = $false
+                            throw "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
                         }
                         else
                         {
-                            write-host "  ME update required!"
-                            
-                            <#
-                                 All ME firmware downloads from HP advise that the driver needs to be installed before:                            
-                                  "Intel Management Engine Components Driver must be installed before this package is installed."
+                            write-host "The ME update will take some time, please be patient."
+                                
+                            $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "ME-$versionDesiredText"
 
-                                 The Intel detection tool has the element "ME_Driver_Installed" which we also read into $MEData.DriverInstalled
-                                  "True/False value if the MEI driver is present on the computer"
+                            $result = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
                             
-                                 Therefore we will only execute the update if a driver was detected.
-                                #>
-
-                            if ( -not $MEData.DriverInstalled )
+                            if ( $result -eq $null )
                             {
-                                throw "Unable to start ME firmware update, Management Engine Interface (MEI) driver not detected!"
+                                throw "Running ME update command failed!"
                             }
                             else
-                            {
-                                write-host "The ME update will take some time, please be patient."
-                                
-                                #$updatefolder = "$ModelFolder\ME-$versionDesiredText"
-                                $updateFolder = Get-UpdateFolder -SettingsFilePath $updateSettingsFile -Name "ME-$versionDesiredText"
-
-                                $result = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
-                            
-                                if ( $result -eq $null )
-                                {
-                                    throw "Running ME update command failed!"
-                                }
-                                else
-                                {                  
-                                    write-host "ME update success"
-                                    $result = $true
-                                }
-
-                                #All done
+                            {                  
+                                write-host "ME update success"
+                                $result = $true
                             }
+
+                            #All done
                         }
-                    }    
-                }                            
-                              
-            }                                
-        }
-        
+                    }
+                }    
+            }                            
+                                                                        
+        }        
     }
 
  
@@ -2936,7 +2893,7 @@ try
         $biosUpdated = $false
         $biosUpdated = Update-BiosFirmware -Modelfolder $modelfolder -BIOSDetails $BIOSDetails -PasswordFile $CurrentPasswordFile
 
-        if ( $biosupdated ) 
+        if ( $biosUpdated ) 
         {
             #A BIOS update was done. Stop and continue later on
             $ignored = Write-HostPleaseRestart -Reason "A BIOS update was performed."                       
@@ -2957,49 +2914,35 @@ try
             {
                 #TPM Update
                 $tpmUpdated = $false
+                $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
 
-                try
+                if ( $tpmUpdated )
                 {
-                    $tpmUpdated = Update-TPMFirmware -Modelfolder $modelfolder -TPMDetails $TPMDetails -PasswordFile $CurrentPasswordFile
-                }
-                catch
-                {
-                    $tpmUpdated = $null
-                }                            
-
-                if ($tpmUpdated -eq $null)
-                {
-                    #I know this is unecessary and it will be removed with the 4.0 rewrite             
+                    $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
+                    $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
                 }
                 else
-                {
-                    if ( $tpmUpdated )
+                {                     
+                    #BIOS Password update
+                    $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
+
+                    if ( $updatedPasswordFile -ne $null )
                     {
-                        $ignored = Write-HostPleaseRestart -Reason "A TPM update was performed."              
-                        $returncode = $ERROR_SUCCESS_REBOOT_REQUIRED
+                        #File has changed - remove old password file
+                        $ignored = Remove-FileExact -Filename $CurrentPasswordFile
+                        $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
+                    }
+
+                    #Apply BIOS Settings
+                    $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
+
+                    if ( ($settingsApplied -lt 0) )
+                    {
+                        write-error "Error applying BIOS settings!"
                     }
                     else
-                    {                     
-                        #BIOS Password update
-                        $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
-
-                        if ( $updatedPasswordFile -ne $null )
-                        {
-                            #File has changed - remove old password file
-                            $ignored = Remove-FileExact -Filename $CurrentPasswordFile
-                            $CurrentPasswordFile = Copy-PasswordFileToTemp -SourcePasswordFile $updatedPasswordFile
-                        }
-
-                        #Apply BIOS Settings
-                        $settingsApplied = Update-BiosSettings -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
-
-                        if ( ($settingsApplied -lt 0) )
-                        {
-                            write-error "Error applying BIOS settings!"
-                        }
-                        else
-                        {
-                            <#
+                    {
+                        <#
                                            Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
                                            does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
                                            value as before. 
@@ -3016,10 +2959,10 @@ try
                                          }
                                          #>
                  
-                            $returncode = 0
-                        }
+                        $returncode = 0
                     }
                 }
+                
             }
             
         }
