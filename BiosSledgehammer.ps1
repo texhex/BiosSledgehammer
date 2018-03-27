@@ -380,17 +380,17 @@ function Get-ModelSettingsFile()
         #Not found, check if a shared file exists
         $checkFile = "$($ModelFolder)\Shared-$($Name)"
 
-        write-host "File does not exist, checking shared settings [$checkFile]"
+        write-host "File does not exist, looking for shared file [$checkFile]"
 
         if ( Test-FileExists $checkFile ) 
         {            
-            #Shared file exists, try to read it to get the name
-            write-host "  Shared settings file found"
+            #Shared file exists, try to read it to get the folder name
+            write-host "  Shared file found"
             $settings = Read-StringHashtable $checkFile
 
             if ( -not ($settings.ContainsKey("Directory")) )
             {
-                throw "Shared settings file [$checkFile] is missing Directory setting"
+                throw "Shared file [$checkFile] is missing Directory setting"
             }
             else
             {
