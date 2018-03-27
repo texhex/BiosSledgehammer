@@ -56,17 +56,20 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 
 * PowerShell 4.0 or higher
 * Windows 7 64-bit or Windows 10 64-bit
-    * Due to restrictions in several HP tools, it can NOT be run in Windows Preinstallation Environment (WinPE)
+  * Due to restrictions in several HP tools, it can **NOT** be run in Windows Preinstallation Environment (WinPE)
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]`` and the device must be supported by it. Most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
-    * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
+  * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.* 
 * BIOS updates file for the models you want to support
-	* Search http://www.hp.com/drivers for "(Model) BIOS" to locate them 
+  * Search http://www.hp.com/drivers for "(Model) BIOS" to locate them 
 * TPM update files if a TPM specification or TPM firmware update is desired 
-    * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
+  * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
+* ME updates if a Management Engine (vPro) update is desired
+  * For ME firmware files, see [HPSBHF03571 Advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
+  [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) ([Intel-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr))
+  * Or the driver download page from HP for the model
 * [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
-    * For ME firmware files, see [HPSBHF03557 Advisory]( http://www8.hp.com/us/en/intelmanageabilityissue.html) or the driver download page from HP for the model
 * Note: Several BIOS, TPM and ME files for the example models that are included in ``BiosSledgehammer.zip`` can be downloaded automatically - see [Installation](#install).  
 
 ## <a name="process">Process</a>
