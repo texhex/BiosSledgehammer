@@ -142,7 +142,9 @@ The sub folder for each model will contain all settings files together with sour
 
 Any update files need to be stored as seperate folder below that path. For example, if ``\Models\HP EliteBook 820 G1\BIOS-Update.txt`` defines that a BIOS update to 1.39 is required, the BIOS update files need to be stored in the folder ``\Models\HP EliteBook 820 G1\BIOS-1.39\``.
 
-To locate a matching model folder, BIOS Sledgehammer will first check for a folder named as the SKU (Stock Keeping Unit, a unique identification number) for the current device - we'll come back to this shortly. If no SKU folder was found, an exact match for the current model is performed. This means, if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder by this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
+To locate a matching model folder, BIOS Sledgehammer will first check for a folder named as the SKU (Stock Keeping Unit, a unique identification number) for the current device - we'll come back to this shortly. If no SKU folder was found, an exact match for the current model is performed. 
+
+This means, if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder by this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
 
 Where this partially search helps a lot is for models that are technical identical but have different model names. For example, the *ProDesk 600 G1* comes in different form factors, each with a unique name: *HP ProDesk 600 G1 TWR* (Tower), *HP ProDesk 600 G1 SFF* (Small Format Factor) and so on. You can just create one folder ``HP ProDesk 600 G1`` and this folder will match all these form factors.
 
@@ -164,9 +166,9 @@ By default, each model will have its own set of settings and update files and do
 
 On the other hand, device families (like the EliteBook 830/840/850 series) share all firmware files as they share the same base board. Also 95% of all options are available for the entire family, which means the settings could also be shared. Sharing saves a lot of space and makes updates a breeze, but an update can have an unwanted effect for one of the members.
 
-To balance both needs, model specific settings are prioritized over shared files, and each shared setting needs to be defined separately. This way, you can mix and match specific and shared items as you need.
+To balance both needs, model specific files are prioritized over shared files, and each shared setting needs to be defined separately. This way, you can mix and match specific and shared items as you need.
 
-If any configuration file is not found in the model folder, BIOS Sledgehammer will always check if  a file named ``Shared-<Configuration File>.txt`` exists. For example, if ``BIOS-Update.txt`` does not exist, it will check if the file ``Shared-BIOS-Update.txt`` exists. This file only contains a single value *Directory* that names the directory below ``\Shared`` where the file can be found:
+If any configuration file is not found in the model folder, BIOS Sledgehammer will always check if a file named ``Shared-<Configuration File>.txt`` exists. For example, if ``BIOS-Update.txt`` does not exist, it will check if the file ``Shared-BIOS-Update.txt`` exists. This file only contains a single value *Directory* that names the directory below ``\Shared`` where the file can be found:
 
 ```cfg
 # Shared directory for EliteBook 8xx Gen 4
@@ -174,9 +176,9 @@ If any configuration file is not found in the model folder, BIOS Sledgehammer wi
 Directory == HP EliteBook 8xx G4
 ```
 
-In this case, as the file beeing requested was ``BIOS-Update.txt``, BIOS Sledgehammer will retrieve the settings for the BIOS update from ``\Shared\HP EliteBook 8xx G4\BIOS-Update.txt``; update files need to be stored in that folder as well, e.g if the BIOS is 1.22, the update exe is expected in ``\Shared\HP EliteBook 8xx G4\BIOS-1.22\``. This procedure works the same for any configuration file, even for “companion” files like ``TPM-BIOS-Settings.txt`` (``Shared-TPM-BIOS-Settings.txt``).
+In this case, as the file beeing requested was ``BIOS-Update.txt``, BIOS Sledgehammer will retrieve the settings for the BIOS update from ``\Shared\HP EliteBook 8xx G4\BIOS-Update.txt``; update files need to be stored in that folder as well, e.g if the BIOS is 1.22, the update exe is expected in ``\Shared\HP EliteBook 8xx G4\BIOS-1.22\``. This procedure works the same for any configuration file, even for “companion” files like ``TPM-BIOS-Settings.txt`` (shared file with the directory is ``Shared-TPM-BIOS-Settings.txt``).
 
-You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, to use a shared BIOS update, BIOS settings and TPM Update, ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` files are required. They can all point to the same folder or to different folders.
+You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, to use a shared BIOS update, BIOS settings and TPM Update, ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` files are required in the model folder. They can all point to the same folder or to different folders.
 
 As said, model specific files are prioritzed. This means if both ``<Configuratrion File>.txt`` and ``Shared-<Configuration File>.txt`` exist, the shared file is ignored.
 
