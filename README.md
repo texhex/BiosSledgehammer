@@ -109,7 +109,7 @@ The configuration for your different models is up to you, but the archive comes 
 
 BIOS Sledgehammer uses several configuration files that all follow the same ``NAME==VALUE`` syntax. There are saved as *.txt files.
 
-```
+```cfg
 # This is a comment and ignored
 ; So is this line. 
 #And this.
@@ -191,7 +191,8 @@ Arg4 == -p"@@PASSWORD_FILE@@"
 ```
 
 Some devices (e.g. ProBook 6570b) feature different BIOS families which require that the correct firmware file for the BIOS family is passed to the update process. This can be done by creating an entry *Family==FirmwareFile* in ``BIOS-Update.txt`` and define the parameter for a firmware file together with the replacement value *@@FIRMWARE_FILE@@*. Models that only offer one BIOS family (this is the majority) do not need these entries. 
-```
+
+```cfg
 # 6570b Update
 
 # The BIOS version the device should be on
@@ -233,7 +234,7 @@ If possible, check if an BIOS update is available that also updates the ME firmw
 
 The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#modelsfolder). Example:
 
-```
+```cfg
 # EliteBook 820 G1
 
 # The ME firmware version the device should have
@@ -260,6 +261,7 @@ If anything goes wrong during the process, an error is generated.
 In 2017-05 a severe security vulnerability was found in the Management Engine (ME): [INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689) which could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
 
 BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#modelsfolder). No settings in this file are needed.
+
 ```
 # If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
 # See https://downloadcenter.intel.com/download/26755
@@ -272,7 +274,7 @@ If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http:/
 
 The settings for a TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#modelsfolder). Example file: 
 
-```
+```cfg
 # 1040 G3 TPM Update
 
 # Manufacturer of the TPM. 
@@ -300,6 +302,7 @@ Arg1 == -s
 Arg2 == -f"@@FIRMWARE_FILE@@"
 Arg3 == -p"@@PASSWORD_FILE@@"
 ```
+
 The first setting **Manufacturer** is optional and can be used to ensure that the TPM firmware vendor for the device matches the update files. If it's not defined, the TPM firmware vendor is ignored. 
 
 To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**). 
@@ -331,7 +334,7 @@ If the firmware file specified for the update does not match exactly, the TPM wi
 
 To support this special case, it is possible to define two entries for the same firmware version:
 
-```
+```cfg
 6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
 6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
 ```
@@ -344,7 +347,7 @@ Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM upda
 
 To support this, these BIOS settings can be disabled just before the TPM update takes place using the file `` TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
  
-```
+```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
 # When these options are activated, no TPM firmware can be installed
 
@@ -362,7 +365,7 @@ In cases of updates for in-use machines, the automatic decryption of BitLocker t
 It is possible that a script (executed before BIOS Sledgehammer) removes the TPM protector and then pauses BitLocker protection. Adding the parameter **IgnoreBitLocker==Yes** in ``TPM-Update.txt`` will cause BIOS Sledgehammer to ignore BitLocker all together and not start a full decryption. 
  
 
-```
+```cfg
 # Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
 IgnoreBitLocker==Yes
 ```
@@ -373,17 +376,21 @@ IgnoreBitLocker==Yes
 ## <a name="biospassword">BIOS Password</a>
 
 To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#modelsfolder). Example file:
-```
+
+```cfg
 # Use our standard password
 PasswordFile == 01_W2f4x7t8NxD4xUH.bin
 ```
+
 :exclamation: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!   
 
 This file has to be stored in the [PwdFiles folder](#pwdfilesfolder) (see the section how to create the files). If you want to use an empty password, just leave the value empty like this:
-```
+
+```cfg
 # Empty password (bad idea!)
 PasswordFile == 
 ```
+
 Regarding BIOS passwords, please note the following:
 * Passwords need to meet minimum complexity rules (must contain upper and lower case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
@@ -392,7 +399,8 @@ Regarding BIOS passwords, please note the following:
 ## <a name="biossettings">BIOS Settings</a>
 
 The configuration of the BIOS are read from the file ``BIOS-Settings.txt`` in the matching [model folder](#modelsfolder). Example file: 
-```
+
+```cfg
 # 850 G1 
 LAN/WLAN Switching == Enable
 
@@ -402,6 +410,7 @@ Floppy boot == Disable
 
 Asset Tracking Number == @@COMPUTERNAME@@
 ```
+
 Each entry simply lists how the BIOS setting is called, e.g. **LAN/WLAN Switching**, and to which value, e.g. **Enable** it should be configured. To get a complete list which BIOS settings the current device support, execute ``GetAllBiosSettings.bat`` (as Administrator) in the BCU folder. Please note that the list of available settings differs which each model and can also change when the BIOS is updated. Always first update the BIOS, then check the list of available settings.
  
 Each setting is individual changed and not as batch so if any setting is wrong, it is very clear which setting is causing an issue. BIOS Sledgehammer also tries to “translate” the error code of BCU to an explanation what went wrong (as defined by the error code list from the BCU User Guide PDF).
@@ -420,12 +429,14 @@ Some Windows 10 security features (e.g. Device Guard) require that the computer 
 With Windows 10 1703, you can in-place switch to UEFI boot mode (see this [demo](https://technet.microsoft.com/en-us/windows/mt782786) for details). This is a two step process by first executing [MBR2GPT.exe](https://technet.microsoft.com/en-us/itpro/windows/deploy/mbr-to-gpt), which prepares Windows to use UEFI boot mode, and then changing the BIOS settings to start in UEFI mode.
 
 For the later, you can use BIOS Sledgehammer with the ``-ActivateUEFIBoot`` switch. When this switched is used, only the file ``Activate-UEFIBoot.txt`` will be applied which is read from the matching [model folder](#modelsfolder). Example: 
-```
+
+```cfg
 # 850 G2
 
-Boot Mode==UEFI Native (Without CSM)
-SecureBoot==Enable
+Boot Mode == UEFI Native (Without CSM)
+SecureBoot == Enable
 ```
+
 The file works exactly as described in [BIOS Settings](#biossettings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.    
 
 
