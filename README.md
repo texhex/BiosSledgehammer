@@ -147,13 +147,17 @@ Where this partially search helps a lot is for models that are technical identic
 
 However, there are also cases where one family supports different form factors, and one of the form factors differs. For example, the *ProDesk 600 G2* comes in *TWR*, *MT*, *SFF* and *DM* form factors. The desktop mini (*DM*) has different hardware so it requires other settings. To support this, just create two folders: The first will match only the *DM*, so create a folder ``HP ProDesk 600 G2 DM``. For all other form factors, a partially matching folder named ``HP ProDesk 600 G2`` can be used. The *DM* will use his "private" folder, all other form factors will use the second folder.
 
+If you do not want to change anything for a given model, simply create a matching folder without any files in it. If no model folder at all is found, an error is generated.
+
+### SKU Model Folder
+
 As said before, BIOS Sledgehammer will try to locate a model folder named as the SKU of the current device first. A HP SKU is a seven-digit unique identification number for example *X3V00AV* or *Z2V72ET* (sometimes with an additional # and three more chars, e.g. *T6F44UT#ABA*) that identifies a given device and the configuration for it. It is recommended to use SKU folders only when required, as a SKU is rather meaningless.
 
 A typical example where you will need them is when you need to support the same model (e.g. EliteBook 820 G4) in two different configurations where those configurations require different settings. For example, an EliteBook 820 G4 without Intel vPro/AMT will not support *Intel Software Guard Extensions* (SGX). If you want to change the default BIOS setting for this feature, this will fail on the devices without vPro.
 
 In this case, create a folder named after the SKU of the non vPro devices (e.g. ``X3V00AV``) and delete the setting that changes the status of SGX. All other (with vPro) devices will continue to use the folder ``HP EliteBook 820 G4`` where the SGX settings remains unchanged.
 
-If you do not want to change anything for a given model, simply create a matching folder without any files in it. If no model folder at all is found, an error is generated.
+
 
 ## *Shared* folder
 
@@ -162,7 +166,7 @@ xxx
 -------------Please note that BIOS Sledgehammer does not support "sharing" update files between several models as sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models.----------------------
 
 
-## *PwdFiles* folder<
+## *PwdFiles* folder
 
 The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. When BIOS Sledgehammer starts, it tries every file in this folder until the password for the device has been found (an empty password is automatically added, there is no file for this). If no password file matches, an error is generated. 
 
@@ -229,7 +233,7 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 If anything goes wrong during the process, an error is generated. 
 
 
-## <a name="meupdate">Management Engine (ME) Update</a>
+## Management Engine (ME) Update
 
 Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable. This can be done with BIOS Sledgehammer.   
  
@@ -263,19 +267,19 @@ If anything goes wrong during the process, an error is generated.
 
 ## <a name="meissuecheck">Management Engine (ME) Vulnerability Check</a>
 
-In 2017-05 a severe security vulnerability was found in the Management Engine (ME): [INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689) which could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
+~~In 2017-05 a severe security vulnerability was found in the Management Engine (ME): [INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689) which could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.
 
-BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#models-folder). No settings in this file are needed.
+BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#models-folder). No settings in this file are needed.~~
 
 ```
 # If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
 # See https://downloadcenter.intel.com/download/26755
 ```
 
-If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#meupdate) process.
+~~If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#meupdate) process.~~
 
 
-## <a name="tpmupdate">TPM Update</a>
+## TPM Update
 
 The settings for a TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#models-folder). Example file: 
 
@@ -330,8 +334,8 @@ If anything goes wrong during the process, an error is generated.
 
 BIOS Sledgehammer is able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
 
- * 6.41.**197** is used for devices that have a TPM 1.2 by default
- * 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
+* 6.41.**197** is used for devices that have a TPM 1.2 by default
+* 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
 
 The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD number (.197 or .198) in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. 
 
@@ -351,7 +355,7 @@ BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated.
 
 To support this, these BIOS settings can be disabled just before the TPM update takes place using the file `` TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#biossettings) and should only contain the changes that are required for the TPM update to succeed.
- 
+
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
 # When these options are activated, no TPM firmware can be installed
@@ -360,8 +364,7 @@ Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
 ```
 
-**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect. 
-
+**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#biossettings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#biossettings). The later is executed after the TPM update so the settings there will be in effect.
 
 ### Disable automatic BitLocker decryption
 
@@ -375,7 +378,7 @@ It is possible that a script (executed before BIOS Sledgehammer) removes the TPM
 IgnoreBitLocker==Yes
 ```
 
-:warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned. 
+:warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned.
 
 
 ## <a name="biospassword">BIOS Password</a>
@@ -387,16 +390,17 @@ To set a BIOS password, you define the password file (containing the desired pas
 PasswordFile == 01_W2f4x7t8NxD4xUH.bin
 ```
 
-:exclamation: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!   
+:exclamation: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!
 
 This file has to be stored in the [PwdFiles folder](#pwdfilesfolder) (see the section how to create the files). If you want to use an empty password, just leave the value empty like this:
 
 ```cfg
 # Empty password (bad idea!)
-PasswordFile == 
+PasswordFile ==
 ```
 
 Regarding BIOS passwords, please note the following:
+
 * Passwords need to meet minimum complexity rules (must contain upper and lower case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
 
@@ -442,10 +446,10 @@ Boot Mode == UEFI Native (Without CSM)
 SecureBoot == Enable
 ```
 
-The file works exactly as described in [BIOS Settings](#biossettings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.    
+The file works exactly as described in [BIOS Settings](#bios-settings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.    
 
 
-## <a name="sccmmdt">Using it from MDT or SCCM</a>
+## Using it from MDT or SCCM
 
 By default, MDT/SCCM will run all scripts hidden to hide sensitive information. If you are okay with this, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell scripts native.
 
@@ -459,13 +463,12 @@ It is recommended to start BIOS Sledgehammer **four** times and restart the devi
 
 In case you used ``RunVisible.bat`` the last (4th) run should not use it but instead execute directly ``BiosSledgehammer.ps1`` using *Run PowerShell Script* with the parameter ``-Verbose``. That's because ``RunVisible.bat`` does not return any error code. So if there is a problem, this last run will make sure MDT/SCCM is getting a correct return code and can break the deployment if there is a problem. The ``-Verbose`` option will make sure that the log contains all data (even BCU output) for troubelshooting.   
 
-
-## <a name="contributions">Contributions</a>
+## Contributions
 Any constructive contribution is very welcome! 
 
 If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose (``.\BiosSledgehammer.ps1 -Verbose``) and attach the logfile to [new issue](https://github.com/texhex/BiosSledgehammer/issues/new).
 
-## <a name="license">License</a>
+## License
 ``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2018 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms. 
