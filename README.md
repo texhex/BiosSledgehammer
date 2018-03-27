@@ -172,7 +172,6 @@ If any configuration file is not found in the model folder, BIOS Sledgehammer wi
 
 ```cfg
 # Shared directory for EliteBook 8xx Gen 4
-
 Directory == HP EliteBook 8xx G4
 ```
 
