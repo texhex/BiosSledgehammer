@@ -156,15 +156,29 @@ As said before, BIOS Sledgehammer will try to locate a model folder first by the
 
 A typical example where you will need them is when you need to support the same model (e.g. EliteBook 820 G4) in two different configurations where those configurations require different settings. For example, an EliteBook 820 G4 without Intel vPro/AMT will not support *Intel Software Guard Extensions* (SGX). If you want to change the default BIOS setting for this feature, this will fail on the devices without vPro.
 
-In this case, create a folder named after the SKU of the non vPro devices (e.g. ``Models\X3V00AV``) and delete the setting that changes the status of SGX. All other (with vPro) devices will continue to use the folder ``Models\HP EliteBook 820 G4`` where the SGX settings remains unchanged.
+In this case, create a folder named after the SKU of the non vPro devices (e.g. ``\Models\X3V00AV``) and delete the setting that changes the status of SGX. All other (with vPro) devices will continue to use the folder ``\Models\HP EliteBook 820 G4`` where the SGX settings remains unchanged.
 
 ## *Shared* folder
 
-By default, each 
+By default, each model will have its own set of settings and update files and doesn’t share anything with any other model. This ensures that updating one model does not have any unwanted effects on any other model.
 
--------------Please note that BIOS Sledgehammer does not support "sharing" update files between several models as sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models.----------------------
+On the other hand, device families (like the EliteBook 830/840/850 series) share all firmware files as they share the same base board. Also 95% of all options are available for the entire family, which means the settings could also be shared. Sharing saves a lot of space and makes updates a breeze, but an update can have an unwanted effect for one of the members.
 
-:exclamation: **IMPORTANT!** Note above.
+To balance both needs, model specific settings are prioritized, and each shared setting needs to be defined separately. This way, you can mix and match specific and shared items as you need.
+
+If any configuration file is not found in the model folder, BIOS Sledgehammer will automatically check if instead a file named ``Shared-<Configuration File>.txt`` exists. For example, if ``BIOS-Update.txt`` does not exist, it will check if the file ``Shared-BIOS-Update.txt`` exists. This file only contains a single value *Directory* that names the directory in ``\Shared`` where the current file can be found:
+
+```cfg
+# Shared directory for EliteBook 8xx Gen 4
+
+Directory == HP EliteBook 8xx G4
+```
+
+In this case, as the file beeing requested was ``BIOS-Update.txt``, BIOS Sledgehammer will retrieve the settings for the BIOS update from  the file ``\Shared\HP EliteBook 8xx G4\BIOS-Update.txt``. Update files need to be stored in that folder as well, e.g if the BIOS is 1.22, the update is expected in ``\Shared\HP EliteBook 8xx G4\BIOS-1.22\``. This procedure works the same for any configuration file, even for “companion” files like ``TPM-BIOS-Settings.txt`` (``Shared-TPM-BIOS-Settings.txt``).
+
+You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, if you want to use a shared BIOS update, BIOS settings and TPM Update,  ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` are required. They can all point to the same folder or to different folders.
+
+As said, model specific files are prioritzed which means if both ``<Configuratrion File.txt`` and ``Shared-<Configuration File>.txt`` exist, the shared file is ignored.
 
 ## *PwdFiles* folder
 
@@ -345,7 +359,7 @@ To support this special case, it is possible to define two entries for the same 
 
 BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
 
-### BIOS setting dependencies
+### TPM and BIOS setting dependencies
 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated.
 
