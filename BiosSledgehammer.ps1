@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.0.BETA_3"
+$scriptversion = "4.0.0.BETA_4"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -428,7 +428,7 @@ function Get-ModelSettingsFile()
 
     if ( $fileName -eq $null)
     {
-        write-host "No settings exist, ignoring"
+        write-host "No settings file was found"
     }
 
     return $fileName
@@ -583,7 +583,7 @@ function ConvertTo-ResultFromBCUOutput()
     }
     catch
     {
-        write-error "Error trying to parse BCU output: $($error[0])"
+        throw "Error trying to parse BCU output: $($error[0])"
     }
 
     #Try to get something meaningful from the return code
@@ -718,127 +718,123 @@ function Set-BiosPassword()
     )
 
     $result = $null
-    $settingsFile = "$ModelFolder\BIOS-Password.txt"
+    
     Write-HostSection -Start "Set BIOS Password"
- 
-    write-host "Reading BIOS Password from [$settingsFile]..."
-    if ( -not (Test-FileExists $settingsFile) ) 
-    {
-        write-host "File does not exist, BIOS password will not be changed"
-    } 
-    else
+
+    $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "BIOS-Password.txt"
+     
+    if ( $settingsFile -ne $null ) 
     {
         $settings = Read-StringHashtable $settingsFile
 
         if ( -not ($settings.ContainsKey("PasswordFile")) ) 
         {
-            write-error "Configuration file is missing PasswordFile setting"
+            throw "Configuration file is missing [PasswordFile] setting"
         }
-        else
+        
+        $newPasswordFile = $settings["PasswordFile"]
+        $newPasswordFile_FullPath = ""
+        $newPasswordFile_Exists = $false
+
+        #check if the file exists, given that it is not empty
+        if ( $newPasswordFile -ne "")
         {
-            $newPasswordFile = $settings["PasswordFile"]
-            $newPasswordFile_FullPath = ""
-            $newPasswordFile_Exists = $false
+            $newPasswordFile_FullPath = "$PwdFilesFolder\$newPasswordFile"
 
-            #check if the file exists, given that it is not empty
-            if ( $newPasswordFile -ne "")
+            if ( Test-FileExists $newPasswordFile_FullPath )
             {
-                $newPasswordFile_FullPath = "$PwdFilesFolder\$newPasswordFile"
-
-                if ( Test-FileExists $newPasswordFile_FullPath )
-                {
-                    $newPasswordFile_Exists = $true   
-                }
-                else
-                {
-                    write-error "New password file [$newPasswordFile_FullPath] does not exist"
-                }
+                $newPasswordFile_Exists = $true   
             }
             else
             {
-                #if the new password is empty it automatically "exists"
-                $newPasswordFile_Exists = $true
+                throw "New password file [$newPasswordFile_FullPath] does not exist"
             }
+        }
+        else
+        {
+            #if the new password is empty it automatically "exists"
+            $newPasswordFile_Exists = $true
+        }
 
 
-            if ( $newPasswordFile_Exists ) 
-            {
-                write-host " Desired password file is [$newPasswordFile_FullPath]" 
+        if ( $newPasswordFile_Exists ) 
+        {
+            write-host " Desired password file is [$newPasswordFile_FullPath]" 
          
-                $noChangeRequired = $false
+            $noChangeRequired = $false
 
-                #Check if there is the special case that the computer is using no password and this is also requested
-                if ( $CurrentPasswordFile -eq $newPasswordFile )
+            #Check if there is the special case that the computer is using no password and this is also requested
+            if ( $CurrentPasswordFile -eq $newPasswordFile )
+            {
+                $noChangeRequired = $True
+            }
+            else
+            {
+                #now we need to split the parameter to their file name
+                $filenameOnly_Current = ""
+                if ( $CurrentPasswordFile -ne "" )
+                {
+                    $filenameOnly_Current = Split-Path -Leaf $CurrentPasswordFile
+                }
+
+                $filenameOnly_New = ""
+                if ( $newPasswordFile -ne "" )
+                {
+                    $filenameOnly_New = Split-Path -Leaf $newPasswordFile
+                }
+         
+                #if the filenames match, no change is required
+                if ( $filenameOnly_Current.ToLower() -eq $filenameOnly_New.ToLower() )
                 {
                     $noChangeRequired = $True
                 }
                 else
                 {
-                    #now we need to split the parameter to their file name
-                    $filenameOnly_Current = ""
-                    if ( $CurrentPasswordFile -ne "" )
-                    {
-                        $filenameOnly_Current = Split-Path -Leaf $CurrentPasswordFile
-                    }
+                    #Passwords do not match, we need to change them
+                    $noChangeRequired = $False
 
-                    $filenameOnly_New = ""
-                    if ( $newPasswordFile -ne "" )
+                    write-host " Changing password using password file [$CurrentPasswordFile]..." 
+
+                    if ( Test-String -HasData $CurrentPasswordFile )
                     {
-                        $filenameOnly_New = Split-Path -Leaf $newPasswordFile
-                    }
-         
-                    #if the filenames match, no change is required
-                    if ( $filenameOnly_Current.ToLower() -eq $filenameOnly_New.ToLower() )
-                    {
-                        $noChangeRequired = $True
+                        #BCU expects an empty string if the password should be set to empty, so we use the parameter directly
+                        $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
                     }
                     else
                     {
-                        #Passwords do not match, we need to change them
-                        $noChangeRequired = $False
-
-                        write-host " Changing password using password file [$CurrentPasswordFile]..." 
-
-                        if ( Test-String -HasData $CurrentPasswordFile )
-                        {
-                            #BCU expects an empty string if the password should be set to empty, so we use the parameter directly
-                            $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
-                        }
-                        else
-                        {
-                            #Currently using an empty password
-                            $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" | Out-String                  
-                        }
-
-                        #Let this function figure out what this means     
-                        $bcuResult = ConvertTo-ResultFromBCUOutput $output
-     
-                        Write-Verbose "  Message: $($bcuResult.Message)"
-                        Write-Verbose "  Return code: $($bcuResult.Returncode)"
-                        Write-Verbose "  Return code text: $($bcuResult.ReturncodeText)"
-
-                        if ( $bcuResult.Returncode -eq 0 ) 
-                        {
-                            write-host "Password was changed"
-                            $result = $newPasswordFile_FullPath
-                        }
-                        else
-                        {
-                            write-warning "   Changing BIOS password failed with message: $($bcuResult.Message)" 
-                            write-warning "   BCU return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
-                        }
-
-                        #all done
-
+                        #Currently using an empty password
+                        $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" | Out-String                  
                     }
-                }
 
-                if ( $noChangeRequired )
-                {
-                    write-host "BIOS is already set to configured password file, no change required."
+                    #Let this function figure out what this means     
+                    $bcuResult = ConvertTo-ResultFromBCUOutput $output
+     
+                    Write-Verbose "  Message: $($bcuResult.Message)"
+                    Write-Verbose "  Return code: $($bcuResult.Returncode)"
+                    Write-Verbose "  Return code text: $($bcuResult.ReturncodeText)"
+
+                    if ( $bcuResult.Returncode -eq 0 ) 
+                    {
+                        write-host "Password was changed"
+                        $result = $newPasswordFile_FullPath
+                    }
+                    else
+                    {
+                        write-warning "   Changing BIOS password failed with message: $($bcuResult.Message)" 
+                        write-warning "   BCU return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
+                    }
+
+                    #all done
+
                 }
-            } #new password file exists           
-        }
+            }
+
+            if ( $noChangeRequired )
+            {
+                write-host "BIOS is already set to configured password file, no change required."
+            }
+        } #new password file exists           
+        
     }
    
     Write-HostSection -End "Set BIOS Password"
@@ -948,7 +944,7 @@ function Set-BiosValue()
     {
         #this should never happen
         write-host " " #to create a new line
-        write-error "   Update BIOS setting fatal error: $($error[0])"
+        throw "Update BIOS setting fatal error: $($error[0])"
         $result = -1
     }
  
@@ -962,19 +958,19 @@ function Set-BiosValuesHashtable()
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
         [ValidateNotNullOrEmpty()]
-        $hastable,
+        $Hastable,
 
         [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
-        [string]$passwordfile = ""
+        [string]$Passwordfile = ""
     )
 
     $result = 0
 
-    foreach ($entry in $hastable.Keys) 
+    foreach ($entry in $Hastable.Keys) 
     {
         $name = $Entry.ToString()
-        $value = $hastable[$entry]
-        $changed = Set-BiosValue -name $name -value $value -passwordfile $passwordfile
+        $value = $Hastable[$entry]
+        $changed = Set-BiosValue -name $name -value $value -passwordfile $Passwordfile
      
         #Because the data in the hashtable are specifc for a model, we expect that each and every change works
         if ( ($changed -lt 0) ) 
@@ -1330,7 +1326,7 @@ function Update-BiosSettingsEx()
         } 
         else
         {
-            throw "Setting file ($ConfigFileFullPath) does not exist!"
+            throw "Setting file [$Filename] was not found"
             $result = -1
         }
     }
@@ -2049,7 +2045,7 @@ function Invoke-UpdateProgram()
         #On Battery (1), Critical (5), Charging and Critical (9)
         if ( ($batteryStatus -eq 1) -or ($batteryStatus -eq 5) -or ($batteryStatus -eq 9) )
         {
-            write-error "This device is running on battery or the battery is at a critically low level. The update will not be started to prevent possible firmware corruption."
+            throw "This device is running on battery or the battery is at a critically low level. The update will not be started to prevent possible firmware corruption."
         }
         else
         {
@@ -2127,8 +2123,7 @@ function Copy-FolderForExec()
 
     if ( -not (Test-DirectoryExists $SourceFolder) ) 
     {
-        write-error "Folder [$SourceFolder] not found!"
-        throw New-Exception -DirectoryNotFound "Folder [$SourceFolder] not found!"
+        throw "Folder [$SourceFolder] not found!"
     }
     else
     {
@@ -2380,7 +2375,7 @@ function Invoke-ExeAndWaitForExit()
     catch
     {
         $result = $null
-        write-error "Starting failed! Error: $($error[0])"
+        throw "Starting failed! Error: $($error[0])"
     }
 
     return $result               
@@ -2875,15 +2870,7 @@ try
 
         $uefiModeSwitched = Set-UEFIBootMode -ModelFolder $modelfolder -PasswordFile $CurrentPasswordFile
 
-        if ( ($uefiModeSwitched -lt 0) )
-        {
-            write-error "Error switching UEFI Boot Mode!"
-        }
-        else
-        {
-            $returncode = 0
-        }
-
+        $returncode = 0
     }
     else
     {
@@ -2938,29 +2925,28 @@ try
 
                     if ( ($settingsApplied -lt 0) )
                     {
-                        write-error "Error applying BIOS settings!"
+                        write-warning "Applying BIOS settings completed with errors"
                     }
-                    else
-                    {
-                        <#
-                                           Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
-                                           does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
-                                           value as before. 
+
+                    $returncode = 0
+
+                    <#
+                        Here we could normaly set the REBOOT_REQUIRED variable if BCU reports changes, but BCU 
+                        does also report changes if a string value (e.g. Ownership Tag) is set to the *SAME*
+                        value as before. 
                  
-                                         if ( $settingsApplied -ge 1 )
-                                         {
-                                            $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
-                                            $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
-                                         }
-                                         else
-                                         {
-                                            #no changes for BIOS setting
-                                            $returncode=0
-                                         }
-                                         #>
-                 
-                        $returncode = 0
-                    }
+                        if ( $settingsApplied -ge 1 )
+                        {
+                          $ignored=Write-HostPleaseRestart -Reason "BIOS settings have been changed."   
+                          $returncode=$ERROR_SUCCESS_REBOOT_REQUIRED
+                        }
+                        else
+                        {
+                          #no changes for BIOS setting
+                          $returncode=0
+                        }
+                    #>                                    
+
                 }
                 
             }
