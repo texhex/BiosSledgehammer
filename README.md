@@ -24,6 +24,7 @@ Automated BIOS, ME, TPM firmware update and BIOS settings for HP devices.
     `--------'    
 
 ```
+
 ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
 ## Disclaimer
@@ -35,7 +36,7 @@ ASCII banner from: http://chris.com/ascii/index.php?art=objects/tools
 
 ## About
 
-Suppose you get a workitem like this: 
+Suppose you get a workitem like this:
 
 > For the Windows 10 rollout, we need you to support ten different hardware models and all of them need to be updated to the newest BIOS version. Some devices require a TPM firmware update to use the security features that depend on TPM 2.0. You also need to update the BIOS settings for all devices (Secure Boot, Fast Boot etc.) to meet Microsoft recommendations. And while you are at it, please also make sure to patch the Management Engine firmware security issue. Oh, and a new BIOS password would be a big plus because we currently have twenty different passwords in use.
 
@@ -61,10 +62,10 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]`` and the device must be supported by it. Most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
   * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
-desktops, notebooks, and workstations.* 
+desktops, notebooks, and workstations.*
 * BIOS updates file for the models you want to support
-  * Search http://www.hp.com/drivers for "(Model) BIOS" to locate them 
-* TPM update files if a TPM specification or TPM firmware update is desired 
+  * Search http://www.hp.com/drivers for "(Model) BIOS" to locate them
+* TPM update files if a TPM specification or TPM firmware update is desired
   * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
 * ME updates if a Management Engine (vPro) update is desired
   * See [HPSBHF03571 Advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
@@ -99,9 +100,9 @@ Starting with Windows 10 1703, you can in-place convert from BIOS legacy (MBR) t
 
 BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#using-it-from-mdt-or-sccm), a good place is a new sub-folder below ``\Scripts`` in the MDT share.
 
-You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](pwdfiles-folder)).
+You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](#pwdfiles-folder)).
 
-The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#models-folder). Those examples lack the required BIOS, ME or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
+The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#models-folder) and [Shared folder](#shared-folder). Those examples lack the required BIOS, ME or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
 
 :exclamation: **IMPORTANT!** The settings and downloaded files in ``\Models`` and ``\Shared`` are just examples; there might be newer firmware files available from HP, the settings provided might not match you environment etc. Please do not use these examples "as is" in production.
 
@@ -111,14 +112,14 @@ BIOS Sledgehammer uses several configuration files that all follow the same ``NA
 
 ```cfg
 # This is a comment and ignored
-; So is this line. 
+; So is this line.
 #And this.
 ;And this also.
 
 # The general format is NAME==VALUE
 Version==1.08
 
-# Leading or trailing white spaces are ignored 
+# Leading or trailing white spaces are ignored
  Version2 == 3.7
 
 
@@ -151,21 +152,23 @@ If you do not want to change anything for a given model, simply create a matchin
 
 ### SKU Model Folder
 
-As said before, BIOS Sledgehammer will try to locate a model folder named as the SKU of the current device first. A HP SKU is a seven-digit unique identification number for example *X3V00AV* or *Z2V72ET* (sometimes with an additional # and three more chars, e.g. *T6F44UT#ABA*) that identifies a given device and the configuration for it. It is recommended to use SKU folders only when required and as exception, as a SKU is rather meaningless.
+As said before, BIOS Sledgehammer will try to locate a model folder first by the SKU of the current device. A HP SKU is a seven-digit unique identification number for example *X3V00AV* or *Z2V72ET* (sometimes with an additional # and three more chars, e.g. *T6F44UT#ABA*) that identifies a given device and the configuration for it. It is recommended to use SKU folders only when required and as exception, as a SKU is rather meaningless.
 
 A typical example where you will need them is when you need to support the same model (e.g. EliteBook 820 G4) in two different configurations where those configurations require different settings. For example, an EliteBook 820 G4 without Intel vPro/AMT will not support *Intel Software Guard Extensions* (SGX). If you want to change the default BIOS setting for this feature, this will fail on the devices without vPro.
 
-In this case, create a folder named after the SKU of the non vPro devices (e.g. ``X3V00AV``) and delete the setting that changes the status of SGX. All other (with vPro) devices will continue to use the folder ``HP EliteBook 820 G4`` where the SGX settings remains unchanged.
+In this case, create a folder named after the SKU of the non vPro devices (e.g. ``Models\X3V00AV``) and delete the setting that changes the status of SGX. All other (with vPro) devices will continue to use the folder ``Models\HP EliteBook 820 G4`` where the SGX settings remains unchanged.
 
 ## *Shared* folder
 
-xxx
+By default, each 
 
 -------------Please note that BIOS Sledgehammer does not support "sharing" update files between several models as sharing files between models has proven to cause problems for older models each time the shared folders are updated for new models.----------------------
 
+:exclamation: **IMPORTANT!** Note above.
+
 ## *PwdFiles* folder
 
-The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. When BIOS Sledgehammer starts, it tries every file in this folder until the password for the device has been found (an empty password is automatically added, there is no file for this). If no password file matches, an error is generated. 
+The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. When BIOS Sledgehammer starts, it tries every file in this folder until the password for the device has been found (an empty password is automatically added, there is no file for this). If no password file matches, an error is generated.
 
 The order, in which they are tried, is determined by sorting the files by name: a file called *01_Standard.bin* is tried before *02_Standard.bin*. The most commonly used password should always come first because some BIOS versions enforce how many times you can try a wrong BIOS password. When this limit is reached, any password is rejected until the computer is restarted.
 
@@ -182,7 +185,7 @@ The settings for a BIOS update are read from the file ``BIOS-Update.txt`` in the
 Version == 1.37
 
 # Command to be executed for the BIOS update
-Command==HPBiosUpdRec64.exe 
+Command==HPBiosUpdRec64.exe
 
 # Arguments to pass to COMMAND
 
@@ -229,11 +232,10 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 
 If anything goes wrong during the process, an error is generated.
 
-
 ## Management Engine (ME) Update
 
-Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable. 
- 
+Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable.
+
 :warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
 If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
@@ -248,8 +250,8 @@ Version == 9.5.61.3012
 
 # Command to be executed for the ME update
 Command==CallInst.exe
-  
-Arg1 == /app Update.bat 
+
+Arg1 == /app Update.bat
 Arg2 == /hide
 ```
 
@@ -260,7 +262,6 @@ Arg2 == /hide
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\ME-9.5.61.3012\``.
 
 If anything goes wrong during the process, an error is generated.
-
 
 ## ~~Management Engine (ME) Vulnerability Check~~
 
@@ -282,7 +283,7 @@ The settings for a TPM update are read from the file ``TPM-Update.txt`` in the m
 ```cfg
 # 1040 G3 TPM Update
 
-# Manufacturer of the TPM. 
+# Manufacturer of the TPM.
 # If the value exists, the device must have this vendor or no update takes place
 Manufacturer == 1229346816
 # 1229346816 is IFX
@@ -310,9 +311,9 @@ Arg3 == -p"@@PASSWORD_FILE@@"
 
 The first setting **Manufacturer** is optional and can be used to ensure that the TPM firmware vendor for the device matches the update files. If it's not defined, the TPM firmware vendor is ignored.
 
-To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**). 
+To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**).
 
-The reason is that all TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started. 
+The reason is that all TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started.
 
 The current TPM firmware version of the device is retrieved and it is checked if the settings file contains an entry for this firmware version. Given that the current device has TPM firmware 6.40, the update can be performed as an entry for this version exists (**6.40 == Firmware\TPM12....**). However, if the device would have firmware 6.22 the update would fail because no entry for this version exists.
 
@@ -373,7 +374,6 @@ IgnoreBitLocker==Yes
 
 :warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned.
 
-
 ## BIOS Password
 
 To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#models-folder). Example file:
@@ -396,7 +396,6 @@ Regarding BIOS passwords, please note the following:
 
 * Passwords need to meet minimum complexity rules (must contain upper and lower case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
-
 
 ## BIOS Settings
 
@@ -423,7 +422,6 @@ Please note that on some devices, some BIOS settings (e.g. TPM Activation Policy
 
 Also, BCU performs some basic checks to prevent changes that are not compatible with the current OS. For example, setting “SecureBoot” to “Enable” fails with error code 32769 when using Windows 7 but works directly on Windows 10. However, other settings are not checked so don’t count on that BCU will prevent all incompatible changes.
 
-
 ## In-place BIOS to UEFI boot mode conversion
 
 Some Windows 10 security features (e.g. Device Guard) require that the computer is in UEFI boot mode. If you already have updated machines to Windows 10, but those are using BIOS legacy boot mode, you couldn't use these security features as switching the boot mode to UEFI caused Windows to stop working.
@@ -445,11 +443,11 @@ The file works exactly as described in [BIOS Settings](#bios-settings) and can, 
 
 By default, MDT/SCCM will run all scripts hidden to hide sensitive information. If you are okay with this, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell scripts native.
 
-If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder). 
+If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder).
 
 This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This way, you can have a quick look at the results.
 
-:exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.  
+:exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.
 
 It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.
 
