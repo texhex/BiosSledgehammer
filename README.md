@@ -178,7 +178,7 @@ Directory == HP EliteBook 8xx G4
 
 In this case, as the file beeing requested was ``BIOS-Update.txt``, BIOS Sledgehammer will retrieve the settings for the BIOS update from ``\Shared\HP EliteBook 8xx G4\BIOS-Update.txt``; update files need to be stored in that folder as well, e.g if the BIOS is 1.22, the update exe is expected in ``\Shared\HP EliteBook 8xx G4\BIOS-1.22\``. This procedure works the same for any configuration file, even for “companion” files like ``TPM-BIOS-Settings.txt`` (shared file with the directory is ``Shared-TPM-BIOS-Settings.txt``).
 
-You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, to use a shared BIOS update, BIOS settings and TPM Update, ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` files are required in the model folder. They can all point to the same folder or to different folders.
+You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, to use a shared BIOS update, BIOS settings and TPM Update, ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` files are required in the model folder. They can all point to the same folder or to different folders below ``\Shared``.
 
 As said, model specific files are prioritzed. This means if both ``<Configuratrion File>.txt`` and ``Shared-<Configuration File>.txt`` exist, the shared file is ignored.
 
@@ -278,19 +278,6 @@ Arg2 == /hide
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\ME-9.5.61.3012\``.
 
 If anything goes wrong during the process, an error is generated.
-
-## ~~Management Engine (ME) Vulnerability Check~~
-
-~~In 2017-05 a severe security vulnerability was found in the Management Engine (ME): [INTEL-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr) / [CVE-2017-5689](http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5689) which could allow an unprivileged attacker to gain full control of the ME, which in turn allows full control of the device.~~
-
-~~BIOS Sledgehammer can run the [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) to check if the device is vulnerable and log the result. To do so, the file ``ME-VulnerabilityScan.txt`` must exist in the [model folder](#models-folder). No settings in this file are needed.~~
-
-```cfg
-# If this file (ME-VulnerabilityScan.txt) exists, the Intel-SA-00075 detection tool will be run.
-# See https://downloadcenter.intel.com/download/26755
-```
-
-~~If the system is detected as vulnerable, check the [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) for an updated ME firmware and use the [Management Engine (ME) Update](#management-engine-me-update) process.~~
 
 ## TPM Update
 
