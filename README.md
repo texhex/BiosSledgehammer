@@ -142,7 +142,7 @@ The sub folder for each model will contain all settings files together with sour
 
 Any update files need to be stored as seperate folder below that path. For example, if ``\Models\HP EliteBook 820 G1\BIOS-Update.txt`` defines that a BIOS update to 1.39 is required, the BIOS update files need to be stored in the folder ``\Models\HP EliteBook 820 G1\BIOS-1.39\``.
 
-To locate a matching model folder, BIOS Sledgehammer will first check for a folder named as the SKU (Stock Keeping Unit, a unique identification number) for the current device - we'll come back to this shortly. If no SKU folder was found, an exact match for the current model is performed. 
+To locate a matching model folder, BIOS Sledgehammer will first check for a folder named as the SKU (Stock Keeping Unit, a unique identification number) for the current device - we'll come back to this shortly. If no SKU folder was found, an exact match for the current model is performed.
 
 This means, if the current model is a *HP EliteBook Folio 1040 G1*, a folder named ``HP EliteBook Folio 1040 G1`` is expected. If there is no folder by this name, a partially search is performed. This will accept any folder that contains parts of the name of the current model, e.g. folder names like ``EliteBook Folio 1040 G1``, ``Folio 1040 G1`` or even ``1040 G1`` can be used.
 
@@ -162,24 +162,122 @@ In this case, create a folder named after the SKU of the non vPro devices (e.g. 
 
 ## *Shared* folder
 
-By default, each model will have its own set of settings and update files and doesn’t share anything with any other model. This ensures that updating one model does not have any unwanted effects on any other model.
+By default, each model has its own set of settings and update files and does not share them with any other model. This model-specific configuration ensures that changes to one model do not affect any other model.
 
-On the other hand, device families (like the EliteBook 830/840/850 series) share all firmware files as they share the same base board. Also 95% of all options are available for the entire family, which means the settings could also be shared. Sharing saves a lot of space and makes updates a breeze, but an update can have an unwanted effect for one of the members.
+Sharing can have benefits, however. Device families (like the EliteBook 830/840/850 series) share all firmware files because they have the same base board. A significant proportion of options are also shared among members of a device family which permits shared settings configurations. The upside to a shared approach is that it saves space and improves changing settings. The downside is that an update can have unwanted effects for some members of the family.
 
-To balance both needs, model specific files are prioritized over shared files, and each shared setting needs to be defined separately. This way, you can mix and match specific and shared items as you need.
+BIOS Sledgehammer prioritizes model-specific files over shared files. Shared settings can optionally be defined. With this approach, it is possible to mix model-specific and shared configuration needs to achieve a balance that you desire.
 
-If any configuration file is not found in the model folder, BIOS Sledgehammer will always check if a file named ``Shared-<Configuration File>.txt`` exists. For example, if ``BIOS-Update.txt`` does not exist, it will check if the file ``Shared-BIOS-Update.txt`` exists. This file only contains a single value *Directory* that names the directory below ``\Shared`` where the file can be found:
+To achieve a shared configuration, create a `Shared-<Configuration File>.txt` file to define any file that you want to retrieve from the ``\Shared`` folder. The default behavior of BIOS Sledgehammer is to search for the configuration file by name and, if it is not found in the model folder, look for a file named `Shared-<Configuration File>.txt`.
+
+For example, if ``BIOS-Update.txt`` is not present, the application will look for the file `Shared-BIOS-Update.txt`. This file contains a single value that defines the directory path below ``\Shared``:
 
 ```cfg
 # Shared directory for EliteBook 8xx Gen 4
 Directory == HP EliteBook 8xx G4
 ```
 
-In this case, as the file beeing requested was ``BIOS-Update.txt``, BIOS Sledgehammer will retrieve the settings for the BIOS update from ``\Shared\HP EliteBook 8xx G4\BIOS-Update.txt``; update files need to be stored in that folder as well, e.g if the BIOS is 1.22, the update exe is expected in ``\Shared\HP EliteBook 8xx G4\BIOS-1.22\``. This procedure works the same for any configuration file, even for “companion” files like ``TPM-BIOS-Settings.txt`` (shared file with the directory is ``Shared-TPM-BIOS-Settings.txt``).
+In this example, the requested file was `BIOS-Update.txt`. BIOS Sledgehammer retrieves the settings for the BIOS update from the file path `\Shared\HP EliteBook 8xx G4\`. It is necessary to store update files in the same folder.  For example, if the BIOS is 1.22, the update exe should be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
 
-You need to use a ``Shared-xxx.txt`` for any file you want to retrieve from the ``\Shared`` folder. For example, to use a shared BIOS update, BIOS settings and TPM Update, ``Shared-BIOS-Update.txt``, ``Shared-BIOS-Settings.txt`` and ``Shared-TPM-Update.txt`` files are required in the model folder. They can all point to the same folder or to different folders below ``\Shared``.
+This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-BIOS-Settings.txt` (shared file with the directory is `Shared-TPM-BIOS-Settings.txt`).
 
-As said, model specific files are prioritzed. This means if both ``<Configuratrion File>.txt`` and ``Shared-<Configuration File>.txt`` exist, the shared file is ignored.
+## Model folder location examples
+
+Because the procedures to find the correct folder and settings files in \Models or \Shared can be confusing, here are some examples. The following layout of the \BIOSSledehammer folder is assumed; it misses several files and folder that are used in production to make it easier to read.
+
+````text
+.
+├── BiosSledgehammer.ps1
+├── README.md
+├── ...
+├── Models
+│   ├── HP EliteBook Folio 1040 G1
+│   │   ├── BIOS-Update.txt
+│   │   ├── BIOS-1.37
+│   │   │   └── HPQFlash.exe
+│   │   └── BIOS-Settings.txt
+│   ├── HP EliteBook 820 G4
+│   │   ├── Shared-BIOS-Update.txt
+│   │   └── Shared-BIOS-Settings.txt
+│   ├── HP EliteBook 840 G4
+│   │   ├── Shared-BIOS-Update.txt
+│   │   └── Shared-BIOS-Settings.txt
+│   └── X3V00AV
+│       ├── Shared-BIOS-Update.txt
+│       └── BIOS-Settings.txt
+├── Shared
+│   └── HP EliteBook 8xx G4
+│       ├── BIOS-Update.txt
+│       ├── BIOS-1.15
+│       │   └── HPQFlash.exe
+│       └── BIOS-Settings.txt
+````
+
+* Example 1: Executed on a *HP EliteBook Folio 1040 G1*, SKU *F2R71UT*
+  * Search for folder named as the SKU: \Models\F2R71UT
+  * SKU folder does not exist, search for folder named as the model: \Models\HP EliteBook Folio 1040 G1
+  * Folder exists, will use folder
+  * BIOS-Update.txt and BIOS-Settings.txt found, will use these files from \Models\HP EliteBook Folio 1040 G1
+* Example 2: Executed on a *HP Pro x2 612 G2*, SKU *L5H60EA#ABD*
+  * Search for folder named as the SKU: \Models\L5H60EA#ABD
+  * SKU folder does not exist, search for folder named as the model: \Models\HP Pro x2 612 G2
+  * Folder does not exist, search for partitial matching folder
+  * No partial folder found, error message will be displayed
+* Example 3: Executed on a *HP EliteBook 820 G4*, SKU *1FX36UT#ABA*
+  * Search for folder named as the SKU: \Models\1FX36UT#ABA
+  * SKU folder does not exist, search for folder named as the model: \Models\HP EliteBook 820 G4
+  * Folder exists, will use folder
+  * Shared-BIOS-Update.txt and Shared-BIOS-Settings.txt found, both files point to \Shared\HP EliteBook 8xx G4
+  * Will use BIOS-Update.txt and BIOS-Settings.txt from this shared folder
+* Example 4: Executed on a *HP EliteBook 840 G4*, SKU *Z2V72ET*
+  * Search for folder named as the SKU: \Models\Z2V72ET
+  * SKU folder does not exist, search for folder named as the model: \Models\HP EliteBook 840 G4
+  * Folder exists, will use folder
+  * Shared-BIOS-Update.txt and Shared-BIOS-Settings.txt found, both files point to \Shared\HP EliteBook 8xx G4
+  * Will use BIOS-Update.txt and BIOS-Settings.txt from this shared folder
+* Example 4: Executed on a *HP EliteBook 840 G4*, SKU *X3V00AV* (note the different SKU as this device does not have Intel vPro)
+  * Search for folder named as the SKU: \Models\X3V00AV
+  * SKU folder found, will use folder
+  * BIOS-Settings.txt found, will use this file from \Models\X3V00AV
+  * Shared-BIOS-Update.txt found and points to \Shared\HP EliteBook 8xx G4
+  * Will use BIOS-Update.txt from \Shared\HP EliteBook 8xx G4
+
+For more examples, see the \Models folders in the downloaded archive.
+
+<!---------------------------------- 
+
+````text
+.
+├── BENCHMARKS.md
+├── CHANGELOG.md
+├── LICENSE.md
+├── Makefile
+├── README.md
+├── bin
+│   └── Crunch.app
+│       └── Contents
+│           ├── Info.plist
+│           ├── MacOS
+│           │   └── Crunch
+│           └── Resources
+│               ├── AppSettings.plist
+│               ├── Credits.html
+│               ├── MainMenu.nib
+│               │   ├── designable.nib
+│               │   └── keyedobjects.nib
+│               ├── appIcon.icns
+│               ├── clear.html
+│               ├── complete.html
+│               ├── execution.html
+│               ├── fastdots.gif
+│               ├── pngquant
+│               ├── script
+│               ├── slowdots.gif
+│               ├── start.html
+│               └── zopflipng
+````
+
+---------------------------------->
 
 ## *PwdFiles* folder
 
