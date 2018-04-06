@@ -242,9 +242,9 @@ Because the procedures to find the correct folder and settings files in \Models 
   * Shared-BIOS-Update.txt found and points to \Shared\HP EliteBook 8xx G4
   * Will use BIOS-Update.txt from \Shared\HP EliteBook 8xx G4
 
-For more examples, see the \Models folders in the downloaded archive.
+For more examples, see the \Models folder in the downloaded archive.
 
-<!---------------------------------- 
+<!----------------------------------
 
 ````text
 .
