@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.0.BETA_4"
+$scriptversion = "4.0.5.BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1090,10 +1090,26 @@ function ConvertTo-VersionFromBIOSVersion()
         $Text = $Text.Replace("V", "")
     }
  
-    [version]$curver = ConvertTo-Version -Text $Text -RespectLeadingZeros
+    #Issue 50 (https://github.com/texhex/BiosSledgehammer/issues/50):
+    #
+    #Newer BIOS versions (e.g. EliteBook 830 G5) use the version string "1.00.05" that will crash 
+    #if the -RespectLeadingZeros parameter is used as the resulting version would be 1.0.0.0.5
+    #
+    #Therefore, check if the version only contains a single "." (dot) and only use -RespectLeadingZeros in that case
+    #
+    if ( ($Text.Split('.').Length - 1) -eq 1 )        
+    {
+        [version]$curver = ConvertTo-Version -Text $Text -RespectLeadingZeros
+    }
+    else
+    {
+        #The version string contains more than one ., try to parse the version as is
+        [version]$curver = ConvertTo-Version -Text $Text
+    }
 
     return $curver
 }
+
 
 
 function Get-BIOSVersionDetails()
