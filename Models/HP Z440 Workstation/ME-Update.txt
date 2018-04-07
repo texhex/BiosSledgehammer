@@ -2,7 +2,7 @@
 
 
 # The ME firmware version the device should have
-Version == 9.1.41.3024
+Version == 9.1.43.3004
 
 #Command to be executed for the ME update
 Command==CallInst.exe

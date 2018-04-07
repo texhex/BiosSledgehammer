@@ -1,0 +1,11 @@
+# EliteBook 8xx G1 ME Update
+
+
+# The ME firmware version the device should have
+Version == 9.5.62.3002
+
+#Command to be executed for the ME update
+Command==CallInst.exe
+
+Arg1 == /app Update.bat
+Arg2 == /hide

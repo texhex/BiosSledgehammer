@@ -1,7 +1,7 @@
 # Z440 BIOS Update
 
 #The BIOS version the device should be on
-Version == 2.39
+Version == 2.41
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC.exe

@@ -1,7 +1,7 @@
 # Z240 ME Update
 
 # The ME firmware version the device should have
-Version == 11.8.50.3399
+Version == 11.8.50.3460
 
 #Command to be executed for the ME update
 

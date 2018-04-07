@@ -1,5 +1,0 @@
-# EliteBook 8x0 G1
-
-Boot Mode==UEFI Native (Without CSM)
-SecureBoot==Enable
-

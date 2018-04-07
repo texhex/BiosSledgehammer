@@ -1,6 +1,0 @@
-# EliteBook 8x0 G4 Activate UEFI Boot
-
-
-Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
-
-

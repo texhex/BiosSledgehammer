@@ -1,7 +1,7 @@
 # 8570p BIOS Update
 
 #The BIOS version the device should be on
-Version == F.66
+Version == F.70
 
 #Command to be executed for the BIOS update
 Command==hpqFlash64.exe

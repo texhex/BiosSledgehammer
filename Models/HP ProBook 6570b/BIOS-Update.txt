@@ -1,7 +1,7 @@
 # 6570b Update
 
 # The BIOS version the device should be on
-Version == F.66
+Version == F.70
 
 # This model supports different BIOS families - define update file for each
 68ICE==68ICE.CAB

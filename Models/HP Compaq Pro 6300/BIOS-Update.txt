@@ -1,7 +1,7 @@
 # BIOS Update Compaq Pro 6300
 
 #The BIOS version the device should be on
-Version == 3.04
+Version == 3.06
 
 #Command to be executed for the BIOS update
 Command==HPQFlash\hpqFlash.exe

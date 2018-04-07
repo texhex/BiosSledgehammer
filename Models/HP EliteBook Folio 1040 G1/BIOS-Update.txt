@@ -1,7 +1,7 @@
 # 1040 G1 BIOS Update
 
 #The BIOS version the device should be on
-Version == 1.37
+Version == 1.39
 
 #Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
