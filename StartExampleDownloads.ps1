@@ -1,5 +1,5 @@
 ﻿<#
- Start Example Downloads v1.07
+ Start Example Downloads v1.08
  Copyright © 2015-2017 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
@@ -62,6 +62,11 @@ function Test-FolderStructure()
   [string]$SearchPath
 )
     if ( -not (Test-DirectoryExists "$SearchPath\Models") )
+    {
+        throw New-Exception -DirectoryNotFound "Path [$SearchPath\Models] does not exist"
+    }
+
+    if ( -not (Test-DirectoryExists "$SearchPath\Shared") )
     {
         throw New-Exception -DirectoryNotFound "Path [$SearchPath\Models] does not exist"
     }
@@ -267,13 +272,7 @@ param(
 #
 #Full details on this StackOverflow answer by Luke Hutton: https://stackoverflow.com/a/28333370
 #
-#Side notes:
-# -bor is "bitwise or"
-# View current protocols: write-host ([System.Net.ServicePointManager]::SecurityProtocol).ToString()
-#
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor
-                                                     [System.Net.SecurityProtocolType]'Tls11' -bor 
-                                                     [System.Net.SecurityProtocolType]'Tls12'
+Set-HTTPSecurityProtocolSecureDefault
 
 
 ######################################################
