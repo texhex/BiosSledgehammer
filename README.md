@@ -136,7 +136,7 @@ Each time BIOS Sledgehammer is executed, a new logfile with the pattern ``BiosSl
 
 ## *Models* folder
 
-It is expected that each model (type) of hardware you want to support has a separate sub folder below ``\Models``. The model is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to get the model.
+It is expected that each model (type) of hardware you want to support has a separate sub folder below ``\Models``. The model is displayed automatically by BIOS Sledgehammer, so simply run it once for each hardware to get the model name.
 
 The sub folder for each model will contain all settings files together with source files for any updates. For example, if you execute BIOS Sledgehammer on a *HP EliteBook 820 G1* and a folder called ``\Models\HP EliteBook 820 G1\`` exists, the settings files need to be stored as ``\Models\HP EliteBook 820 G1\(FILENAME).txt``, e.g. ``\Models\HP EliteBook 820 G1\BIOS-Update.txt``.
 
@@ -170,16 +170,16 @@ BIOS Sledgehammer prioritizes model-specific files over shared files. Shared set
 
 To achieve a shared configuration, create a `Shared-<Configuration File>.txt` file to define any file that you want to retrieve from the ``\Shared`` folder. The default behavior of BIOS Sledgehammer is to search for the configuration file by name and, if it is not found in the model folder, look for a file named `Shared-<Configuration File>.txt`.
 
-For example, if ``BIOS-Update.txt`` is not present, the application will look for the file `Shared-BIOS-Update.txt`. This file contains a single value that defines the directory path below ``\Shared``:
+For example, if ``BIOS-Update.txt`` is not present, it will look for the file `Shared-BIOS-Update.txt`. This file contains a single value that defines the directory path below ``\Shared``:
 
 ```cfg
 # Shared directory for EliteBook 8xx Gen 4
 Directory == HP EliteBook 8xx G4
 ```
 
-In this example, the requested file was `BIOS-Update.txt`. BIOS Sledgehammer retrieves the settings for the BIOS update from the file path `\Shared\HP EliteBook 8xx G4\`. It is necessary to store update files in the same folder.  For example, if the BIOS is 1.22, the update exe should be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
+In this example, the requested file was `BIOS-Update.txt` and `Shared-BIOS-Update.txt` pointed to `\Shared\HP EliteBook 8xx G4\`; this means it retrieve the settings for the BIOS update from `\Shared\HP EliteBook 8xx G4\BIOS-Update.txt` . It is necessary to store update files in the same folder - for example, if the BIOS update is 1.22, the update exe should be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
 
-This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-BIOS-Settings.txt` (shared file with the directory is `Shared-TPM-BIOS-Settings.txt`).
+This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-BIOS-Settings.txt` (shared file would be `Shared-TPM-BIOS-Settings.txt`).
 
 ## Model folder location examples
 
