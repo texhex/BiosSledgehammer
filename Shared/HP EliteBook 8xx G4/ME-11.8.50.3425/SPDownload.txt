@@ -1,5 +1,5 @@
 
 SPaqURL==https://ftp.hp.com/pub/softpaq/sp82001-82500/sp82486.exe
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp82001-82500/sp82486.html
+NoteURL==https://ftp.hp.com/pub/softpaq/sp82001-82500/sp82486.html
 
 
