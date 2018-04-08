@@ -5,7 +5,7 @@
 Version == 1.00.05
 
 # Command to be executed for the BIOS update
-Command == HPBiosUpdRec64.exe 
+Command == HpFirmwareUpdRec64.exe 
 
 # Arguments passed to COMMAND
 
@@ -15,9 +15,8 @@ Arg1 == -s
 # Do not restart automatically
 Arg2 == -r
 
-# Disable BitLocker during upgrade
+# Disable/Suspend BitLocker during upgrade
 Arg3 == -b
 
 # Password file (will be removed if no password is used)
 Arg4 == -p"@@PASSWORD_FILE@@"
-
