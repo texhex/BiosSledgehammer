@@ -1,4 +1,4 @@
-#6570b
+# ProBook/EliteBook 6x70/8x70 Update
 
 Boot Mode==UEFI Native (Without CSM)
 SecureBoot==Enable

@@ -1,4 +1,4 @@
-# 8570p ME Update
+# ProBook/EliteBook 6x70/8x70 ME Update
 
 
 # The ME firmware version the device should have
