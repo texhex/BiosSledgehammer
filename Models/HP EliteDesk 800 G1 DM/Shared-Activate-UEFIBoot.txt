@@ -1,0 +1,2 @@
+# Shared directory for ProDesk/EliteDesk 600/800 G1
+Directory == HP Prodesk-Elitedesk 600-800 G1 DM
