@@ -1,0 +1,19 @@
+# ProDesk/EliteDesk 600/800 G1 BIOS Update
+
+
+# The BIOS version the device should be on
+Version == 2.74
+
+# Command to be executed for the BIOS update
+Command==HPQFlash\hpqFlash.exe
+
+# Arguments passed to COMMAND
+
+# Silent
+Arg1 == -s
+
+# Password file (will be removed if empty password)
+Arg2 == -p"@@PASSWORD_FILE@@"
+
+# Do not restart automatically is not supported
+##Arg3 == -r

@@ -1,0 +1,2 @@
+# Shared directory for ProDesk/EliteDesk 6x0/8x0 G1
+Directory == HP Prodesk-Elitedesk 6x0-8x0 G1
