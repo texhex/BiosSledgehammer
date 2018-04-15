@@ -1,0 +1,2 @@
+# Shared directory for ProDesk 4x0 G3
+Directory == HP ProDesk 4x0 G3
