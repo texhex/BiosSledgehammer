@@ -1,4 +1,4 @@
-# 8570p
+# HP ProBook/EliteBook 6x70/8x70
 
 Boot Mode==UEFI Native (Without CSM)
 SecureBoot==Enable
