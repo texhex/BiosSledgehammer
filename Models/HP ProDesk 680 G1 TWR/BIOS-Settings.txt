@@ -1,0 +1,40 @@
+#EliteDesk 800 G1
+
+Legacy Support==Disable
+Secure Boot==Enable
+
+#Reset of TPM from OS==Enable
+Reset of Embedded Security Device through OS==Enable
+
+#OS Management of TPM==Enable
+OS management of Embedded Security Device==Enable
+
+#TPM Device==Available
+Embedded Security Device==Device available
+
+#If the setting is set to "F1 to Boot" when no BIOS password is defined, this value can not be set with error 32769
+#TPM Activation Policy==No prompts
+Embedded Security Activation Policy==No prompts
+
+Data Execution Prevention==Enable
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology Directed I/O (VTd)==Disable
+                                     
+Fast Boot==Disable
+
+SATA Emulation == AHCI
+
+Multi-Processor == Enable
+
+Hyper-Threading == Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Enter Ownership Tag == Property of .....
+
+
+
+
