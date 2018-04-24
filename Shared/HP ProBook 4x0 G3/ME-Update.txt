@@ -1,0 +1,11 @@
+# HP ProBook 4x0 G3 ME Update
+
+
+# The ME firmware version the device should have
+Version == 11.0.0.1202
+
+#Command to be executed for the ME update
+Command==CallInst.exe
+
+Arg1 == /app Update.bat
+Arg2 == /hide
