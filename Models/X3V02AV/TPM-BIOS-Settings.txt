@@ -1,0 +1,4 @@
+# EliteBook 840 G4 BIOS Settings required for TPM update
+
+#Avoid pressing F1 for TPM update (issue #39)
+TPM Activation Policy==No prompts

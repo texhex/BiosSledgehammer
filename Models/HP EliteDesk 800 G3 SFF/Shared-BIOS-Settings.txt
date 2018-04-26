@@ -1,0 +1,2 @@
+# Shared directory for HP EliteDesk 8x0 G3
+Directory == HP EliteDesk 8x0 G3

@@ -1,0 +1,25 @@
+# EliteDesk 8x0 G3 BIOS Settings
+
+Enable MS UEFI CA key==Yes
+Ready BIOS for Device Guard Use==Do Nothing
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Intel Software Guard Extensions (SGX)==Software control
+
+Automatic BIOS Update Setting==Disable
+
+Virtualization Technology (VTx)==Enable
+
+# Said to cause issues with the GPU, but tested without problems on these models
+Virtualization Technology for Directed I/O (VTd)==Enable
+
+Fast Boot==Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ....
+
+

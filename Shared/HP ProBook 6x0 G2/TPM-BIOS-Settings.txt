@@ -1,0 +1,7 @@
+# EliteBook 6x0 G2 BIOS Settings required for TPM update
+
+# When these options are activated, no TPM firmware can be installed
+Trusted Execution Technology (TXT)==Disable
+
+#Avoid pressing F1 for TPM update (issue #39)
+TPM Activation Policy==No prompts
