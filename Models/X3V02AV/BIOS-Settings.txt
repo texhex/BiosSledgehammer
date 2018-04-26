@@ -12,9 +12,6 @@ TPM Device==Available
 TPM Activation Policy==No prompts
 
 
-# Not supported on all SKUs
-Intel Software Guard Extensions (SGX)==Software control
-
 Turbo-boost==Enable
 Hyperthreading==Enable
 Multi-processor==Enable
