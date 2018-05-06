@@ -1,0 +1,46 @@
+# ZBook 1x G4
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options==Enable
+Enable MS UEFI CA key == Yes
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Intel Software Guard Extensions (SGX)==Software control
+
+Virtualization Technology (VTx)==Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd)==Disable
+
+Turbo-boost==Enable
+Hyperthreading==Enable
+Multi-processor==Enable
+
+Automatic BIOS Update Setting==Disable
+
+#Anti-Theft stuff
+Absolute Persistence Module Current State==Inactive
+
+LAN / WLAN Auto Switching==Enable
+
+# This makes sure that the user is not prompted when connecting his/her docking station
+Thunderbolt Security Level==PCIe and DisplayPort - No Security
+#default value: 
+#    PCIe and DisplayPort - User Authorization
+
+#As we use CAD applications with the device, the intel graphic can sometimes cause issues
+#We force the system to use NVIDIA only, although this might affect battery live.
+Graphics==Discrete Graphics
+
+#Allow changing the mode in BIOS
+Force to Run Discrete Only Mode==Disable
+
+Fast Boot==Disable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ...
+
