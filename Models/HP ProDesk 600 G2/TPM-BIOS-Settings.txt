@@ -1,0 +1,5 @@
+# ProDesk 600 G2 BIOS Settings required for TPM update
+
+# No F1 prompt for TPM update
+TPM Activation Policy==No prompts
+

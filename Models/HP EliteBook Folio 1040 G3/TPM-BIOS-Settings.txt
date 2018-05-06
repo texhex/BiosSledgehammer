@@ -1,0 +1,6 @@
+# BIOS Settings required for TPM Update
+
+# No F1 prompt for TPM update
+TPM Activation Policy==No prompts
+
+
