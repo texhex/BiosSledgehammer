@@ -64,12 +64,12 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.*
 * BIOS updates file for the models you want to support
-  * Search http://www.hp.com/drivers for "(Model) BIOS" to locate them
+  * Search http://www.hp.com/drivers for "(Model) BIOS" to locate them or see [HPSBHF03573 advisory (Intel Spectre V2 BIOS updates)](https://support.hp.com/us-en/document/c05869091)
 * TPM update files if a TPM specification or TPM firmware update is desired
   * See [HP C05381064 advisory (TPM 2.0 Updates)](https://support.hp.com/en-us/document/c05381064) and [HP HPSBHF03568 advisory (Infineon TPM Security Update)](https://support.hp.com/us-en/document/c05792935)
 * ME updates if a Management Engine (vPro) update is desired
-  * See [HPSBHF03571 Advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
-  [HPSBHF03557 Advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) ([Intel-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr)) or the driver download page from HP for the model
+  * See [HPSBHF03571 advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
+  [HPSBHF03557 advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) ([Intel-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr)) or the driver download page from HP for the model
 * [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
 * Note: Several BIOS, TPM and ME files for the example models that are included can be downloaded automatically - see [Installation](#installation).
 
