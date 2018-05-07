@@ -349,9 +349,11 @@ If anything goes wrong during the process, an error is generated.
 
 Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable.
 
+If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
+
 :warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
-If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
+:exclamation: **IMPORTANT!** Please note that newer versions of the ME firmware update tool require the .NET 3.x framework to be installed before.
 
 The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#models-folder). Example:
 
@@ -367,8 +369,6 @@ Command==CallInst.exe
 Arg1 == /app Update.bat
 Arg2 == /hide
 ```
-
-:exclamation: **IMPORTANT!** Please note that newer versions of the ME firmware update tool require the .NET 3.x framework to be installed before.
 
 *Version* defines which ME version the device should have. If the current firmware is older, the update files are copied locally and then started using the settings *Command* and *ArgX*. A restart is requested after that because the new firmware will only be activated during POST, after an restart.
 
@@ -447,14 +447,21 @@ BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM 
 
 ### TPM and BIOS setting dependencies
 
-Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated.
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated. 
 
-To support this, these BIOS settings can be disabled just before the TPM update takes place using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
+Beside that, any TPM firmware upgrade will also require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
+
+To support this, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. 
+
+The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
-# When these options are activated, no TPM firmware can be installed
 
+# No F1 prompt to approve TPM update
+TPM Activation Policy == No prompts
+
+# These settings must be disabled to allow a TPM update
 Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
 ```
