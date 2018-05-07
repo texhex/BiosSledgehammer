@@ -447,13 +447,9 @@ BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM 
 
 ### TPM and BIOS setting dependencies
 
-Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated. 
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated. Beside that, any TPM firmware upgrade will also require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
 
-Beside that, any TPM firmware upgrade will also require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
-
-To support this, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. 
-
-The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
+To support this setting dependencies, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
