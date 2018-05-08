@@ -351,8 +351,6 @@ Depending on the model, a device might be equipped with [Intel Active Management
 
 If possible, check if an BIOS update is available that also updates the ME firmware as this method is much safer than direct ME firmware updates. On the other hand, some BIOS versions require a ME firmware after a BIOS update (see [ProDesk 600 G2 BIOS v2.17](https://ftp.hp.com/pub/softpaq/sp78001-78500/sp78294.html)), so you might be forced to do direct updates.
 
-:warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
-
 :exclamation: **IMPORTANT!** Please note that newer versions of the ME firmware update tool require the .NET 3.x framework to be installed before.
 
 The settings for a ME update are read from the file ``ME-Update.txt`` in the matching [model folder](#models-folder). Example:
@@ -375,6 +373,8 @@ Arg2 == /hide
 **Note**: BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``ME-<VERSION>``. If the desired ME firmware version is ``9.5.61.3012``, the folder needs to be named ``\ME-9.5.61.3012\``.
 
 If anything goes wrong during the process, an error is generated.
+
+:warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
 ## TPM Update
 
@@ -445,11 +445,24 @@ To support this special case, it is possible to define two entries for the same 
 
 BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
 
+### Disable automatic BitLocker decryption
+
+In cases of updates for in-use machines, the automatic decryption of BitLocker that BIOS Sledgehammer performs might not be desired as this will require a full roll-in of BitLocker later on.
+
+It is possible that a script (executed before BIOS Sledgehammer) removes the TPM protector and then pauses BitLocker protection. Adding the parameter **IgnoreBitLocker==Yes** in ``TPM-Update.txt`` will cause BIOS Sledgehammer to ignore BitLocker all together and not start a full decryption.
+
+```cfg
+# Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
+IgnoreBitLocker==Yes
+```
+
+:warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned.
+
 ### TPM and BIOS setting dependencies
 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated. Beside that, any TPM firmware upgrade will also require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
 
-To support this setting dependencies, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) and should only contain the changes that are required for the TPM update to succeed.
+To support these dependencies, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
@@ -463,19 +476,6 @@ Trusted Execution Technology (TXT) == Disable
 ```
 
 **NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
-
-### Disable automatic BitLocker decryption
-
-In cases of updates for in-use machines, the automatic decryption of BitLocker that BIOS Sledgehammer performs might not be desired as this will require a full roll-in of BitLocker later on.
-
-It is possible that a script (executed before BIOS Sledgehammer) removes the TPM protector and then pauses BitLocker protection. Adding the parameter **IgnoreBitLocker==Yes** in ``TPM-Update.txt`` will cause BIOS Sledgehammer to ignore BitLocker all together and not start a full decryption.
-
-```cfg
-# Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
-IgnoreBitLocker==Yes
-```
-
-:warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned.
 
 ## BIOS Password
 
