@@ -7,5 +7,5 @@ Version == 9.1.43.3004
 #Command to be executed for the ME update
 Command==CallInst.exe
 
-Arg1 == /app Update.bat
+Arg1 == /app silent.bat
 Arg2 == /hide

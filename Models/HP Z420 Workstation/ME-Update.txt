@@ -14,4 +14,3 @@ Command == CallInst.exe
 Arg1 == /app silent.bat
 Arg2 == /hide
 
-
