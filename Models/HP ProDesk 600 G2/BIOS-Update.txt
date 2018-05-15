@@ -4,7 +4,7 @@
 Version == 2.28
 
 #Command to be executed for the BIOS update
-Command==HPBIOSUPDREC64.exe
+Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
 
 # Silent
 Arg1 == -s
