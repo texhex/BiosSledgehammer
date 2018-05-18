@@ -1,5 +1,5 @@
 # TPM IFX SLB 9670 Firmware 
-# Update 2018-05-15, v6.43 / v7.63
+# Update 2018-05-18, v6.43 / v7.63
 #
 # Full list of supported devices
 # https://support.hp.com/us-en/document/c05381064/
@@ -20,28 +20,31 @@ FirmwareVersion == 7.63
 # Define the upgrade file to be used for each firmware version.
 # The firmware active on the device must match an entry here or no update can be performed
 
-6.40 == Firmware\TPM12_6.40.190.0_to_TPM20_7.63.3353.0.BIN
+6.40 == src\TPM12_6.40.190.0_to_TPM20_7.63.3353.0.BIN
 
 # A special case is the 6.41 firmware as there are two files for it:
 # - The 6.41.197 firmware is used for devices that are TPM 1.2 by default
 # - The 6.41.198 firmware is used for devices that were downgraded from TPM 2.0 to TPM 1.2
-6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.63.3353.0.BIN
-6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.63.3353.0.BIN
+6.41.A == src\TPM12_6.41.197.0_to_TPM20_7.63.3353.0.BIN
+6.41.B == src\TPM12_6.41.198.0_to_TPM20_7.63.3353.0.BIN
 
 # For 6.43 there are actually THREE version available!
-# However, we only support two different ones as of now...
-6.43.A == Firmware\TPM12_6.43.243.0_to_TPM20_7.63.3353.0.BIN
-6.43.B == Firmware\TPM12_6.43.244.0_to_TPM20_7.63.3353.0.BIN
-#6.43.Z == Firmware\TPM12_6.43.245.0_to_TPM20_7.63.3353.0.BIN
+# However, we only support two different firmwares as of now
+6.43.A == src\TPM12_6.43.243.0_to_TPM20_7.63.3353.0.BIN
+6.43.B == src\TPM12_6.43.244.0_to_TPM20_7.63.3353.0.BIN
+## 6.43.Z == src\TPM12_6.43.245.0_to_TPM20_7.63.3353.0.BIN
 
-7.40 == Firmware\TPM20_7.40.2098.0_to_TPM20_7.63.3353.0.BIN
-7.41 == Firmware\TPM20_7.41.2375.0_to_TPM20_7.63.3353.0.BIN
-7.60 == Firmware\TPM20_7.60.2677.0_to_TPM20_7.63.3353.0.BIN
-7.61 == Firmware\TPM20_7.61.2785.0_to_TPM20_7.63.3353.0.BIN
-7.62 == Firmware\TPM20_7.62.3126.0_to_TPM20_7.63.3353.0.BIN
+7.40 == src\TPM20_7.40.2098.0_to_TPM20_7.63.3353.0.BIN
+7.41 == src\TPM20_7.41.2375.0_to_TPM20_7.63.3353.0.BIN
+7.60 == src\TPM20_7.60.2677.0_to_TPM20_7.63.3353.0.BIN
+7.61 == src\TPM20_7.61.2785.0_to_TPM20_7.63.3353.0.BIN
+7.62 == src\TPM20_7.62.3126.0_to_TPM20_7.63.3353.0.BIN
 
-#And then there is this release...
-# 7.63 == TPM20_7.63.3144.0_to_TPM20_7.63.3353.0.BIN
+# There is also an 7.63 to 7.63 update, we will add this once HP has release 7.64.
+# That's because we would create a loop as the script would try to flash this 
+# to an already updated device over and over
+## 7.63 == src\TPM20_7.63.3144.0_to_TPM20_7.63.3353.0.BIN
+
 
 # Command to be used to perform the TPM firmware upgrade
 Command == TPMConfig64.exe
