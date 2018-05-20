@@ -1,7 +1,7 @@
 # BIOS Update EliteDesk 800 G3 DM
 
 #The BIOS version the device should be on
-Version == 2.15
+Version == 2.16
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe

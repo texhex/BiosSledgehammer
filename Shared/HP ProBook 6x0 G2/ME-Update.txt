@@ -1,4 +1,4 @@
-# HP ProBook 4x0 G3 ME Update
+# HP ProBook 6x0 G2 ME Update
 
 
 # The ME firmware version the device should have

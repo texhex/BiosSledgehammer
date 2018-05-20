@@ -1,4 +1,0 @@
-
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp84501-85000/sp85000.exe
-NoteURL==https://ftp.hp.com/pub/softpaq/sp84501-85000/sp85000.html
-

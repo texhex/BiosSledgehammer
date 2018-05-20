@@ -1,8 +1,8 @@
-# HP ProBook 4x0 G3 ME Update
+# ProBook 6x0 G1 ME Update
 
 
 # The ME firmware version the device should have
-Version == 11.8.50.3470
+Version == 9.1.42.3002
 
 #Command to be executed for the ME update
 Command==CallInst.exe
