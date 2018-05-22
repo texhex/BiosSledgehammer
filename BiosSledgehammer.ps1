@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.6"
+$scriptversion = "4.0.7"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1463,7 +1463,6 @@ function Update-BiosFirmware()
 
                     $returncode = Invoke-UpdateProgram -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
      
-
                     if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
                         write-host "BIOS update success"
@@ -2562,16 +2561,25 @@ function Update-MEFirmware()
                                 
                             $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "ME-$versionDesiredText"
 
-                            $result = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
-                            
-                            if ( $result -eq $null )
+                            $returnCode = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
+                                                        
+                            if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                             {
-                                throw "Running ME update command failed!"
-                            }
-                            else
-                            {                  
                                 write-host "ME update success"
                                 $result = $true
+                            }
+                            else
+                            {
+                                $result = $null
+
+                                if ( $returnCode -eq $null )
+                                {
+                                    throw "ME update failed"
+                                }
+                                else
+                                {
+                                    throw "ME update failed, update program returned code $($returnCode)"
+                                }
                             }
 
                             #All done
