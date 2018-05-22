@@ -2,3 +2,6 @@
 
 #Avoid pressing F1 for TPM update (issue #39)
 TPM Activation Policy==No prompts
+
+#When this option is activated, no TPM upgrade can be performed
+Virtualization Technology for Directed I/O (VTd)==Disable

@@ -2,3 +2,6 @@
 
 # No F1 prompt for TPM update
 TPM Activation Policy==No prompts
+
+# When this option is activated, no TPM upgrade can be performed
+Virtualization Technology for Directed I/O (VTd)==Disable
