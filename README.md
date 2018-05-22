@@ -460,9 +460,11 @@ IgnoreBitLocker==Yes
 
 ## TPM BIOS settings
 
-Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions) or [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) are activated. Beside that, any TPM firmware upgrade will also require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions), [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) or [Virtualization Technology for Directed I/O aka "VTd"](https://en.wikipedia.org/wiki/X86_virtualization#I/O_MMU_virtualization_(AMD-Vi_and_Intel_VT-d)) are activated.
 
-To support these dependencies, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
+By default, any TPM firmware upgrade will  require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
+
+To support all these dependencies, BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
@@ -473,6 +475,7 @@ TPM Activation Policy == No prompts
 # These settings must be disabled to allow a TPM update
 Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
+Virtualization Technology for Directed I/O (VTd) == Disable
 ```
 
 **NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
