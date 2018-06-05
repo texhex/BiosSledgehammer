@@ -460,7 +460,9 @@ IgnoreBitLocker==Yes
 
 ## TPM BIOS settings
 
-Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions), [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) or [Virtualization Technology for Directed I/O aka "VTd"](https://en.wikipedia.org/wiki/X86_virtualization#I/O_MMU_virtualization_(AMD-Vi_and_Intel_VT-d)) are activated.
+Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions), [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) or [Virtualization Technology aka "VTx"](https://en.wikipedia.org/wiki/X86_virtualization#Intel_virtualization_(VT-x)) are activated.
+
+<!-- or [Virtualization Technology for Directed I/O aka "VTd"](https://en.wikipedia.org/wiki/X86_virtualization#I/O_MMU_virtualization_(AMD-Vi_and_Intel_VT-d)) are activated. -->
 
 By default, any TPM firmware upgrade will  require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
 
