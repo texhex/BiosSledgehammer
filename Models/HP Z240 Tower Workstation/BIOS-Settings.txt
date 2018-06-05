@@ -23,6 +23,7 @@ Absolute Persistence Module Current State==Inactive
 S4/S5 Maximum Power Savings==Disable
 
 Virtualization Technology (VTx)==Enable
+
 # Might cause issues with the GPU
 Virtualization Technology for Directed I/O (VTd)==Disable
 
