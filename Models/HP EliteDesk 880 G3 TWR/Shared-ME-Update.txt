@@ -1,2 +1,2 @@
-# Shared directory for HP EliteDesk 8x0 G3
-Directory == HP EliteDesk 8x0 G3
+# Shared directory for HP Pro/Elite Desk/One 600/800 G3
+Directory == HP Pro-Elite Desk-One 600-800 G3
