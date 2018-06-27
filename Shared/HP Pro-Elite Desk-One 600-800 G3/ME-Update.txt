@@ -1,8 +1,8 @@
-# HP EliteDesk 8x0 G3 ME Update
+# Pro/Elite Desk/One 600/800 G3 ME Update
 
 
 # The ME firmware version the device should have
-Version == 11.8.50.3425
+Version == 11.8.50.3470
 
 #Command to be executed for the ME update
 Command==CallInst.exe

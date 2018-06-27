@@ -1,0 +1,36 @@
+# ProDesk 400 G3 DM
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+
+# Let the BIOS do some basic init stuff
+Fast Boot == Disable
+
+# TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+# Security features turned ON
+SureStart Production Mode == Enable
+
+# Security features turned OFF
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+
+
+## CPU Features
+# VTx is required for Hyper-V / Device Guard
+Virtualization Technology (VTx) == Enable
+
+# Said to cause issues with the GPU, but tested without problems on this model
+Virtualization Technology for Directed I/O (VTd) == Enable
+
+# Let software control SGX
+Intel Software Guard Extensions (SGX) == Software control
+
+Multi-processor==Enable
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...

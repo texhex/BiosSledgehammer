@@ -1,0 +1,2 @@
+# HP Pro/Elite Desk/One 600/800 G3 Activate UEFI Boot
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable

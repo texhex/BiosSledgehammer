@@ -1,13 +1,10 @@
-# HP EliteDesk 8x0 G3 BIOS Update
+# BIOS Update HP ProDesk 600 G3 DM
 
-
-# The BIOS version the device should be on
+#The BIOS version the device should be on
 Version == 2.19
 
-# Command to be executed for the BIOS update
-Command==HPBIOSUPDREC\HPBiosUpdRec64.exe 
-
-# Arguments passed to COMMAND
+#Command to be executed for the BIOS update
+Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
 
 # Silent
 Arg1 == -s
@@ -17,3 +14,4 @@ Arg2 == -r
 Arg3 == -b
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
+
