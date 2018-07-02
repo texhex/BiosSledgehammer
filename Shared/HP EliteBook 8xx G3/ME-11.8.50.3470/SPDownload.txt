@@ -1,2 +1,2 @@
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87435.exe
-NoteURL==https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87435.html
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp87501-88000/sp87856.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp87501-88000/sp87856.html
