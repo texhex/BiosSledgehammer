@@ -1,0 +1,2 @@
+# Shared directory for HP Pro/Elite Desk/One 600/800 G3
+Directory == HP Pro-Elite Desk-One 600-800 G3

@@ -1,0 +1,17 @@
+# BIOS Update EliteOne 800 G3
+
+#The BIOS version the device should be on
+Version == 2.16
+
+#Command to be executed for the BIOS update
+Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
+
+# Silent
+Arg1 == -s
+# Do not restart automatically
+Arg2 == -r
+# Disable BitLocker during upgrade
+Arg3 == -b
+# Password file (will be removed if empty password)
+Arg4 == -p"@@PASSWORD_FILE@@"
+
