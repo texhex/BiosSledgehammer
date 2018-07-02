@@ -1,7 +1,7 @@
 # EliteBook 8x0 G2 BIOS Update
 
 #The BIOS version the device should be on
-Version == 1.25
+Version == 1.26
 
 #Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
