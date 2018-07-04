@@ -42,13 +42,15 @@ Suppose you get a workitem like this:
 
 You can now waste precious life time to try to script this, or you can just use BIOS Sledgehammer:
 
-* You can support several BIOS passwords for your devices, it will simply try all passwords you specify until the correct one is found
-* You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade. The BIOS version parsing works from older devices like 6300 Pro up to a 1040 G3.
-* Define which Management Engine (ME) firmware a device should have and if the current firmware is older, an update if applied. 
-* Define which TPM firmware and/or specification version (1.2 or 2.0) the device should have. Firmware checks are in place so BIOS Sledgehammer won’t try to flash “Update 6.40 to 7.41” on a device that has firmware 6.41
+* You can support several BIOS passwords for your devices, it will simply try all passwords you specify until the correct one is found.
+* You define which BIOS version the devices should have. Devices with newer versions will not trigger a downgrade. 
+* The BIOS version parsing works from rather old devices like 6300 Pro up to a modern device.
+* Define which Management Engine (ME) firmware a device should have and if the current firmware is older, an update if applied.
+* Configure which TPM firmware and/or specification version (1.2 or 2.0) a device should have. Firmware checks are in place so BIOS Sledgehammer won’t try to flash “Update 6.43 to 7.63” on a device that has firmware 6.40.
 * The BIOS password can be set individual per model or you just set all devices to the same password. All passwords are stored encrypted (using *HPQPswd64.exe*).
-* The log files from the HP BIOS or TPM update tools are automatically appended to the BIOS Sledgehammer log, so if something goes wrong you only have one log to check.
-* BIOS settings are changed individual so when something goes wrong, you know exactly what the problem was.
+* The log files from the update tools are automatically appended to the BIOS Sledgehammer log, so you have one log with all details.
+* Configure the BIOS settings for a device by using a simple Name==Value format. They are changed individual so if there is any issue, you know exactly which setting is to blame.
+* Shared configurations are supported, so device families (e.g. the EliteBook 8x0 series) can use a single configuration folder.
 * You can use it directly from MDT/SCCM, it will detect if a OSD is active and store the log(s) in the same path the task sequence uses. If desired, it can also be executed visible to see what it does.
 * It offers a command line switch to be used during an in-place BIOS to UEFI boot mode conversion (Windows 10 1703 using MBR2GPT.exe), so the computer will start in UEFI mode (requires Windows 10 1703 or later).
 
