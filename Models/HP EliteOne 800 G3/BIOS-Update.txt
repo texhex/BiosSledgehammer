@@ -1,11 +1,10 @@
-# ProBook 6x0 G2 BIOS Update
-
+# BIOS Update EliteOne 800 G3
 
 #The BIOS version the device should be on
-Version == 1.21
+Version == 2.16
 
 #Command to be executed for the BIOS update
-Command==HPBiosUpdRec64.exe 
+Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
 
 # Silent
 Arg1 == -s
@@ -15,6 +14,4 @@ Arg2 == -r
 Arg3 == -b
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
-
-
 

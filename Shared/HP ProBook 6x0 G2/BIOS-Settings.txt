@@ -1,0 +1,32 @@
+# ProBook 6x0 G2
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+
+# Let the BIOS do some basic init stuff
+Fast Boot == Disable
+
+## TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+Automatic BIOS Update Setting == Disable
+
+## CPU Features
+# VTx is required for Hyper-V / Device Guard
+Virtualization Technology (VTx) == Enable
+
+# Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd) == Disable
+
+##  CPU - General
+Turbo-boost == Enable
+Hyperthreading == Enable
+Multi-processor == Enable
+## Ownership
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
