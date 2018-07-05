@@ -475,7 +475,7 @@ TPM Activation Policy == No prompts
 # These settings must be disabled to allow a TPM update
 Intel Software Guard Extensions (SGX) == Disable
 Trusted Execution Technology (TXT) == Disable
-Virtualization Technology for Directed I/O (VTd) == Disable
+Virtualization Technology (VTx) == Disable
 ```
 
 **NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
