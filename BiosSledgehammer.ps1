@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "4.0.7"
+$scriptversion = "5.0.0BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1808,6 +1808,8 @@ function Update-TPMFirmware()
             else
             {
                 write-host "TPM update required!"
+
+                <# 5.0 TPM UPDATE REWORK STARTS HERE #>
 
                 <#
                  We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
