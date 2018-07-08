@@ -447,8 +447,6 @@ function Get-UpdateFolder()
         [string]$Name             
     )   
 
-    #$folderPath=$null
-
     $baseFolder = Get-ContainingDirectory -Path $SettingsFilePath
     
     $folder = Join-Path -Path $baseFolder -ChildPath $Name
@@ -1461,7 +1459,7 @@ function Update-BiosFirmware()
                         write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"                
                     } 
 
-                    $returncode = Invoke-UpdateProgram -Name "" -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
+                    $returncode = Invoke-UpdateProgram -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
      
                     if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
@@ -1720,6 +1718,19 @@ function Update-TPMFirmware()
         {
             throw "Configuration file is missing SpecVersion, FirmwareVersion or Command settings"
         }
+
+        #5.0: Ensure that UpgradeFirmwareSelection==ByTPMConfig is set which is required and the only supported setting 
+        if ( -not ($settings.ContainsKey("UpgradeFirmwareSelection")) ) 
+        {
+            throw "Configuration file is missing UpgradeFirmwareSelection setting"
+        }
+        else
+        {            
+            if ( ($settings["UpgradeFirmwareSelection"] -ne "ByTPMConfig") )
+            {
+                throw "Configuration file error: UpgradeFirmwareSelection is not set to ByTPMConfig"
+            }
+        }
           
         #Check if a Manufacturer was given. If so, we need to check if it matches the vendor of this machine
         $manufacturerOK = $true
@@ -1810,86 +1821,7 @@ function Update-TPMFirmware()
                 write-host "TPM update required!"
 
                 <# 5.0 TPM UPDATE REWORK STARTS HERE #>
-
-                <#
-                 We need to check for an entry *exactly* for the current firmware as HP only provides updates from A.B to X.Y 
-                
-                 However, we have a problem with the 6.41 firmware that is included in the firmware pack for 7.61 and upwards:
-                 https://github.com/texhex/BiosSledgehammer/issues/9
-                 
-                 There are TWO firmware files for 6.41: 
-                 6.41.197 - Used for devices that come with TPM 1.2
-                 6.41.198 - Used for devices that are TPM 2.0 by default and are factory-downgraded to 1.2
-
-                 The problem is that Win32_TPM (WMI class) does NOT list the build, only MAJOR.MINOR.
-
-                 Hence we need to perform a double try in this special case.
-                #>
-
-                $firmmwareVersionText = $TPMDetails.VersionText                
-                Write-host "Searching firmware file entry for [$firmmwareVersionText]..."
-
-                $firmwareFile_A = ""
-                $firmwareFile_B = ""
-                
-                $firmwareEntryFound = $false
-
-                #First check for a drirect match, e.g. if the TPM firmware is 6.40, search for 6.40==XXXXX
-                if ( $settings.ContainsKey($firmmwareVersionText) )
-                {
-                    $firmwareFile_A = $settings[$firmmwareVersionText]
-                    write-host "Firmware file found:"
-                    write-host "  [$firmwareFile_A]"
-
-                    $firmwareEntryFound = $true
-                }
-                else
-                {
-                    #If nothing was found, check if this is a special update process so we expect VERSION.A and VERSION.B
-                    #We expect two entries in this case, a single entry is a failure
-                    if ( ($settings.ContainsKey("$firmmwareVersionText.A")) -and ($settings.ContainsKey("$firmmwareVersionText.B")) )
-                    {                                                
-                        $firmwareFile_A = $settings["$firmmwareVersionText.A"]
-                        $firmwareFile_B = $settings["$firmmwareVersionText.B"]
-
-                        write-host "Two firmware files found:"
-                        write-host "  [$firmwareFile_A]"
-                        write-host "  [$firmwareFile_B]"
-
-                        $firmwareEntryFound = $true
-                    }
-                }
-                                
-                if ( -not $firmwareEntryFound )
-                {
-                    throw "The setting file does not contain an entry for the current TPM firmware ($firmmwareVersiontext) - unable to perform update"
-                }
-                     
-                #$sourcefolder = "$ModelFolder\TPM-$firmwareVersionDesiredText"
-                $sourceFolder = Get-UpdateFolder -SettingsFilePath $updateFile -Name "TPM-$firmwareVersionDesiredText"
-
-                #Ensure the firmware file exist
-                $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_A"                  
-                if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
-                {
-                    throw "Firmware file [$testExistensFirmwareFullPath] does not exist!"
-                }
-                else
-                {
-                    #Check if File_B exist if the variable is filled
-                    if ( Test-String -HasData $firmwareFile_B )
-                    {
-                        $testExistensFirmwareFullPath = "$sourcefolder\$firmwareFile_B"
-
-                        #Check if file B exists
-                        if ( -not (Test-FileExists $testExistensFirmwareFullPath) )
-                        {
-                            throw "Firmware file [$testExistensFirmwareFullPath] does not exist!"                            
-                        }
-                    }
-                }
-                                      
-
+                      
                 #We might need to stop here, depending on the BitLockerStatus
                 $continueTPMUpgrade = $false
 
@@ -1924,7 +1856,7 @@ function Update-TPMFirmware()
                 if ($continueTPMUpgrade)
                 {                
                     #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                                              
-                    $displayText = "BIOS Settings for TPM Update"
+                    $displayText = "BIOS settings for TPM update"
 
                     Write-HostSection -Start $displayText
                     $biosChanges = -1
@@ -1934,69 +1866,36 @@ function Update-TPMFirmware()
                     #This should not be necessary since Update-BiosSettingsEx will throw an error
                     if ( $biosChanges -lt 0 )
                     {
-                        throw "BIOS changes failed, can not continue"
+                        throw "BIOS settings for TPM update failed, can not continue"
                     }
       
-                    #
-                    #Real update process starts here. We might need to do this two times in case two firmwares were found                            
-                    #
-                    $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_A)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_A -PasswordFile $PasswordFile
 
-                    if ( $returnCode -eq $null )
+                    ################################
+                    #Real update process starts here 
+                    ################################
+                    $sourceFolder = Get-UpdateFolder -SettingsFilePath $updateFile -Name "TPM-$firmwareVersionDesiredText"
+                    $returnCode = Invoke-UpdateProgram -Settings $settings -SourcePath $sourcefolder -SpecVersion $tpmSpecDesiredText -PasswordFile $PasswordFile
+
+                    if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
-                        #In this case, no second execution will be done because something completly failed. 
-                        throw "TPM update failed!"
+                        write-host "TPM update success"
+                        $result = $true
                     }
                     else
                     {
-                        #If it's not null, we have two options:
+                        $result = $null
 
-                        # (A) Only a single firmware file exist: Assume any return code is OK
-                        $updateSuccess = $false
-
-                        if ( -not (Test-String -HasData $firmwareFile_B) )
+                        if ( $returnCode -eq $null )
                         {
-                            $updateSuccess = $true
+                            throw "Running TPM update program failed"
                         }
                         else
                         {
-                            # (B) Two firmware file exist: If return code is 275 (firmware image wrong), try again with the second firmware file
-                            if ( $returnCode -ne 275 )
-                            {
-                                #Different return code than 275, most likely the command was a success
-                                $updateSuccess = $true
-                            }
-                            else
-                            {
-                                #Return code was 275 - repeat with firmwareFile_B
-                                write-host "TPM update returned invalid firmware file, retrying with second firmware file..."
-                                        
-                                $returnCode = Invoke-UpdateProgram -Name "TPM firmware $(Get-FileName $firmwareFile_B)" -Settings $settings -SourcePath $sourcefolder -FirmwareFile $firmwareFile_B -PasswordFile $PasswordFile
-
-                                if ( $returnCode -eq $null )
-                                {
-                                    #Well, that didn't worked...
-                                    throw "TPM update failed!"
-                                }
-                                else
-                                {
-                                    $updateSuccess = $true
-                                }
-                            }                                                                        
+                            $returnCodeText = ConvertTo-DescriptionFromTPMConfigReturncode $returncode
+                            throw "TPM update failed: $($returnCodeText) (Return code $($returnCode))"
                         }
-
-                                                                                                 
-                        if ( $updateSuccess -eq $true )
-                        {
-                            write-host "TPM update success"
-                            $result = $True
-                        }
-                        else
-                        {
-                            #This should never be used, but still...
-                            throw "Running TPM update command failed!"
-                        }                                
-                    }                                                                   
+                    }
+                                                                        
                 }                            
             }                                
         }        
@@ -2006,6 +1905,43 @@ function Update-TPMFirmware()
     return $result
 }
 
+function ConvertTo-DescriptionFromTPMConfigReturncode()
+{
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Errorcode
+    )
+ 
+    $Errorcode = $Errorcode.Trim()
+ 
+    $lookup =
+    @{ 
+        "0" = "Success"; "128" = "Invalid command line option(s)"; "256" = "No BIOS support"; "257" = "No TPM firmware bin file";
+        "258" = "Failed to create HP_TOOLS partition"; "259" = "Failed to flash the firmware"; "260" = "No EFI partition (for GPT)";
+        "261" = "Bad EFI partition"; "262" = "Cannot create HP_TOOLS partition because the maximum number of partitions has been reached";
+        "263" = "Not enough space partition - the size of the firmware binary file is greater than the free space of EFI or HP_TOOLS partition";
+        "264" = "Unsupported operating system"; "265" = "Elevated (administrator) privileges are required"; "273" = "Not supported chipset";
+        "274" = "No more firmware upgrade is allowed"; "275" = "Invalid firmware binary file"; 
+        "290" = "BitLocker is currently enabled"; "291" = "Unknown BitLocker status"; 
+        "292" = "WinMagic encryption is currently enabled"; "293" = "WinMagic SecureDoc is currently enabled";
+        "296" = "No system information"; 
+        "305" = "Intel TXT is currently enabled"; "306" = "VTx is currently enabled"; "307" = "SGX is currently enabled"
+        "1602" = "User canceled the operation"; 
+        "3010" = "Success - reboot required"; "3011" = "Success rollback"; "3012" = "Failed rollback";       
+    }
+
+    if ( $lookup.ContainsKey("$ErrorCode") )
+    {
+        $result = $lookup[$ErrorCode]
+    }
+    else
+    {
+        $result = "Undocumented error code"
+    }
+
+    return $result
+}
 
 function Invoke-UpdateProgram()
 {
@@ -2023,6 +1959,9 @@ function Invoke-UpdateProgram()
     
         [Parameter(Mandatory = $False)]
         [string]$FirmwareFile = "",
+
+        [Parameter(Mandatory = $False)]
+        [string]$SpecVersion = "",
 
         [Parameter(Mandatory = $False)]
         [string]$PasswordFile = "",
@@ -2106,8 +2045,8 @@ function Invoke-UpdateProgram()
 
             #Get the parameters together.
             #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-            $params = Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $localFirmwareFile
-
+            $params = Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $localFirmwareFile -SpecVersion $SpecVersion
+ 
             #Get the exe file
             $exeFileName = $Settings["command"]        
             $exeFileLocalPath = "$localFolder\$exeFileName"               
@@ -2211,11 +2150,17 @@ function Get-ArgumentsFromHastable()
         [ValidateNotNullOrEmpty()]
         [hashtable]$Hashtable,
 
+        #Replace parameter @@PASSWORD_FILE@@
         [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
         [string]$PasswordFile = "",
 
+        #Replace parameter @@FIRMWARE_FILE@@
         [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
-        [string]$FirmwareFile = ""
+        [string]$FirmwareFile = "",
+
+        #Replace parameter @@SPEC_VERSION@@
+        [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
+        [string]$SpecVersion = ""
     )
  
     $params = @()
@@ -2260,6 +2205,19 @@ function Get-ArgumentsFromHastable()
             else
             {
                 $params[$i] = $params[$i] -replace "@@FIRMWARE_FILE@@", $FirmwareFile    
+            }
+        }
+
+        if ( Test-String $params[$i] -Contains "@@SPEC_VERSION@@" )
+        {
+            if ( $SpecVersion -eq "" ) 
+            {
+                #if not set, delete this parameter
+                $params[$i] = ""
+            }
+            else
+            {
+                $params[$i] = $params[$i] -replace "@@SPEC_VERSION@@", $SpecVersion    
             }
         }
 
@@ -2563,7 +2521,7 @@ function Update-MEFirmware()
                                 
                             $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "ME-$versionDesiredText"
 
-                            $returnCode = Invoke-UpdateProgram -Name "" -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
+                            $returnCode = Invoke-UpdateProgram -Settings $settings -SourcePath $updatefolder -FirmwareFile "" -PasswordFile "" -NoOutputRedirect
                                                         
                             if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                             {
