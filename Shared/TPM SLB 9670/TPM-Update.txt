@@ -8,9 +8,6 @@
 # https://support.hp.com/us-en/document/c05792935
 
 
-# The required upgrade firmware is selected by TPM Config (mandatory setting starting with 5.0)
-UpgradeFirmwareSelection==ByTPMConfig
-
 # Manufacturer of the TPM (optional) - The device must have this vendor or no update takes place (1229346816 is IFX)
 Manufacturer==1229346816
 
@@ -19,6 +16,9 @@ SpecVersion == 2.0
 
 # The firmware version we expect this device to have - a lower firmware will trigger an update
 FirmwareVersion == 7.63
+
+# The required upgrade firmware is selected by TPM Config (mandatory setting starting with 5.0)
+UpgradeFirmwareSelection==ByTPMConfig
 
 
 # Command to be used to perform the TPM firmware upgrade
