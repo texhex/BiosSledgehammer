@@ -540,7 +540,7 @@ Virtualization Technology (VTx) == Disable
 
 ## BIOS Password
 
-To set a BIOS password, you define the password file (containing the desired password) in ``BIOS-Password.txt``. This file must be stored in the [model folder](#models-folder). Example file:
+To set a BIOS password, you define the password file, containing the desired password, in ``BIOS-Password.txt``. This file must be stored in the [model folder](#models-folder). Example file:
 
 ```cfg
 # Use our standard password
@@ -556,9 +556,19 @@ This file has to be stored in the [PwdFiles folder](#pwdfiles-folder) (see the s
 PasswordFile ==
 ```
 
+In order to create a password file, do the following:
+
+* Download any newer BIOS release from HP, e.g. [SoftPaq #85233](https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85233.exe)
+* Open a command prompt with administrative priviledges and change to the folder the SPxxx.exe was downloaded to
+* Execute *SPxxxx.exe -s -e* (e.g. ``SP85233.exe -s -e``)
+* The contents of the SoftPaq will be extract to *C:\SWSetup\SPxxxx*, e.g. ``C:\SWSetup\SP85233``
+* Start ``HpqPswd64.exe`` from that location
+* Enter the password two times and type in the filename to save it (e.g. ``01_Standard_2018.bin``)
+* Please ensure that the file has a .BIN extension
+
 Regarding BIOS passwords, please note the following:
 
-* Passwords need to meet minimum complexity rules (must contain upper and lower case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
+* Passwords need to meet minimum complexity rules (must contain upper- and lower-case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
 
 ## BIOS Settings
