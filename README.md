@@ -168,7 +168,7 @@ By default, each model has its own set of settings and update files and does not
 
 Sharing can have benefits, however. Device families (like the EliteBook 830/840/850 series) share all firmware files because they have the same base board. A significant proportion of options are also shared among members of a device family which permits shared settings configurations. The upside to a shared approach is that it saves space and improves changing settings. The downside is that an update can have unwanted effects for some members of the family.
 
-BIOS Sledgehammer prioritizes model-specific files over shared files. Shared settings can optionally be defined. With this approach, it is possible to mix model-specific and shared configuration needs to achieve a balance that you desire.
+BIOS Sledgehammer prioritizes model-specific files over shared files - shared settings can optionally be defined. With this approach, it is possible to mix model-specific and shared configuration needs to achieve a balance that you desire.
 
 To achieve a shared configuration, create a `Shared-<Configuration File>.txt` file to define any file that you want to retrieve from the ``\Shared`` folder. The default behavior of BIOS Sledgehammer is to search for the configuration file by name and, if it is not found in the model folder, look for a file named `Shared-<Configuration File>.txt`.
 
@@ -179,7 +179,7 @@ For example, if ``BIOS-Update.txt`` is not present, it will look for the file `S
 Directory == HP EliteBook 8xx G4
 ```
 
-In this example, the requested file was `BIOS-Update.txt` and `Shared-BIOS-Update.txt` pointed to `\Shared\HP EliteBook 8xx G4\`; this means it retrieve the settings for the BIOS update from `\Shared\HP EliteBook 8xx G4\BIOS-Update.txt` . It is necessary to store update files in the same folder - for example, if the BIOS update is 1.22, the update exe should be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
+In this example, the requested file was `BIOS-Update.txt` and `Shared-BIOS-Update.txt` pointed to `\Shared\HP EliteBook 8xx G4\`; this means it retrieves the settings for the BIOS update from `\Shared\HP EliteBook 8xx G4\BIOS-Update.txt`. It is necessary to store update files in the same folder - for example, if the BIOS update is 1.22, the update exe needs be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
 
 This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-BIOS-Settings.txt` (shared file would be `Shared-TPM-BIOS-Settings.txt`).
 
@@ -556,20 +556,22 @@ This file has to be stored in the [PwdFiles folder](#pwdfiles-folder) (see the s
 PasswordFile ==
 ```
 
-In order to create a password file, do the following:
-
-* Download any newer BIOS release from HP, e.g. [SoftPaq #85233](https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85233.exe)
-* Open a command prompt with administrative priviledges and change to the folder the SPxxx.exe was downloaded to
-* Execute *SPxxxx.exe -s -e* (e.g. ``SP85233.exe -s -e``)
-* The contents of the SoftPaq will be extract to *C:\SWSetup\SPxxxx*, e.g. ``C:\SWSetup\SP85233``
-* Start ``HpqPswd64.exe`` from that location
-* Enter the password two times and type in the filename to save it (e.g. ``01_Standard_2018.bin``)
-* Please ensure that the file has a .BIN extension
-
 Regarding BIOS passwords, please note the following:
 
 * Passwords need to meet minimum complexity rules (must contain upper- and lower-case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
+
+## Creating a BIOS password file
+
+To create a password file, do the following:
+
+* Download any newer BIOS release from HP, e.g. [SoftPaq #85233](https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85233.exe)
+* Open a command prompt with administrative priviledges and change to the folder the SPxxx.exe was downloaded to
+* Execute *SPxxxx.exe -s -e* (e.g. `SP85233.exe -s -e`)
+* The contents of the SoftPaq will be extract to *C:\SWSetup\SPxxxx*, e.g. `C:\SWSetup\SP85233`
+* Start `HpqPswd64.exe` from that location
+* Enter the password two times and type in the filename to save it (e.g. `02_Standard_2018.bin`)
+* Please ensure that the file has a .BIN extension
 
 ## BIOS Settings
 
