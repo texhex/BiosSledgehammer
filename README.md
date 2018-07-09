@@ -387,8 +387,9 @@ However, the Intel SA tool can’t read the version if AMT is disabled in BIOS o
 To have BIOS Sledgehammer continue, and ignore this error, use the following setting in ``ME-Update.txt``:
 
 ```cfg
-# Ignore ME detection errors - If activated, a failure to get the current ME version is ignored,
-# and the script will continue.
+# Ignore ME detection errors
+# If activated, a failure to get the current ME version is ignored, and the script will continue.
+
 IgnoreMEDetectionError == Yes
 ```
 
