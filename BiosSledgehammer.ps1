@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.0BETA"
+$scriptversion = "5.0.1BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -2408,8 +2408,12 @@ function Update-MEFirmware()
 
     $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "ME-Update.txt"
 
-    if ( $settingsFile -ne $null )
+    if ( $settingsFile -ne $null )    
     {    
+        #Read the settings file so we have everything later on
+        $settings = Read-StringHashtable $settingsFile
+
+        #Now start the Intel tool
         write-host "Starting SA-00075 discovery tool to get ME data..."
   
         #We use the XML output method, so the tool will generate a file called [DEVICENAME].xml.    
@@ -2473,13 +2477,29 @@ function Update-MEFirmware()
                         
             if ( -not $MEData.VersionParsed )
             {
-                throw "The SA-00075 detection tool was unable to determine the installed ME firmware version, no update possible"
+                $errorMessage = "The SA-00075 detection tool was unable to determine the installed ME firmware version, no update possible"
+
+                #When we are here, the Intel SA tool was unable to get the version of the ME or the return was invalid (which is unlikely).
+                #Common causes: the BIOS allows disabling the ME, an external kill switch was used, or something is really b0rken.                
+                #Check if we should ignore ME detection errors and if so, we just inform the user and continue
+
+                $ignoreMEDetectionError = $settings["IgnoreMEDetectionError"]
+
+                if ( $ignoreMEDetectionError -eq "Yes" )
+                {
+                    #Alright, ignore this error
+                    write-host $errorMessage
+                    write-host "IgnoreMEDetectionError setting active, ignoring error and continuing"
+                    $result = $false
+                }
+                else
+                {
+                    throw $errorMessage
+                }                    
             }
             else
-            {
-                $settings = Read-StringHashtable $settingsFile
-                    
-                $versionDesiredText = $settings["version"]                   
+            {                    
+                $versionDesiredText = $settings["version"]
                 [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
 
                 if ( $versionDesired -eq $null ) 
