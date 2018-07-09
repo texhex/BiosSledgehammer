@@ -378,6 +378,22 @@ If anything goes wrong during the process, an error is generated.
 
 :warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
+## (5.0 BETA DOCUMENTAION) Ignoring Management Engine (ME) detection errors
+
+As soon as a ``ME-Update.txt`` file is found, BIOS Sledgehammer expects the Intel SA tool to be able to read the current ME version to detect if an update is required.
+
+However, the Intel SA tool can’t read the version if AMT is disabled in BIOS or an "kill switch" was used. Normally, BIOS Sledgehammer would  generate an error and halt the execution, because it can't be ensured that the version of ME is "compliant" with the version defined in the configuration.
+
+To have BIOS Sledgehammer continue, and ignore this error, use the following setting in ``ME-Update.txt``:
+
+```cfg
+# Ignore ME detection errors - If activated, a failure to get the current ME version is ignored,
+# and the script will continue.
+IgnoreMEDetectionError == Yes
+```
+
+Please note however, that this can cause inconsistent ME versions of your device fleet. For example, if you start it on 10 identical devices that all have an outdated ME, but six of those devices have AMT disabled, only four will get the ME update.
+
 ## TPM Update
 
 The settings for a TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#models-folder). Example:
@@ -499,7 +515,7 @@ A TPM update also requires that BitLocker is turned off (as any BitLocker keys a
 
 Once everything is ready, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
-Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. If anything goes wrong during the process, an error is generated.
+Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. If anything goes wrong during the process, an error is generated and it is tried to translate the error code to a meaningful error message.
 
 **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
 
@@ -513,7 +529,7 @@ It is possible that a script (executed before BIOS Sledgehammer) removes the TPM
 
 ```cfg
 # Ignore BitLocker - If activated, no automatic BitLocker decryption will take place
-IgnoreBitLocker==Yes
+IgnoreBitLocker == Yes
 ```
 
 :warning: **WARNING!** Please take extra care when using this parameter! When removing the TPM protector using ``manager-bde.exe`` and forget to also specify the **RebootCount** parameter, you can lock yourself out of your device. For full details, see the [manage-bde docs](https://technet.microsoft.com/en-us/library/ff829848(v=ws.11).aspx#BKMK_disableprot). You have been warned.
