@@ -473,21 +473,17 @@ Command == TPMConfig64.exe
 
 # Silent
 Arg1 == -s
-
 # TPMConfig will automatically choose the correct upgrade firmware file
 Arg2 == -a@@SPEC_VERSION@@
-
 # BIOS password file to be used - if the device does not have a BIOS password, this parameter is removed
 Arg3 == -p"@@PASSWORD_FILE@@"
 ```
 
 The first setting **Manufacturer** is optional and can be used to ensure that the TPM firmware vendor for the device matches the update files. If it's not defined, the TPM firmware vendor is ignored.
 
-To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**).
+To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**). That's because the TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started.
 
-That's because the TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started.
-
-:exclamation: **IMPORTANT!** Because of limitations in the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class, BIOS Sledgehammer can only retrieve the major and minor part of the current TPM firmware (e.g. *7.63*) while the firmware is also using a build number (e.g. *7.63.3353*). For "normal" updates, where the major or minor part changes, this is not an issue. But in cases where the newest TPM firmware comes in two versions that only differ in the build number (e.g. *7.63.3144* and *7.63.3353*) **AND** a device has already the lower build number installed, BIOS Sledgehammer will not start an upgrade. That's because the config file defines version *7.63* as required and the device already has this version installed, so no upgrade is necessary.
+:exclamation: **IMPORTANT!** Because of limitations in the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class, BIOS Sledgehammer can only retrieve the major and minor part of the current TPM firmware (e.g. *7.63*) while the firmware is also using a build number (e.g. *7.63.3353*). For "normal" updates, where the major or minor part changes, this is not an issue. But in cases where the newest TPM firmware comes in two versions that only differ in the build number (e.g. *7.63.3144* and *7.63.3353*) **AND** a device has already the lower build number installed, BIOS Sledgehammer will not start an upgrade. That's because the config file defines version *7.63* as required and the device already has this version installed, so no upgrade is triggered by BIOS Sledgehammer.
 
 <!--
 * 6.41.**197** is used for devices that have a TPM 1.2 by default
@@ -503,15 +499,13 @@ A TPM update also requires that BitLocker is turned off (as any BitLocker keys a
 
 Once everything is ready, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
+Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. If anything goes wrong during the process, an error is generated.
+
 **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
-
-Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart.
-
-If anything goes wrong during the process, an error is generated.
 
 ---------------------------------
 
-### Disable automatic BitLocker decryption
+### Disable automatic BitLocker decryption during TPM update
 
 In cases of updates for in-use machines, the automatic decryption of BitLocker that BIOS Sledgehammer performs might not be desired as this will require a full roll-in of BitLocker later on.
 
