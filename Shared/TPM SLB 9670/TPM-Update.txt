@@ -1,5 +1,5 @@
 # TPM IFX SLB 9670 Firmware 
-# Update 2018-07-08, v6.43 / v7.63 with new syntax for BIOS Sledgehammer 5.0
+# Update 2018-07-10, v7.63 with new syntax for BIOS Sledgehammer 5
 #
 # Full list of supported devices
 # https://support.hp.com/us-en/document/c05381064/
@@ -17,19 +17,22 @@ SpecVersion == 2.0
 # The firmware version we expect this device to have - a lower firmware will trigger an update
 FirmwareVersion == 7.63
 
-# The required upgrade firmware is selected by TPM Config (mandatory setting starting with 5.0)
+
+# The files from this subfolder will be copied locally to the root of the temporary location used for the update
+# TPMConfig64.exe requires all firmware files in the same folder where the EXE is (it won't look in the \SRC folder)
+AdditionalFilesDirectory == src
+
+# The update firmware file is selected by TPM Config automatically (mandatory setting starting with 5.0)
 UpgradeFirmwareSelection==ByTPMConfig
 
 
-# Command to be used to perform the TPM firmware upgrade
+# Command to be used to perform the TPM firmware update
 Command == TPMConfig64.exe
-
-# Arguments passed to COMMAND
 
 # Silent
 Arg1 == -s
 
-# TPMConfig will automatically choose the correct upgrade firmware file
+# TPMConfig will automatically choose the update firmware file
 Arg2 == -a@@SPEC_VERSION@@
 
 # BIOS password file to be used - if the device does not have a BIOS password, this parameter is removed

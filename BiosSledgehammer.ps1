@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.1BETA"
+$scriptversion = "5.0.2BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -378,9 +378,10 @@ function Get-ModelSettingsFile()
     else
     {
         #Not found, check if a shared file exists
-        $checkFile = "$($ModelFolder)\Shared-$($Name)"
+        $sharedFileName = "Shared-$($Name)"
+        $checkFile = "$($ModelFolder)\$($sharedFileName)"
 
-        write-host "File does not exist, looking for shared file [$checkFile]"
+        write-host "Not found, looking for shared file [$sharedFilename] in same directory..."
 
         if ( Test-FileExists $checkFile ) 
         {            
@@ -1238,11 +1239,61 @@ function Copy-FileToTemp()
  
     $newfullpath = "$($TEMP_FOLDER)\$filenameonly"
 
-    Copy-Item -Path $SourceFilename -Destination $newfullpath -Force
+    Copy-Item -Path $SourceFilename -Destination $newfullpath -Force -ErrorAction Stop
 
     return $newfullpath
 }
 
+function Copy-Folder()
+{
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Source,
+
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination,
+
+        #Required cases the files should be copied, not the structure (see below)
+        [switch]$Flatten
+    )
+
+    try
+    {
+        #In general folder copy is simple: SOURCE to DEST, done.
+        #However, if you want to copy the content of a subfolder to a folder where        
+        #a folder with the same name as defined in source exist, PS will just copy 
+        #it to that folder as a subfolder (not the content to the root)
+
+        #That's why the Flatten switch is there. It will just take the contents 
+        #from Source and copy it to the root of destination 
+        
+        #Make sure the paths end with \ (Normal) or \* (Flatten)
+        if ( $Flatten )
+        {
+            $Source = Join-Path -Path $Source -ChildPath "\*"  
+        }
+        else
+        {
+            $Source = Join-Path -Path $Source -ChildPath "\"  
+        }
+        
+        #Destination always ends with \
+        $Destination = Join-Path -Path $Destination -ChildPath "\"
+
+        write-host "Copying [$Source] "
+        write-host "     to [$Destination] ..."            
+
+        Copy-Item -Path $Source -Destination $Destination -Force -Recurse -ErrorAction Stop
+        
+        write-host "Done"
+    }
+    catch
+    {
+        throw "Unable to copy from [$source] to [$dest]: $($error[0])"
+    }
+}
 
 
 
@@ -1869,12 +1920,21 @@ function Update-TPMFirmware()
                         throw "BIOS settings for TPM update failed, can not continue"
                     }
       
-
-                    ################################
-                    #Real update process starts here 
-                    ################################
+                    #Get the folder we need to copy locally
                     $sourceFolder = Get-UpdateFolder -SettingsFilePath $updateFile -Name "TPM-$firmwareVersionDesiredText"
-                    $returnCode = Invoke-UpdateProgram -Settings $settings -SourcePath $sourcefolder -SpecVersion $tpmSpecDesiredText -PasswordFile $PasswordFile
+
+                    #Check if an extra source folder was specified. 
+                    $extraFilesFolder = $null
+                    $additionalDirectory = $settings["AdditionalFilesDirectory"]                    
+                    if ( Test-String $additionalDirectory -HasData )
+                    {
+                        $extraFilesFolder = Join-Path -Path $sourceFolder -ChildPath $additionalDirectory
+                    }
+
+                    ###########################
+                    #Update process starts here 
+                    ###########################
+                    $returnCode = Invoke-UpdateProgram -Settings $settings -SourcePath $sourcefolder -ExtraFilesPath $extraFilesFolder -SpecVersion $tpmSpecDesiredText -PasswordFile $PasswordFile
 
                     if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
@@ -1956,6 +2016,9 @@ function Invoke-UpdateProgram()
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
         [string]$SourcePath,
+
+        [Parameter(Mandatory = $False)]
+        [string]$ExtraFilesPath = "",
     
         [Parameter(Mandatory = $False)]
         [string]$FirmwareFile = "",
@@ -2023,40 +2086,29 @@ function Invoke-UpdateProgram()
             write-host "::: Preparing launch of update executable :::"
         }
 
-        $localFolder = $null
-        try
+        $localFolder = Copy-FolderForExec -SourceFolder $SourcePath -ExtraFilesFolder $ExtraFilesPath -DeleteFilter "*.log"
+
+        #Some HP tools require full paths for the firmware file or they will not work, especially TPMConfig64.exe
+        #Therefore append the local path to the firmware if one is set
+        $localFirmwareFile = $FirmwareFile
+        if ( Test-String $localFirmwareFile -HasData)
         {
-            $localFolder = Copy-FolderForExec -SourceFolder $SourcePath -DeleteFilter "*.log"
-        }
-        catch
-        {
-            write-host "Preparing local folder failed: $($error[0])"
+            $localFirmwareFile = Join-Path -Path $localFolder -ChildPath $localFirmwareFile
         }
 
-        if ( $localfolder -ne $null )
-        {              
-            #Some HP tools require full paths for the firmware file or they will not work, especially TPMConfig64.exe
-            #Therefore append the local path to the firmware if one is set
-            $localFirmwareFile = $FirmwareFile
-            if ( Test-String $localFirmwareFile -HasData)
-            {
-                $localFirmwareFile = Join-Path -Path $localFolder -ChildPath $localFirmwareFile
-            }
-
-            #Get the parameters together.
-            #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
-            $params = Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $localFirmwareFile -SpecVersion $SpecVersion
+        #Get the parameters together.
+        #The trick with the parameters array is courtesy of SAM: http://edgylogic.com/blog/powershell-and-external-commands-done-right/
+        $params = Get-ArgumentsFromHastable -Hashtable $Settings -PasswordFile $PasswordFile -FirmwareFile $localFirmwareFile -SpecVersion $SpecVersion
  
-            #Get the exe file
-            $exeFileName = $Settings["command"]        
-            $exeFileLocalPath = "$localFolder\$exeFileName"               
+        #Get the exe file
+        $exeFileName = $Settings["command"]        
+        $exeFileLocalPath = "$localFolder\$exeFileName"               
 
-            $result = Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params -NoOutputRedirect:$NoOutputRedirect
+        $result = Invoke-ExeAndWaitForExit -ExeName $exeFileLocalPath -Parameter $params -NoOutputRedirect:$NoOutputRedirect
                
-            #always try to grab the log file
-            $ignored = Write-HostFirstLogFound -Folder $localFolder
-        }
-
+        #always try to grab the log file
+        $ignored = Write-HostFirstLogFound -Folder $localFolder
+        
         write-host "::: Launching update executable finished :::"
     }
     
@@ -2071,75 +2123,77 @@ function Copy-FolderForExec()
         [ValidateNotNullOrEmpty()]
         [string]$SourceFolder,
 
-        [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
+        [Parameter(Mandatory = $False )]
+        [string]$ExtraFilesFolder = "",
+
+        [Parameter(Mandatory = $False)]
         [string]$DeleteFilter = ""
     )
 
-    $result = $null  
+    write-verbose "Copy-FolderForExec() started"
 
+    #When using $env:temp, we might get a path with "~" in it
+    #Remove-Item does not like these path, no idea why...
+    $dest = Join-Path -Path $($TEMP_FOLDER) -ChildPath (Split-Path $SourceFolder -Leaf)
+
+    #If it exists, kill it
+    if ( (Test-DirectoryExists $dest) )
+    {
+        try
+        {
+            Remove-Item $dest -Force -Recurse -ErrorAction Stop
+        }
+        catch
+        {
+            throw "Unable to clear folder [$dest]: $($error[0])"
+        }
+    }
+
+    #Make sure source exists
     if ( -not (Test-DirectoryExists $SourceFolder) ) 
     {
         throw "Folder [$SourceFolder] not found!"
     }
-    else
-    {
-        #When using $env:temp, we might get a path with "~" in it
-        #Remove-Item does not like these path, no idea why...
-        $dest = Join-Path -Path $($TEMP_FOLDER) -ChildPath (Split-Path $SourceFolder -Leaf)
 
-        #If it exists, kill it
-        if ( (Test-DirectoryExists $dest) )
+    #Make sure DEST ends with \
+    $dest = Join-Path -Path $dest -ChildPath "\"
+
+    #Copy main content
+    Copy-Folder -Source $SourceFolder -Destination $dest
+
+    #Copy secondary files  (if required)
+    if ( Test-String $ExtraFilesFolder -HasData )
+    { 
+        if ( -not (Test-DirectoryExists $ExtraFilesFolder) ) 
         {
-            try
-            {
-                Remove-Item $dest -Force -Recurse
-            }
-            catch
-            {
-                throw New-Exception -InvalidOperation "Unable to clear folder [$dest]: $($error[0])"
-            }
-        }
+            throw "Folder [$ExtraFilesFolder] not found!"
+        }        
+        #We want to have the firmware files directly in the root, therefore use -Flatten
+        Copy-Folder -Source $ExtraFilesFolder -Destination $dest -Flatten
+    }
 
-        #Make sure the paths end with \
-        $source = Join-Path -Path $SourceFolder -ChildPath "\"  
-        $dest = Join-Path -Path $dest -ChildPath "\"
-
+    #now check if we should delete something after copying it
+    if ( $DeleteFilter -ne "" )
+    {
+        Write-Host "Deleting [$DeleteFilter] in target folder"
         try
         {
-            write-host "Copy from [$source] "
-            write-host "       to [$dest] ..."
-            Copy-Item -Path $source -Destination $dest -Force -Recurse
+            $files = Get-ChildItem $dest -File -Include $deleteFilter -Recurse -Force -ErrorAction Stop
+            foreach ($file in $files)
+            {
+                write-host "  Found $($file.Fullname), deleting"
+                Remove-FileExact -Filename $file.Fullname 
+            }
+                     
         }
         catch
         {
-            throw New-Exception -InvalidOperation "Unable to copy from [$source] to [$dest]"
+            throw "Error while deleting from [$dest]: $($error[0])"
         }
-
-        write-verbose "Copy done"
-
-        #now check if we should delete something after copying it
-        if ( $DeleteFilter -ne "" )
-        {
-            Write-Host "Trying to delete [$DeleteFilter] in target folder"
-            try
-            {
-                $files = Get-ChildItem $dest -File -Include $deleteFilter -Recurse -Force 
-                foreach ($file in $files)
-                {
-                    write-host "  Deleting $($file.Fullname)"
-                    Remove-FileExact -Filename $file.Fullname
-                }
-                     
-            }
-            catch
-            {
-                throw New-Exception -InvalidOperation "Error while deleting from [$dest]: $($error[0])"
-            }
-        }
-
-        #We return the destination path without the \
-        return $dest.TrimEnd("\")
     }
+
+    #We return the destination path without the \
+    return $dest.TrimEnd("\")    
 }
 
 
