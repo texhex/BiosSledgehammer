@@ -481,6 +481,11 @@ SpecVersion == 2.0
 # The firmware version we expect this device to have - a lower firmware will trigger an update
 FirmwareVersion == 7.63
 
+
+# The files from this subfolder will be copied locally to the root of the temporary location used for the update
+# TPMConfig64.exe requires all firmware files in the same folder where the EXE is (it won't look in the \SRC folder)
+AdditionalFilesDirectory == src
+
 # The required upgrade firmware is selected by TPM Config (mandatory setting starting with 5.0)
 UpgradeFirmwareSelection==ByTPMConfig
 
