@@ -287,7 +287,7 @@ The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. 
 
 The order, in which they are tried, is determined by sorting the files by name: a file called *01_Standard.bin* is tried before *02_Standard.bin*. The most commonly used password should always come first because some BIOS versions enforce how many times you can try a wrong BIOS password. When this limit is reached, any password is rejected until the computer is restarted.
 
-To create a password file, execute ``HPQPswd64.exe`` (found in the BCU folder) and save the file to the ``\PwdFiles`` folder as *.BIN file.
+For more details, and how to create a password file, please see [BIOS Password](#bios-password).
 
 ## BIOS Update
 
@@ -515,7 +515,7 @@ The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/win
 
 TPM updates differ from other updates as they require a special From-To firmware file. This means, if the device is currently using version 7.40 and you want to update to 7.63, you require a firmware file exactly for this From-To combination (TPM20_7.40_to_TPM20_7.63). Together with the above noted limitation, selecting the correct firmware file can be tricky. 
 
-Starting with [SoftPaq #SP87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware with the parameter ``-s``. This is the method BIOS Sledgehammer uses, and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` is used in ``TPM-Update.txt``. 
+Starting with [SoftPaq #87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware with the parameter ``-s``. This is the method BIOS Sledgehammer uses, and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` is used in ``TPM-Update.txt``. 
 
 To allow TPMConfig64.exe to do this, it is required that the firmware files are in the same folder as the exe itself. As the SoftPaq stores these files in the subfolder \src by default, the configuration entry ``AdditionalFilesDirectory == src`` causes BIOS Sledgehammer to copy these files to the root of the temporary folder used during update. 
 
@@ -573,14 +573,16 @@ PasswordFile == 01_W2f4x7t8NxD4xUH.bin
 
 :exclamation: **IMPORTANT!** This is insecure and just an example! Do not use the password itself as file name!
 
-This file has to be stored in the [PwdFiles folder](#pwdfiles-folder) (see the section how to create the files). If you want to use an empty password, just leave the value empty like this:
+The password file you have defined has to be stored in the [PwdFiles folder](#pwdfiles-folder). For details how to create a password file, please see [Creating a BIOS password file](#creating-a-bios-password-file).
+
+In case you want to use an empty password, just leave the value empty like this:
 
 ```cfg
 # Empty password (bad idea!)
 PasswordFile ==
 ```
 
-Regarding BIOS passwords, please note the following:
+Regarding BIOS passwords, please also note the following:
 
 * Passwords need to meet minimum complexity rules (must contain upper- and lower-case letters and a number) or the BIOS will reject the password change but won't issue any specific error message - it will simply return "Invalid password file". The only exception of this rule is an empty password which is always allowed.
 * There are only some password changes allowed per power cycle. If the password change just doesn’t work although it has worked before, turn the device off and on.
@@ -596,6 +598,7 @@ To create a password file, do the following:
 * Start `HpqPswd64.exe` from that location
 * Enter the password two times and type in the filename to save it (e.g. `02_Standard_2018.bin`)
 * Please ensure that the file has a .BIN extension
+* Copy this file to the [PwdFiles folder](#pwdfiles-folder)
 
 ## BIOS Settings
 
