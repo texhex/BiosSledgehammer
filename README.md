@@ -486,7 +486,7 @@ FirmwareVersion == 7.63
 # TPMConfig64.exe requires all firmware files in the same folder where the EXE is (it won't look in the \SRC folder)
 AdditionalFilesDirectory == src
 
-# The required upgrade firmware is selected by TPM Config (mandatory setting starting with 5.0)
+# The required upgrade firmware is selected by TPMConfig64.exe (mandatory setting starting with 5.0)
 UpgradeFirmwareSelection==ByTPMConfig
 
 
@@ -505,7 +505,7 @@ The first setting **Manufacturer** is optional and can be used to ensure that th
 
 To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**). That's because the TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started.
 
-:exclamation: **IMPORTANT!** Because of limitations in the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class, BIOS Sledgehammer can only retrieve the major and minor part of the current TPM firmware (e.g. *7.63*) while the firmware is also using a build number (e.g. *7.63.3353*). For "normal" updates, where the major or minor part changes, this is not an issue. But in cases where the newest TPM firmware comes in two versions that only differ in the build number (e.g. *7.63.3144* and *7.63.3353*) **AND** a device has already the lower build number installed, BIOS Sledgehammer will not start an upgrade. That's because the config file defines version *7.63* as required and the device already has this version installed, so no upgrade is triggered by BIOS Sledgehammer.
+:exclamation: **IMPORTANT!** Because of limitations in the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class, BIOS Sledgehammer can only retrieve the major and minor part of the current TPM firmware (e.g. *7.63*) while the firmware is also using a build number (e.g. *7.63.3353*). For "normal" updates, where the major or minor part changes, this is not an issue. But in cases where the newest TPM firmware comes in two versions that only differ in the build number (e.g. *7.63.3144* and *7.63.3353*) **AND** a device has already the lower build number installed, BIOS Sledgehammer will not start an upgrade. That's because the config file defines version *7.63* as required and the device already has this version installed, so the device appears to be up-to-date and no update is triggered by BIOS Sledgehammer.
 
 <!--
 * 6.41.**197** is used for devices that have a TPM 1.2 by default
@@ -515,7 +515,9 @@ The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/win
 
 TPM updates differ from other updates as they require a special From-To firmware file. This means, if the device is currently using version 7.40 and you want to update to 7.63, you require a firmware file exactly for this From-To combination (TPM20_7.40_to_TPM20_7.63). Together with the above noted limitation, selecting the correct firmware file can be tricky. 
 
-Starting with [SoftPaq #SP87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig.exe v2 which can automatically select the correct From-To firmware with the parameter ``-s``. This is the method BIOS Sledgehammer uses, and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` is used in ``TPM-Update.txt``.
+Starting with [SoftPaq #SP87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware with the parameter ``-s``. This is the method BIOS Sledgehammer uses, and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` is used in ``TPM-Update.txt``. 
+
+To allow TPMConfig64.exe to do this, it is required that the firmware files are in the same folder as the exe itself. As the SoftPaq stores these files in the subfolder \src by default, the configuration entry ``AdditionalFilesDirectory == src`` causes BIOS Sledgehammer to copy these files to the root of the temporary folder used during update. 
 
 A TPM update also requires that BitLocker is turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 as the required BitLocker PowerShell module does not exist.
 
