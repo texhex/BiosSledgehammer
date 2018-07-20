@@ -1,0 +1,2 @@
+# Shared directory for ProBook 4x0 G5
+Directory == HP ProBook 4x0 G5
