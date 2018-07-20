@@ -515,7 +515,7 @@ The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/win
 
 TPM updates differ from other updates as they require a special From-To firmware file. This means, if the device is currently using version 7.40 and an update to 7.63 is required, a firmware file exactly for this From-To combination (TPM20_7.40_to_TPM20_7.63) is required. Together with the above noted limitation, selecting the correct firmware file can be tricky. 
 
-Starting with [SoftPaq #87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware by using the parameter ``-s``. This is the method BIOS Sledgehammer uses and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` has to be in ``TPM-Update.txt``. 
+Starting with [SoftPaq #87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware by using the parameter ``-a``. This is the method BIOS Sledgehammer uses and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` has to be in ``TPM-Update.txt``. 
 
 To allow TPMConfig64.exe this automatic selection, it is required that the firmware files are in the same folder as the EXE itself. Since the SoftPaq stores these files in the subfolder \src, the configuration entry ``AdditionalFilesDirectory == src`` will instruct BIOS Sledgehammer to copy the firmware files from \src to the root of the temporary folder used during update. 
 
