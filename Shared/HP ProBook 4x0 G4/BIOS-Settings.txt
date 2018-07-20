@@ -1,0 +1,22 @@
+# ProBook 4x0 G4
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+
+Enable MS UEFI CA key==Yes
+
+TPM State==Enable
+TPM Device==Available
+TPM Activation Policy==No prompts
+
+Automatic BIOS Update Setting==Disable
+
+Virtualization Technology (VTx)==Enable
+Virtualization Technology for Directed I/O (VTd)==Enable
+
+Fast Boot==Disable
+
+#LAN / WLAN Auto Switching==Enable
+
+Asset Tracking Number == @@COMPUTERNAME@@
+
+#Ownership Tag == Property of ....
