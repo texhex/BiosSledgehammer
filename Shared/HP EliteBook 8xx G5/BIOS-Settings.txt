@@ -57,6 +57,7 @@ Active Management (AMT) == Enable
 	
 
 ## Thunderbolt
+Thunderbolt Mode == Enable
 Thunderbolt Security Level == PCIe and DisplayPort - Secure Connect
 # default: *PCIe and DisplayPort - User Authorization
 Require BIOS PW to change TBT SL == Disable
