@@ -532,35 +532,6 @@ Because the update utility sometimes restarts itself, the execution is paused un
 
 **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
 
----------------------------------
-
-## (5.0 BETA DOCUMENTAION) TPM-Update.txt changes for v5 and upwards
-
-BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
-
-From v5 on, the update tool (TPMConfig64.exe v2) decides which TPM firmware file is used for an TPM update. To support this, both the configuration and the TPM files need to be updated.
-
-Please do the following:
-
-* Make a copy of your current productive installation (e.g. just copy \Scripts\BiosSledgehammer\) so you can access it when something goes wrong
-* Download the [newest release]( https://github.com/texhex/BiosSledgehammer/releases)
-* Unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine and start `StartExampleDownloads.bat` so the newest releases from HP are downloaded
-* When finished, delete the folder `\Shared\TPM SLB 9670` in your current productive installation.
-* Copy the local folder (e.g. `C:\Temp\BiosSledge\Shared\ TPM SLB 9670`) with all files and sub folders to your productive installation. This will ensure that the newest TPM-Update.txt and associate TPM firmware files are in place
-* Next, search the folder `\Models\` of your productive installation for any `TPM-Update.txt` file (ignore any `Shared-TPM-Update.txt` file). If you find a file, this indicates that this model is not yet switched to the shared folder.
-* In the model folder, where a `TPM-Update.txt` was located, delete `TPM-Update.txt` and also any `TPM-x.xx` folder you find. Next, check the exact same model in your local path and copy the files `Shared-TPM-Update.txt`
-* For example, if you detect the file `\Models\HP EliteBook 820 G3\TPM-Update.txt` in your productive installation, delete `\Models\HP EliteBook 820 G3\TPM-Update.txt` as well as the folder `\Models\HP EliteBook 820 G3\TPM-7.xx`. Next, open `C:\Temp\BiosSledge\Models\HP EliteBook 820 G3` and copy the file `Shared-TPM-Update.txt`
-* Once finished, all models should point to the new shared TPM folder and your entire productive installation should contain the file `TPM-Update.txt` only once in `\Shared\TPM SLB 9670`.
-
-When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt`. That’s because TPMConfig64.exe 2.x requires the BIOS Setting *VTx* to be disabled, which was not the case for the older version.
-
-* Search your productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
-* If found, copy those files from your local folder and overwrite them in the productive installation
-* In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
-
----------------------------------
-
-
 ### Disable automatic BitLocker decryption during TPM update
 
 In cases of updates for in-use machines, the automatic decryption of BitLocker that BIOS Sledgehammer performs might not be desired as this will require a full roll-in of BitLocker later on.
@@ -673,6 +644,33 @@ SecureBoot == Enable
 ```
 
 The file works exactly as described in [BIOS Settings](#bios-settings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.
+
+---------------------------------
+
+## (5.0 BETA DOCUMENTAION) TPM-Update.txt changes for v5 and upwards
+
+BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
+
+From v5 on, the update tool (TPMConfig64.exe v2) decides which TPM firmware file is used for an TPM update. To support this, both the configuration and the TPM files need to be updated.
+
+Please do the following:
+
+* Make a copy of your current productive installation (e.g. just copy \Scripts\BiosSledgehammer\ so you can access it when something goes wrong)
+* Download the [newest release]( https://github.com/texhex/BiosSledgehammer/releases) and unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine. Then start `StartExampleDownloads.bat` so the newest releases from HP are downloaded
+* When finished, delete the folder `\Shared\TPM SLB 9670` in your current productive installation.
+* Copy the local folder (e.g. `C:\Temp\BiosSledge\Shared\TPM SLB 9670`) with all files and sub folders to your productive installation. This will ensure that the newest TPM-Update.txt and associate TPM firmware files are in place
+* Next, search the folder `\Models\` of your productive installation for any `TPM-Update.txt` file (ignore any `Shared-TPM-Update.txt` file for now). If you find a file, this indicates that this model is not yet switched to the shared folder.
+* In the model folder, where a `TPM-Update.txt` was located, delete `TPM-Update.txt` and also any `TPM-x.xx` folder you find. Next, check the exact same model in your local path and copy the file `Shared-TPM-Update.txt` to your productive installation
+* For example, if you detect the file `\Models\HP EliteBook 820 G3\TPM-Update.txt` in your productive installation, delete `\Models\HP EliteBook 820 G3\TPM-Update.txt` as well as the folder `\Models\HP EliteBook 820 G3\TPM-7.xx`. Next, open `C:\Temp\BiosSledge\Models\HP EliteBook 820 G3` and copy the file `Shared-TPM-Update.txt`
+* Once finished, all models should point to the new shared TPM folder and your entire productive installation should contain the file `TPM-Update.txt` only once in `\Shared\TPM SLB 9670`.
+
+When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt`. That’s because TPMConfig64.exe 2.x requires the BIOS Setting *VTx* to be disabled, which was not the case for the older version.
+
+* Search your productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
+* If found, copy those files from your local folder and overwrite them in the productive installation
+* In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
+
+---------------------------------
 
 ## Using it from MDT or SCCM
 
