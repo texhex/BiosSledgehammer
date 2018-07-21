@@ -378,6 +378,8 @@ If anything goes wrong during the process, an error is generated.
 
 :warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
+---------------------------------
+
 ## (5.0 BETA DOCUMENTAION) Ignoring Management Engine (ME) detection errors
 
 As soon as a ``ME-Update.txt`` file is found, BIOS Sledgehammer expects the Intel SA tool to be able to read the current ME version to detect if an update is required.
@@ -393,7 +395,9 @@ To have BIOS Sledgehammer continue, and ignore this error, use the following set
 IgnoreMEDetectionError == Yes
 ```
 
-Please note however, that this can cause inconsistent ME versions of your device fleet. For example, if you start it on 10 identical devices that all have an outdated ME, but six of those devices have AMT disabled, only four will get the ME update.
+Please note however, that this can cause inconsistent ME versions of your device fleet. For example, if it is started on 10 identical devices that all have an outdated ME, but six of those devices have AMT disabled, only four will get the ME update.
+
+---------------------------------
 
 ## TPM Update
 
@@ -465,6 +469,7 @@ To support this special case, it is possible to define two entries for the same 
 BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
 
 ---------------------------------
+
 ## (5.0 BETA DOCUMENTAION) TPM Update
 
 The settings for the TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#models-folder). Example:
@@ -528,6 +533,33 @@ Because the update utility sometimes restarts itself, the execution is paused un
 **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
 
 ---------------------------------
+
+## (5.0 BETA DOCUMENTAION) TPM-Update.txt changes for v5 and upwards
+
+BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
+
+From v5 on, the update tool (TPMConfig64.exe v2) decides which TPM firmware file is used for an TPM update. To support this, both the configuration and the TPM files need to be updated.
+
+Please do the following:
+
+* Make a copy of your current productive installation (e.g. just copy \Scripts\BiosSledgehammer\) so you can access it when something goes wrong
+* Download the [newest release]( https://github.com/texhex/BiosSledgehammer/releases)
+* Unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine and start `StartExampleDownloads.bat` so the newest releases from HP are downloaded
+* When finished, delete the folder `\Shared\TPM SLB 9670` in your current productive installation.
+* Copy the local folder (e.g. `C:\Temp\BiosSledge\Shared\ TPM SLB 9670`) with all files and sub folders to your productive installation. This will ensure that the newest TPM-Update.txt and associate TPM firmware files are in place
+* Next, search the folder `\Models\` of your productive installation for any `TPM-Update.txt` file (ignore any `Shared-TPM-Update.txt` file). If you find a file, this indicates that this model is not yet switched to the shared folder.
+* In the model folder, where a `TPM-Update.txt` was located, delete `TPM-Update.txt` and also any `TPM-x.xx` folder you find. Next, check the exact same model in your local path and copy the files `Shared-TPM-Update.txt`
+* For example, if you detect the file `\Models\HP EliteBook 820 G3\TPM-Update.txt` in your productive installation, delete `\Models\HP EliteBook 820 G3\TPM-Update.txt` as well as the folder `\Models\HP EliteBook 820 G3\TPM-7.xx`. Next, open `C:\Temp\BiosSledge\Models\HP EliteBook 820 G3` and copy the file `Shared-TPM-Update.txt`
+* Once finished, all models should point to the new shared TPM folder and your entire productive installation should contain the file `TPM-Update.txt` only once in `\Shared\TPM SLB 9670`.
+
+When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt`. That’s because TPMConfig64.exe 2.x requires the BIOS Setting *VTx* to be disabled, which was not the case for the older version.
+
+* Search your productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
+* If found, copy those files from your local folder and overwrite them in the productive installation
+* In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
+
+---------------------------------
+
 
 ### Disable automatic BitLocker decryption during TPM update
 
