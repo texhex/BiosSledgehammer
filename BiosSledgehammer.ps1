@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.3BETA"
+$scriptversion = "5.0.4BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -244,6 +244,30 @@ function Test-BiosValueRead()
     $testvalue = Get-BiosValue -Names $ValueNames -Silent
     
     if ( -not (Test-String -IsNullOrWhiteSpace $testvalue) ) 
+    {
+        $result = $true
+    }
+
+    return $result
+}
+
+function Test-BiosValueSupported()
+{
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ValueName
+    )
+    $testvalue = $null
+    
+    #Remove -Silent in order to see what this command does
+    $testvalue = Get-BiosValue -Name $ValueName -Silent
+    
+    if ( ($testvalue -eq $null) ) 
+    {
+        $result = $false
+    }
+    else
     {
         $result = $true
     }
@@ -1003,17 +1027,50 @@ function Test-BiosPasswordFiles()
         [ValidateNotNullOrEmpty()]
         [string]$PwdFilesFolder
     )   
-  
-    Set-Variable ASSET_NAME "Asset Tracking Number" -option ReadOnly -Force
 
     Write-HostSection -Start "Determine BIOS Password"
+
+    #We test each password file by trying to write the Asset tag. If it works,
+    #we know we got the right password.
+    #
+    #Most models call this Asset tag "Asset Tracking Number" but some models (e.g. Pro Desk 500 G2.5)
+    #call it indeed "Asset Tag" - https://github.com/texhex/BiosSledgehammer/issues/70
+    #
+    #Therefore, we first need to know which asset BIOS value to use
+
+    write-host "Checking which asset value setting name this device supports..."
+
+    $assetSettingNameList = @("Asset Tracking Number", "Asset Tag")
+    $assetSettingName = ""
+
+    ForEach ($testSettingName in $assetSettingNameList)
+    {
+        write-host "  Testing setting name [$testSettingName]..."
+        
+        if ( Test-BiosValueSupported -ValueName $testSettingName )
+        {
+            write-host "  Setting is supported, will use it for write tests"
+            $assetSettingName = $testSettingName
+            break
+        }
+    }
+    
+    #If no matching asset name was found, break the script 
+    if ( -not (Test-String -HasData $assetSettingName) )
+    {
+        throw "No supported asset value BIOS setting was found for testing BIOS password files"
+    }
+    
+
+    #Now that we know how the asset tag BIOS setting is called, we can start checking for password files
+    write-host "Testing BIOS password files from [$PwdFilesFolder]..."
 
     $files = @()
 
     #Read all files that exist and sort them directly
     $pwd_files = Get-ChildItem -Path $PwdFilesFolder -File -Force -Filter "*.bin"  | Sort-Object
   
-    #Add emppty password as first option
+    #Always add an empty password as first option
     $files += ""
 
     #Add files to our internal array
@@ -1022,40 +1079,36 @@ function Test-BiosPasswordFiles()
         $files += $pwdfile.FullName 
     }
 
-    #Start testing	 
-    write-host "Testing BIOS passwords..."
-
-    $oldAssettag = get-biosvalue -Name $ASSET_NAME
-    write-host "Original Asset Tag [$oldAssettag]"
+    $oldAssettag = get-biosvalue -Name $assetSettingName -Silent
+    write-host "Original asset value: [$oldAssettag]"
 
     $testvalue = Get-RandomString 14
-    write-host "Asset Tag used for testing [$testvalue]"
+    write-host "Asset value used for testing: [$testvalue]"
   
     $matchingPwdFile = $null
 
     ForEach ($file in $files) 
     {       
-        write-host "Trying password file [$file]"
+        write-host "Trying to write asset value using password file [$file]..."
 
-        $result = Set-BiosValue -Name $ASSET_NAME -Value $testvalue -Passwordfile $file -Silent
+        $result = Set-BiosValue -Name $assetSettingName -Value $testvalue -Passwordfile $file -Silent
 
         if ( ($result -ge 0) ) 
         {
-            write-host "Password file is [$file]!"
-            write-host "Restoring old Asset Tag..."
-        
-            $ignored = Set-BiosValue -Name $ASSET_NAME -Value $oldAssettag -Passwordfile $file -Silent
+            write-host "Success; password file is [$file]!"
+            
+            write-host "Restoring original asset value"        
+            $ignored = Set-BiosValue -Name $assetSettingName -Value $oldAssettag -Passwordfile $file -Silent
 
             $matchingPwdFile = $file
             break
-        }
-     
+        }     
     }
 
     #Check if we were able to locate a password file
     if ( $matchingPwdFile -eq $null )
     {
-        throw "Unable to find matching BIOS password file in [$PwdFilesFolder]"
+        throw "The folder [$PwdFilesFolder] does not contain a BIOS password file this device accepts"
     }
       
     Write-HostSection -End "Determine BIOS Password"
@@ -1078,25 +1131,26 @@ function ConvertTo-VersionFromBIOSVersion()
     $Text = $Text.Trim() 
     $Text = $Text.ToUpper()
 
+    #Very old devices use F.xx instead of 1.xx
     if ( Test-String $Text -StartsWith "F." )
     {
         $Text = $Text.Replace("F.", "1.")
     }
 
-    #some models report "v" before the version
+    #Some models report "v" before the version
     if ( Test-String $Text -StartsWith "V" )
     {
         $Text = $Text.Replace("V", "")
     }
  
     #Issue 50 (https://github.com/texhex/BiosSledgehammer/issues/50):
-    #
     #Newer BIOS versions (e.g. EliteBook 830 G5) use the version string "1.00.05" that will crash 
     #if the -RespectLeadingZeros parameter is used as the resulting version would be 1.0.0.0.5
     #
-    #Therefore, check if the version only contains a single "." (dot) and only use -RespectLeadingZeros in that case
+    #Therefore, check if the version only contains a single "." (dot) (= two tokens) and
+    #only use -RespectLeadingZeros in that case
     
-    if ( ($Text.Split('.').Length - 1) -eq 1 )        
+    if ( ($Text.Split('.').Length) -eq 2 )        
     {
         [version]$curver = ConvertTo-Version -Text $Text -RespectLeadingZeros
     }
@@ -1860,7 +1914,7 @@ function Update-TPMFirmware()
             }
             else
             {
-                write-host "  TPM Spec version matches"
+                write-host "  TPM Spec version matches or is newer"
             }
 
             #Verify firmware version
@@ -1886,13 +1940,13 @@ function Update-TPMFirmware()
                 write-host "  Firmware version matches or is newer"
             }
 
-            write-host "Update required result:"
+            write-host "Update check result:"
             write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
             write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
              
             if ( -not ($updateBecauseTPMSpec -or $updateBecauseFirmware) )
             {
-                write-host "TPM update not required"
+                write-host "No update necessary"
                 $result = $false
             }
             else
