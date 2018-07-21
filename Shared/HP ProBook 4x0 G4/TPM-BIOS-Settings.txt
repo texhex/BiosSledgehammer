@@ -3,4 +3,5 @@
 # No F1 prompt for TPM update
 TPM Activation Policy==No prompts
 
+# When this option is activated, no TPM firmware can be installed
 Virtualization Technology (VTx)==Disable
