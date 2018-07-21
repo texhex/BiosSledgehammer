@@ -647,7 +647,7 @@ The file works exactly as described in [BIOS Settings](#bios-settings) and can, 
 
 ---------------------------------
 
-## <a id="chapter-1"></a> (5.0 BETA DOCUMENTAION) TPM-Update.txt changes for v5 and upwards 
+## #test123 (5.0 BETA DOCUMENTAION) TPM-Update.txt changes for v5 and upwards 
 
 BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
 
