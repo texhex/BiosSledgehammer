@@ -1,0 +1,52 @@
+# ProBook 4x0 G5
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+
+# Let the BIOS do some basic init stuff
+Fast Boot == Disable
+
+# Turn LAN/WLAN Switching OFF
+LAN / WLAN Auto Switching == Disable
+
+# TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+# Security features turned OFF
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+
+##  CPU - General
+Turbo-boost == Enable
+Hyperthreading == Enable
+Multi-processor == Enable
+
+## CPU Features
+# VTx is required for Hyper-V / Device Guard
+Virtualization Technology (VTx) == Enable
+
+# Might cause issues with the GPU so disabled
+Virtualization Technology for Directed I/O (VTd) == Disable
+
+# Let software control SGX
+Intel Software Guard Extensions (SGX) == Software control
+
+## Ownership
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+
+
+##This seems to be the options for the "Single device, single MAC address" using HP MAC Address Manager 
+##> [..] HP MAC Address Manager enables customers to use MAC addresses to manage computer assets in a 
+##  distributed environment by providing a unique platform MAC address to the network for device drivers 
+##  that are updated to support this HBMA protocol.
+##  ftp://ftp.hp.com/pub/softpaq/sp78501-79000/sp78634.html
+#Pre-boot HBMA Support==Enable
+#Windows HBMA Support==Enable
+#Single NIC Operation (Disable All Other NICs when HBMA is active on one NIC)==Enable
+

@@ -1,9 +1,8 @@
-# Pro X2 612 G2 BIOS Update
-# P86 Family
+# ProBook 4x0 G4 BIOS Update
 
 
 # The BIOS version the device should be on
-Version == 1.18
+Version == 1.16
 
 # Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
@@ -18,6 +17,3 @@ Arg2 == -r
 Arg3 == -b
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
-
-
-
