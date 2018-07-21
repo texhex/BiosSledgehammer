@@ -1,2 +1,0 @@
-# Shared directory for ProBook/EliteBook 6x70/8x70
-Directory == HP ProBook-EliteBook xx70
