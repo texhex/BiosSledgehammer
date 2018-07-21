@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.2BETA"
+$scriptversion = "5.0.3BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1095,14 +1095,14 @@ function ConvertTo-VersionFromBIOSVersion()
     #if the -RespectLeadingZeros parameter is used as the resulting version would be 1.0.0.0.5
     #
     #Therefore, check if the version only contains a single "." (dot) and only use -RespectLeadingZeros in that case
-    #
+    
     if ( ($Text.Split('.').Length - 1) -eq 1 )        
     {
         [version]$curver = ConvertTo-Version -Text $Text -RespectLeadingZeros
     }
     else
     {
-        #The version string contains more than one ., try to parse the version as is
+        #The version string contains more than one dot (.), try to parse the version as is
         [version]$curver = ConvertTo-Version -Text $Text
     }
 
@@ -1118,75 +1118,103 @@ function Get-BIOSVersionDetails()
         [ValidateNotNullOrEmpty()]
         [string]$RawData
     )
-
-    #typical examples for raw data are 
+   
+    #This function will not raise an fatal error if the BIOS data could not be parsed.
+    #We will leave it to the caller if non-parsed version data should be fatal or not.
+    #
+    #Typical examples of bios data are:
+    #SBF13 F.64
+    #68ISB Ver. F.53        
+    #L01 v02.53  10/20/2014
     #N02 Ver. 02.07  01/11/2016
     #L83 Ver. 01.34 
-    #SBF13 F.64
-    #L01 v02.53  10/20/2014
+    #Q78 ver. 01.00.05 01/25/2018
+    #02.17
 
-    write-verbose "Trying to parse BIOS data [$RawData]"
- 
-    [version]$maxversion = "99.99"
-    $biosdata = [PSObject]@{"Raw" = $RawData; "Family" = "Unknown"; "Version" = $maxversion; "VersionText" = $maxversion.ToString(); "Parsed" = $false; }
+    write-verbose "Trying to parse raw BIOS data [$RawData]"
 
-    $tokens = $RawData.Split(" ")
-    #We expect at least three tokens: FAMILY VER. VERSION
-    if ( ! ($tokens -eq $null) ) 
+    [version]$maxversion = "99.99" 
+    $biosData = [Ordered]@{"Raw" = ""; "Family" = "Unknown"; "VersionText" = $maxversion.ToString(); "Version" = $maxversion; "Parsed" = $false; }
+
+    #Just to be sure, trim the data 
+    $biosData.Raw = $RawData.Trim()
+         
+    #Normally, we expect at least two tokens: FAMILY VERSION but there is the case of the ProDesk 400 G2.5 
+    #which just reports "VERSION" (e.g. 2.17) - https://github.com/texhex/BiosSledgehammer/issues/70
+    #This means, we need to check if we can't split on whitespace and if so, we expect the result to be just a normal version
+
+    $tokens = $biosData.Raw.Split(" ")
+
+    if ( ($tokens -eq $null) )
     {
-        $versionRaw = ""
+        write-verbose "   Tokenizing raw BIOS data failed!"
+    }
+    else
+    {
+        if ( $tokens.Count -eq 1 )
+        {
+            write-verbose "   Raw BIOS data does not containing any whitespace, assuming it only contains the BIOS version"
+            $biosData.VersionText = $tokens[0].Trim()
+        }
+        else
+        {            
+            #We expect to have at least two elements FAMILY VERSION
+            if ( $tokens.Count -ge 2 )
+            {       
+                $biosData.Family = $tokens[0].Trim()
+                write-verbose "   BIOS Family: $($biosData.Family)"
 
-        #We expect to have at least two elements FAMILY VERSION
-        if ( $tokens.Count -ge 2 )
-        {       
-            $family = $tokens[0].Trim()
-            write-verbose "   BIOS Family: $family"
-
-            #now we need to check if we have exactly two or more tokens
-            #If exactly so, we have FAMILY VERSION
-            #If more, it can be FAMILY VER VERSION or FAMILY VER VERSION DATE or FAMILY vVERSION DATE
-
-            if ( $tokens.Count -eq 2 ) 
-            {
-                $versionRaw = $tokens[1].Trim()
-            }
-            else
-            {
-                #we have more than exactly two tokens. Check if the second part is "Ver."
-                if ( Test-String ($tokens[1].Trim()) -StartsWith "Ver" )
+                #Now we need to check if we have exactly two or more tokens            
+                #If there are exactly two tokens, we have FAMILY VERSION
+                if ( $tokens.Count -eq 2 ) 
                 {
-                    #Use third token as version
-                    $versionRaw = $tokens[2].Trim()
-                } 
-                else 
+                    $biosData.VersionText = $tokens[1].Trim()
+                }
+                else
                 {
-                    $versionRaw = $tokens[1].Trim()
+                    #We have more than exactly two tokens: it can be FAMILY VER VERSION or FAMILY VER VERSION DATE or FAMILY vVERSION DATE
+                    #Check if the second part is "Ver."
+                    if ( Test-String ( $tokens[1].Trim().ToUpper() ) -StartsWith "VER" )
+                    {
+                        #Use third token as version as the second is "VER"
+                        $biosData.VersionText = $tokens[2].Trim()
+                    } 
+                    else 
+                    {
+                        #The second token is not "VER", so it has to be the version
+                        $biosData.VersionText = $tokens[1].Trim()
+                    }
                 }
             }
-
-            write-verbose "   BIOS Version: $versionRaw"
-
-
-            #use special ConvertTo-Version version that replace the F.XX that some models report
-            [version]$curver = ConvertTo-VersionFromBIOSVersion -Text $versionraw
-            if ( $curver -eq $null )
-            {
-                write-verbose "   Converting [$versionRaw] to a VERSION object failed"
-            }
-            else
-            {
-                $biosdata.Family = $family
-                $biosdata.Version = $curver
-                $biosdata.VersionText = $versioNRaw
-                $biosdata.Parsed = $true
-            }
-
-            #Done
-        } 
+        }
     }
 
-    write-verbose "   BIOS Data parsed: $($biosdata.Parsed)"
-    return $biosdata 
+
+    #Do we have something to parse or not
+    if ( (Test-String -HasData $biosData.VersionText) )
+    {
+        write-verbose "   BIOS Version text/raw: $($biosData.VersionText)"
+
+        #use special ConvertTo-Version version that respects special version numbers that some models report
+        [version]$curver = ConvertTo-VersionFromBIOSVersion -Text $biosData.VersionText
+        if ( $curver -eq $null )
+        {
+            write-verbose "   Converting [$($biosData.VersionText)] to a VERSION object failed!"
+        }
+        else
+        {
+            $biosdata.Version = $curver            
+            $biosdata.Parsed = $true
+
+            write-verbose "   BIOS Version: $($biosData.Version.ToString())"
+        }
+    }
+    else
+    {
+        write-verbose "   BIOS data could not be parsed!"
+    }
+        
+    return $biosData 
 }
 
 
@@ -2845,7 +2873,7 @@ try
     write-host "Collecting system information..."
 
     $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10
-    
+
     $Model = Get-PropertyValueSafe $compSystem "Model" ""
     $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
     $computername = $env:computername
@@ -2854,32 +2882,26 @@ try
     write-host "  Name.........: $computername"
     write-host "  Model........: $Model"
     write-host "  SKU..........: $SKU"
-   
+
     ########################################
     #Retrieve and parse BIOS version 
 
     #We could use a direct call to BCU, but this does not work for old models
-    #because it includes the data like this: "L01 v02.53  10/20/2014".
+    #because it includes the data like this: "L01 v02.53  10/20/2014"
     #This breaks the XML parsing from Get-BiosValue because BCU does not escape the slash   
     #So we get the data directly from Windows 
     $BIOSRaw = (Get-CimInstance Win32_Bios).SMBIOSBIOSVersion
   
-    #Examples:
-    #L01 v02.53  10/20/2014
-    #68ISB Ver. F.53
-    #$BIOSRaw="L01 v02.53  10/20/2014"
-    #$BIOSRaw="B0rken"
-
     #replace $NULL in case we were unable to retireve the data
     if ( $BIOSRaw -eq $null ) 
     { 
         $BIOSRaw = "Failed" 
     }
-    $BIOSDetails = Get-BIOSVersionDetails $BIOSRaw   
+    $BIOSDetails = Get-BIOSVersionDetails $BIOSRaw
 
     write-host "  BIOS (Raw)...: $BIOSRaw"
 
-    if ( !($BIOSDetails.Parsed) ) 
+    if ( !($BIOSDetails.Parsed) )
     {
         write-warning "BIOS Data could not be parsed!"
     }
