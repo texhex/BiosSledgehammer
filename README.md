@@ -666,9 +666,10 @@ Please do the following:
 
 When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt`. That’s because TPMConfig64.exe 2.x requires the BIOS Setting *VTx* to be disabled, which was not the case for the older version.
 
-* Search your productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
-* If found, copy those files from your local folder and overwrite them in the productive installation
+* Search your entire productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
+* When found, copy those files from your local folder and overwrite them in the productive installation
 * In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
+* See [TPM BIOS Settings](#tpm-bios-settings) for details how to do this
 
 ---------------------------------
 
