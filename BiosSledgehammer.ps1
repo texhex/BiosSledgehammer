@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.4BETA"
+$scriptversion = "5.0.5BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -92,8 +92,7 @@ Set-Variable TEMP_FOLDER (Get-TempFolder) -option ReadOnly -Force
 #Set-Variable TEMP_FOLDER "C:\TEMP" -option ReadOnly -Force
 
 #Configure which BCU version to use 
-#Version 2.45 and upwards: BCU 4.0.21.1
-Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.24.1\BiosConfigUtility64.exe" -option ReadOnly -Force
+Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.25.1\BiosConfigUtility64.exe" -option ReadOnly -Force
 #for testing if the arguments are correctly sent to BCU
 #Set-Variable BCU_EXE "$PSScriptRoot\BCU-4.0.24.1\EchoArgs.exe" -option ReadOnly -Force
 
@@ -976,12 +975,12 @@ function Set-BiosValue()
 
 
 # -1 = Error, 0 = OK but no changes, 1 = at least one setting was changed
-function Set-BiosValuesHashtable()
+function Set-BiosValuesByDictionary()
 {
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
         [ValidateNotNullOrEmpty()]
-        $Hastable,
+        $Dictionary,
 
         [Parameter(Mandatory = $False, ValueFromPipeline = $True)]
         [string]$Passwordfile = ""
@@ -989,13 +988,13 @@ function Set-BiosValuesHashtable()
 
     $result = 0
 
-    foreach ($entry in $Hastable.Keys) 
+    foreach ($entry in $Dictionary.Keys) 
     {
         $name = $Entry.ToString()
-        $value = $Hastable[$entry]
+        $value = $Dictionary[$Name]
         $changed = Set-BiosValue -name $name -value $value -passwordfile $Passwordfile
      
-        #Because the data in the hashtable are specifc for a model, we expect that each and every change works
+        #Because the data in the Dictionary are specifc for a model, we expect that each and every change works
         if ( ($changed -lt 0) ) 
         {
             write-error "Changing BIOS Setting [$name] to [$value] failed!"
@@ -1482,7 +1481,7 @@ function Update-BiosSettingsEx()
     if ( $change_settings )
     {
         #Try to read the setting file
-        $settings = Read-StringHashtable $ConfigFileFullPath
+        $settings = Read-StringHashtable $ConfigFileFullPath -AsOrderedDictionary
 
         if (  ($settings.Count -lt 1) ) 
         {
@@ -1494,7 +1493,7 @@ function Update-BiosSettingsEx()
             write-host "Using password file [$PasswordFile]" 
 
             #Apply settings
-            $changeresult = Set-BiosValuesHashtable -Hastable $settings -Passwordfile $PasswordFile
+            $changeresult = Set-BiosValuesByDictionary -Dictionary $settings -Passwordfile $PasswordFile
 
             if ( $changeresult -lt 0 ) 
             {
