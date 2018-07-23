@@ -997,7 +997,7 @@ function Set-BiosValuesByDictionary()
         #Because the data in the Dictionary are specifc for a model, we expect that each and every change works
         if ( ($changed -lt 0) ) 
         {
-            write-error "Changing BIOS Setting [$name] to [$value] failed!"
+            throw "Changing BIOS Setting [$name] to [$value] failed!"
             $result = -1
             break
         }
