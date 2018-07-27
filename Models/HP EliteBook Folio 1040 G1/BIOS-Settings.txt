@@ -12,10 +12,12 @@ Data Execution Prevention==Enable
 
 Virtualization Technology (VTx)==Enable
 
-# Allow changes to VTd setting
-Virtualization Technology for Directed I/O (VTd) Security Level==Change
+#This must be disabled to disable VTd
+Trusted Execution Technology (TXT) Security Level==Change
+Trusted Execution Technology (TXT)==Disable
 
 # Might cause issues with the GPU
+Virtualization Technology for Directed I/O (VTd) Security Level==Change
 Virtualization Technology for Directed I/O (VTd)==Disable
                                      
 LAN/WLAN Switching==Enable
