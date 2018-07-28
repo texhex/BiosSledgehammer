@@ -1,5 +1,5 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.28.2
+# Version 3.28.4
 # https://github.com/texhex/MPSXM
 #
 # Copyright © 2010-2018 Michael 'Tex' Hex 
@@ -13,7 +13,7 @@
 #
 #
 # Before adding a new function, please see
-# [Approved Verbs for Windows PowerShell Commands] http://msdn.microsoft.com/en-us/library/ms714428%28v=vs.85%29.aspx
+# [Approved Verbs for Windows PowerShell Commands] https://docs.microsoft.com/en-us/powershell/developer/cmdlet/approved-verbs-for-windows-powershell-commands
 #
 # To run a PowerShell script from the command line, use
 # powershell.exe [-NonInteractive] -ExecutionPolicy Bypass -File "C:\Script\DoIt.ps1"
@@ -286,10 +286,10 @@ Function Test-String()
     #Returns true if the string contains data (not $null, empty or only white spaces)
     #
     #.PARAMETER Contains
-    #Returns true if string contains the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. 
+    #Returns true if string contains the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If any of the strings do not contain data, $false is returned.
     #
     #.PARAMETER StartsWith
-    #Returns true if the string starts with the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. 
+    #Returns true if the string starts with the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If any of the strings do not contain data, $false is returned.
     #
     #.PARAMETER SearchFor
     #The string beeing sought
@@ -302,7 +302,11 @@ Function Test-String()
 
     [OutputType([bool])]  
     param (
-        [Parameter(Mandatory = $false, Position = 1)] #false or we can not pass empty strings
+        #Be aware that PowerShell will move the  first string it finds to this parameter,
+        #as this parameter is not mandatory. E.g. when calling this function as 
+        #Test-String -Contains "X", "X" will in $string, not in $searchFor!
+        #But we require the not mandatory parameter or else  we can not pass empty strings here.
+        [Parameter(Mandatory = $false, Position = 1)] 
         [string]$String = $null,
 
         [Parameter(ParameterSetName = "HasData", Mandatory = $true)]
@@ -349,9 +353,13 @@ Function Test-String()
 
         "Contains"
         {
-            if ( Test-String -IsNullOrWhiteSpace $SearchFor)
+            #If either $string or $searchFor is $null, the result is always $false
+            if (
+                ([string]::IsNullOrWhiteSpace($String)) -or
+                ([string]::IsNullOrWhiteSpace($SearchFor))
+            )
             {
-                $result = $false                
+                $result = $false
             }
             else
             {
@@ -378,9 +386,13 @@ Function Test-String()
         "StartsWith"
         {
             
-            if ( Test-String -IsNullOrWhiteSpace $SearchFor)
+            #If either $string or $searchFor is $null, the result is always $false
+            if (
+                ([string]::IsNullOrWhiteSpace($String)) -or
+                ([string]::IsNullOrWhiteSpace($SearchFor))
+            )
             {
-                $result = $false                              
+                $result = $false
             }
             else
             {
@@ -822,7 +834,7 @@ Function Read-StringHashtable()
     #The file to read the hashtable from
     #
     #.PARAMETER AsOrderedDictionary
-    #If the order of the setting matter, use this parameter to return an OrderedDictionary where the order of the keys is exactly as they are in the file
+    #If the order of the setting matter, use this parameter to return an OrderedDictionary. The order of the keys is exactly as they are in the file.
     #
     #.OUTPUTS
     #Hashtable
@@ -886,11 +898,11 @@ Function Read-StringHashtable()
 
                     if ( -not $AsOrderedDictionary )
                     {
-                        $nameAlreadyExists=$result.ContainsKey($name)
+                        $nameAlreadyExists = $result.ContainsKey($name)
                     }
                     else
                     {
-                        $nameAlreadyExists=$result.Contains($name)
+                        $nameAlreadyExists = $result.Contains($name)
                     }
                 
                     if ( $nameAlreadyExists )
@@ -1326,7 +1338,7 @@ Function Get-QuickReference()
             foreach ($qr in $qrList)
             {  
                 $txt += "`n" #start with a new line
-                $txt += "### $($qr.Name) ###`n"
+                $txt += "### $($qr.Name)`n"
                 $txt += "`n"
                 $txt += "$($qr.Synopsis)`n"
    
