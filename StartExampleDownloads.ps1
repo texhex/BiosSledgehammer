@@ -6,6 +6,9 @@
  https://github.com/texhex/BiosSledgehammer
 #>
 
+#Script version
+$scriptversion = "1.1.2"
+
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
 
@@ -25,19 +28,19 @@ Import-Module $PSScriptRoot\MPSXM.psm1 -Force
 
 function Get-UserConfirm()
 {
-#from https://social.technet.microsoft.com/Forums/scriptcenter/en-US/3d8f242b-199b-4d4c-b973-0246ce1c065c/windows-powershell-tip-of-the-week-is-there-an-easy-way-to-display-and-process-confirmation?forum=ITCG
-#by Shay Levi (https://social.technet.microsoft.com/profile/shay%20levi)
+    #from https://social.technet.microsoft.com/Forums/scriptcenter/en-US/3d8f242b-199b-4d4c-b973-0246ce1c065c/windows-powershell-tip-of-the-week-is-there-an-easy-way-to-display-and-process-confirmation?forum=ITCG
+    #by Shay Levi (https://social.technet.microsoft.com/profile/shay%20levi)
 
-$caption = "BIOS Sledgehammer: Start Example Downloads"
-$message = "This script will download BIOS and TPM update files from HP.com required for the examples in \Models. Ready to start?"
+    $caption = "BIOS Sledgehammer: Start Example Downloads v$scriptversion"
+    $message = "This script will download BIOS and TPM update files from HP.com for all . Ready to start?"
 
-$yes = new-Object System.Management.Automation.Host.ChoiceDescription "&Yes","Start download"
-$no = new-Object System.Management.Automation.Host.ChoiceDescription "&No","Do not download, stop script"
+    $yes = new-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Start download"
+    $no = new-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not download, stop script"
 
-$choices = [System.Management.Automation.Host.ChoiceDescription[]]($yes,$no)
-$answer = $host.ui.PromptForChoice($caption,$message,$choices,1)
+    $choices = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+    $answer = $host.ui.PromptForChoice($caption, $message, $choices, 1)
 
-switch ($answer)
+    switch ($answer)
     {
         0 
         {
@@ -56,11 +59,11 @@ switch ($answer)
 
 function Test-FolderStructure()
 {
- param(
-  [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-  [ValidateNotNullOrEmpty()]
-  [string]$SearchPath
-)
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SearchPath
+    )
     if ( -not (Test-DirectoryExists "$SearchPath\Models") )
     {
         throw New-Exception -DirectoryNotFound "Path [$SearchPath\Models] does not exist"
@@ -68,7 +71,7 @@ function Test-FolderStructure()
 
     if ( -not (Test-DirectoryExists "$SearchPath\Shared") )
     {
-        throw New-Exception -DirectoryNotFound "Path [$SearchPath\Models] does not exist"
+        throw New-Exception -DirectoryNotFound "Path [$SearchPath\Shared] does not exist"
     }
 
     if ( -not (Test-DirectoryExists "$SearchPath\PwdFiles") )
@@ -85,11 +88,11 @@ function Test-FolderStructure()
 
 function Remove-FileIfExists()
 {
-param(
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$Path
-)
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
     if ( Test-FileExists -Path $Path )
     {
         try
@@ -110,29 +113,29 @@ param(
 
 function Start-DownloadFile()
 {
-param(
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$URL,
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$URL,
 
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$DownloadPath
-)
-    $file=Get-FileName($URL)
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DownloadPath
+    )
+    $file = Get-FileName($URL)
 
     #Ensure the files does not exist
-    $tempFile="$DownloadPath\$file"
+    $tempFile = "$DownloadPath\$file"
     Remove-FileIfExists $tempFile
 
-    $webClient=New-Object "Net.WebClient"
+    $webClient = New-Object "Net.WebClient"
 
     write-host "  Downloading from [$URL]"
     write-host "                to [$tempFile]... " -NoNewline
 
     $webClient.DownloadFile($URL, $tempFile)
 
-    $webClient=$null
+    $webClient = $null
 
     write-host "Done"
 
@@ -142,23 +145,23 @@ param(
 
 function Invoke-AcquireHPFile()
 {
-param(
-    [Parameter (Mandatory=$true)]
-    [ValidateSet("SoftPaq", "ReleaseNotes")]
-    [string]$Type,
+    param(
+        [Parameter (Mandatory = $true)]
+        [ValidateSet("SoftPaq", "ReleaseNotes")]
+        [string]$Type,
 
-    [Parameter(Mandatory=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$URL,
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$URL,
 
-    [Parameter(Mandatory=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$DestinationPath,
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DestinationPath,
 
-    [Parameter(Mandatory=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$DownloadPath
-)
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DownloadPath
+    )
 
     if ( $Type -eq "SoftPaq" )
     {
@@ -169,7 +172,7 @@ param(
         write-host "  Release Notes URL: $URL" 
     }
 
-    $destFilename="$DestinationPath\$(Get-FileName($URL))"
+    $destFilename = "$DestinationPath\$(Get-FileName($URL))"
 
     if ( Test-FileExists -Path $destFilename )
     {
@@ -177,12 +180,12 @@ param(
     }
     else
     {
-        $tempFile=Start-DownloadFile -URL $URL -DownloadPath $DownloadPath
+        $tempFile = Start-DownloadFile -URL $URL -DownloadPath $DownloadPath
 
         if ( $Type -eq "SoftPaq" )
         {
-            $SPName=Get-FileName -Path $tempFile -WithoutExtension
-            $SPName=$SPName.ToUpper()
+            $SPName = Get-FileName -Path $tempFile -WithoutExtension
+            $SPName = $SPName.ToUpper()
 
             write-host "  Extracting SoftPaq... " -NoNewline
             &$tempFile -e -s     
@@ -190,9 +193,17 @@ param(
             write-host "Done"
 
             #We are expecting the file to be present in C:\SWSetup\SPxxxx
-            $SPExtractedPath="$UNPACK_FOLDER\$SPName"
+            $SPExtractedPath = "$UNPACK_FOLDER\$SPName"
+
+            #SP88497 is extracted to [SP88497, so we better make sure to check that folder as well
+            $SPExtractedPath2 = "$UNPACK_FOLDER\[$($SPName)"
+            if ( Test-Path -LiteralPath $SPExtractedPath2 -PathType Container) 
+            {
+                write-warning "Extracted files folder is $SPExtractedPath2, renaming folder"
+                Rename-Item -LiteralPath $SPExtractedPath2 -NewName $SPName
+            }
           
-            if ( -not (Test-DirectoryExists -Path $SPExtractedPath) )
+            if ( -not (Test-DirectoryExists -Path $SPExtractedPath) )            
             {
                 throw New-Exception -FileNotFound "Unable to locate unpack folder [$SPExtractedPath]"
             }
@@ -200,13 +211,13 @@ param(
             {
                 #now we need to copy the unpacked files
                 write-host "  Copy from [$SPExtractedPath] to [$destFolder]... " -NoNewline
-                $ignored=Get-ChildItem -Path $SPExtractedPath | Copy-Item -Destination $destFolder -Recurse -Container -Force
+                $ignored = Get-ChildItem -Path $SPExtractedPath | Copy-Item -Destination $destFolder -Recurse -Container -Force
                 write-host "Done"
 
                 #Remove extract folder - this will sometimes fail because of backup or AV tools
                 try 
                 {
-                    $ignored=Remove-Item -Path $SPExtractedPath -Recurse -Force
+                    $ignored = Remove-Item -LiteralPath $SPExtractedPath -Recurse -Force
                 }
                 catch
                 {
@@ -214,11 +225,14 @@ param(
                 }
             }
         }
+
         #copy SPXXXX to destination        
-        #Copy-Item -Path $tempFile -Destination $DestinationPath -Force
         Copy-FileToDirectory -Filename $tempFile -Directory $DestinationPath
 
-        Remove-FileIfExists -Path $tempFile
+        #This would be a good idea in case the SPxxx would not be running sometimes in the background
+        #and make this call fail. Hence: Skip it. 
+        #Remove-FileIfExists -Path $tempFile
+
         write-host "  File processed successfully"
     }
 }
@@ -226,34 +240,34 @@ param(
 
 function Invoke-DownloadSettingsProcess()
 {
-param(
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$SettingsFile,
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SettingsFile,
 
-    [Parameter(Mandatory=$True,ValueFromPipeline=$True)]
-    [ValidateNotNullOrEmpty()]
-    [string]$DownloadPath
-)
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DownloadPath
+    )
 
     #Set-Variable TEMP_DOWNLOAD_FOLDER "$(Get-TempFolder)\TempDownload" –option ReadOnly -Force
 
-    $destFolder=Get-ContainingDirectory($SettingsFile)
+    $destFolder = Get-ContainingDirectory($SettingsFile)
 
-    $settings=Read-StringHashtable $SettingsFile
+    $settings = Read-StringHashtable $SettingsFile
 
     if ($settings.ContainsKey("NoteURL"))
     {        
-        $URL=$settings["NoteURL"]
-        $type="ReleaseNotes"
+        $URL = $settings["NoteURL"]
+        $type = "ReleaseNotes"
 
         Invoke-AcquireHPFile -Type $type -URL $URL -DestinationPath $destFolder -DownloadPath $DownloadPath
     }
 
     if ($settings.ContainsKey("SPaqURL"))
     {
-        $URL=$settings["SPaqURL"]
-        $type="SoftPaq"
+        $URL = $settings["SPaqURL"]
+        $type = "SoftPaq"
 
         Invoke-AcquireHPFile -Type $type -URL $URL -DestinationPath $destFolder -DownloadPath $DownloadPath
     }
@@ -287,31 +301,35 @@ Set-Variable UNPACK_FOLDER "C:\SWSetup" –option ReadOnly -Force
 
 if ( Get-UserConfirm )
 {
-    $ignored=Test-FolderStructure -SearchPath $PSScriptRoot
+    $ignored = Test-FolderStructure -SearchPath $PSScriptRoot
 
     #ensure the temp downloads folder exists
-    $ignored=New-Item -Path $TEMP_DOWNLOAD_FOLDER -ItemType Directory -Force
+    $ignored = New-Item -Path $TEMP_DOWNLOAD_FOLDER -ItemType Directory -Force
 
     #scan for SPDownload.txt files
-    $Files=Get-ChildItem -Path $PSScriptRoot -Filter "SPDownload.txt" -Recurse
+    $Files = Get-ChildItem -Path $PSScriptRoot -Filter "SPDownload.txt" -Recurse
     foreach ($file in $Files)
     { 
-      $curFile=$file.Fullname
-      write-host "File [$curFile]"
+        $curFile = $file.Fullname
+        write-host "File [$curFile]"
  
-      Invoke-DownloadSettingsProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
+        Invoke-DownloadSettingsProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
     }
+
+    write-host "All done, waiting 20 seconds before starting clean up..."
+    Start-Sleep -Seconds 20
+
 
     write-host "Cleaning up $UNPACK_FOLDER..."
     #check if the UNPACK_FOLDER exists and if it's empty. If so, delete it
     if ( Test-DirectoryExists $UNPACK_FOLDER )
     {
-        $count=(Get-ChildItem -Path $UNPACK_FOLDER -Directory | Measure-Object).Count
+        $count = (Get-ChildItem -Path $UNPACK_FOLDER -Directory | Measure-Object).Count
        
         if ( $count -eq 0 )
         {
             #Folder is empty
-            $ignored=Remove-Item -Path $UNPACK_FOLDER -Force
+            $ignored = Remove-Item -Path $UNPACK_FOLDER -Force
         }
     }
 
@@ -319,7 +337,7 @@ if ( Get-UserConfirm )
     #try to delete the temp folder
     try
     {
-        $ignored=Remove-Item -Path $TEMP_DOWNLOAD_FOLDER -Force -Recurse -Confirm:$false
+        $ignored = Remove-Item -LiteralPath $TEMP_DOWNLOAD_FOLDER -Force -Recurse -Confirm:$false
     }
     catch
     {
