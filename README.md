@@ -73,7 +73,8 @@ desktops, notebooks, and workstations.*
   * See [HPSBHF03571 advisory](https://support.hp.com/us-en/document/c05843704) ([Intel-SA-00086](https://www.intel.com/content/www/us/en/support/articles/000025619/software.html)) and
   [HPSBHF03557 advisory](http://www8.hp.com/us/en/intelmanageabilityissue.html) ([Intel-SA-00075](https://security-center.intel.com/advisory.aspx?intelid=INTEL-SA-00075&languageid=en-fr)) or the driver download page from HP for the model
 * [Intel-SA-00075 Detection Tool](https://downloadcenter.intel.com/download/26755) stored in the folder ``ISA75DT-[Version]`` for Management Engine (ME) firmware tasks
-* Note: Several BIOS, TPM and ME files for the example models that are included can be downloaded automatically - see [Installation](#installation).
+
+:information_source: **Note:** Several BIOS, TPM and ME files for the example models that are included can be downloaded automatically - see [Installation](#installation).
 
 ## Process
 
@@ -444,7 +445,7 @@ The TPM update also requires that BitLocker is turned off (as any BitLocker keys
 
 Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
 
-**Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
+:information_source: **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
 
 Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart.
 
@@ -530,7 +531,7 @@ Once everything is ready, the source folder is copied to %TEMP% (to avoid any ne
 
 Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart. If anything goes wrong during the process, an error is generated and it is tried to translate the error code to a meaningful error message.
 
-**Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
+:information_source: **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
 
 ### Disable automatic BitLocker decryption during TPM update
 
@@ -563,7 +564,7 @@ Trusted Execution Technology (TXT) == Disable
 Virtualization Technology (VTx) == Disable
 ```
 
-**NOTE:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
+:information_source: **Note:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Trusted Execution Technology (TXT)** needs to be *DISABLE* here (as this is required to allow an TPM update) but can be set to *ENABLE* in [BIOS Settings](#bios-settings). The later is executed after the TPM update so the settings there will be in effect.
 
 ## BIOS Password
 
