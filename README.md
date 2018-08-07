@@ -645,6 +645,20 @@ SecureBoot == Enable
 
 The file works exactly as described in [BIOS Settings](#bios-settings) and can, if required, contain more settings. However, since the in-place boot mode change is a critical step, you should keep the changes to a minimum. After the change has been done, and the computer was restarted, you can execute BIOS Sledgehammer normally and change all other settings.
 
+## Using it from MDT or SCCM
+
+By default, MDT/SCCM will run all scripts hidden to hide sensitive information. If you are okay with this, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell scripts native.
+
+If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder).
+
+This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This way, you can have a quick look at the results.
+
+:exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.
+
+It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.
+
+In case you used ``RunVisible.bat`` the last (4th) run should not use it but instead execute directly ``BiosSledgehammer.ps1`` using *Run PowerShell Script* with the parameter ``-Verbose``. That's because ``RunVisible.bat`` does not return any error code. So if there is a problem, this last run will make sure MDT/SCCM is getting a correct return code and can break the deployment if there is a problem. The ``-Verbose`` option will make sure that the log contains all data (even BCU output) for troubelshooting.
+
 ---------------------------------
 
 ## TPM Update configuration changes for v5
@@ -691,34 +705,20 @@ The general procedure is as follows:
 
 :information_source: **Note:** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartExampleDownloads.bat` which will download the required files from HP.com.
 
-Within MDT/SCCM, locate the second where the calls to BIOS Sledgehammer are. Just **before** the first call, insert a new section and set a WMI filter so this section will only run when the computer/device model is *HP Compaq Pro 6300*. 
+Within MDT/SCCM, locate the second where the calls to BIOS Sledgehammer are. Just **before** the first call, insert a new section and set a WMI filter so this section will only run when the computer/device model is *HP Compaq Pro 6300*.
 
 Insert a new command and let SCCM/MDT execute `cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer_PreUpdate\RunVisible.bat"` and add a restart command after that. If you want to be sure, add another command and restart, duplicating the one you already created. This is not necessary, just a precaution.
 
 What will happen is the following:
 
 * For any device that is **NOT** a 6300, nothing will change because the section is ignored as the WMI filter does not match. This means, only the main BIOS Sledgehammer script is run as before.
-* In case the device is a Pro 6300, `\BiosSledeghammer_PreUpdate` will run and update the BIOS to 2.99. 
+* In case the device is a Pro 6300, `\BiosSledeghammer_PreUpdate` will run and update the BIOS to 2.99.
 * After the restart(s), the task sequence will continue, starting the main BIOS Sledgehammer (`\BiosSledeghammer`) and updating the BIOS to 3.x (or anything newer) which is now possible because the device has BIOS 2.99 already
 * If an already updated (BIOS 3.x) Pro 6300 is started again, the `\BiosSledeghammer_PreUpdate` will be executed, but since the BIOS is already newer, it won’t update anything, making the call a no-operation.
 
-As this `\BiosSledeghammer_PreUpdate` folder is only used for one model, it’s not necessary to keep it up to date with new releases or files, since it only serves one purpose and it’s highly unlikely that HP will ever update the BIOS 2.99 release. Of course, this folder can also support other models that might are in the need of such a Pre-Update. 
+As this `\BiosSledeghammer_PreUpdate` folder is only used for one model, it’s not necessary to keep it up to date with new releases or files, since it only serves one purpose and it’s highly unlikely that HP will ever update the BIOS 2.99 release. Of course, this folder can also support other models that might are in the need of such a Pre-Update.
 
-:information_source: **Note:** It can happen that these rather old BIOS versions are not able to read the “normal” password files (*.bin) and might insist that the BIOS password is wrong (which it wasn’t). If this happens, recreate the password files with `\HPQFlash\HpqPswd.exe` from BIOS-2.99 and store them in `BiosSledeghammer_PreUpdate\PwdFiles`.
-
-## Using it from MDT or SCCM
-
-By default, MDT/SCCM will run all scripts hidden to hide sensitive information. If you are okay with this, just run ``BiosSledgehammer.ps1`` as PowerShell script, but remember to tick the box for "Disable 64bit file system redirection" so it is run as 64-bit PowerShell process. This settings applies only for SCCM - MDT always runs PowerShell scripts native.
-
-If you want to see what BIOS Sledgehammer is doing, run the provided batch file ``RunVisble.bat`` with this command line in MDT/SCCM: ``cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer\RunVisible.bat"`` (given you stored it in the *\Scripts* folder).
-
-This batch automatically uses the correct (native) version of PowerShell and will also set the ``-WaitAtEnd`` parameter which causes BIOS Sledgehammer to pause for 30 seconds when finished. This way, you can have a quick look at the results.
-
-:exclamation: **IMPORTANT** When using the ``RunVisible.bat``, no error code is transfered back to the task sequence. So even if BIOS Sledgehammer reports a fatal exit code, the Task Sequence will receive return code 0. This comes from the fact the task sequence executes cmd.exe which starts a batch, which starts "START" which executes PowerShell.exe which starts BiosSledgehammer.ps1. Somewhere along the way the return code is lost.
-
-It is recommended to start BIOS Sledgehammer **four** times and restart the device after each run. If a device requires a BIOS Update, a TPM update and BIOS setting changes, three executions are needed. The final one is to make sure everything worked - for example if an operator accidently hit F2 (Do not perform update) during POST when asked if a firmware update should take place.
-
-In case you used ``RunVisible.bat`` the last (4th) run should not use it but instead execute directly ``BiosSledgehammer.ps1`` using *Run PowerShell Script* with the parameter ``-Verbose``. That's because ``RunVisible.bat`` does not return any error code. So if there is a problem, this last run will make sure MDT/SCCM is getting a correct return code and can break the deployment if there is a problem. The ``-Verbose`` option will make sure that the log contains all data (even BCU output) for troubelshooting.
+:information_source: **Note:** It can happen that these rather old BIOS versions are not able to read the “normal” password files (*.bin) and show an error message that the BIOS password is wrong. If this happens, recreate the password files with `\HPQFlash\HpqPswd.exe` from BIOS-2.99 and store them in `BiosSledeghammer_PreUpdate\PwdFiles`.
 
 ## Contributions
 
@@ -730,6 +730,6 @@ If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose 
 
 ``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2018 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
-All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2015 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms.
+All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2018 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms.
 
 All Intel related files (SA-00075) are © Copyright Intel. These files are licensed under different terms.
