@@ -675,13 +675,13 @@ When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TP
 
 ## Two-Step BIOS Update Process
 
-Some older devices require a two-step process to update, e.g. [HP Compaq Pro 6300 BIOS 3.03](http://h20564.www2.hp.com/hpsc/swd/public/detail?sp4ts.oid=5232700&swItemId=vc_176829_1&swEnvOid=4158#tab-history). It requires the user first to update the device to the transition BIOS version 2.99 (if the current version < 3.00) and then install 3.03. when trying to flash directly from anything below 2.99 to 3.xxx, the update fails.
+Some older devices require a two-step process to update, e.g. the HP Compaq Pro 6300. It requires that the  device is first updated to the transition BIOS version 2.99 (if the current version < 3.00) and only then an 3.x BIOS version can be installed. When trying to flash directly from anything below 2.99 to 3.x, the update fails.
 
 This two-step process is not directly supported by BIOS Sledgehammer but can be solved by creating a second “Pre-Update” installation of BIOS Sledgehammer that is run before your “main” installation. It is only responsible to update those older machines to an updatable BIOS version, which will happen in the main installation.
 
 The general procedure is as follows:
 
-* Create a new BIOS Sledgehammer folder, completely separated from the “main” folder. 
+* Create a new BIOS Sledgehammer folder, completely separated from the “main” folder.
 * If the main folder is `\Scripts\BiosSledgehammer`, name the new folder `\Scripts\BiosSledeghammer_PreUpdate`.
 * To that new folder, copy all files from the main BIOS Sledgehammer folder
 * **Delete** everything in `BiosSledeghammer_PreUpdate\Shared` and in `BiosSledeghammer_PreUpdate\Models` except the folder `HP Compaq Pro 6300`
