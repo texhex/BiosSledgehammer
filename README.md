@@ -689,7 +689,7 @@ The general procedure is as follows:
 * Rename the folder `FIRST-FLASH-BIOS-2.99` to `BIOS-2.99`
 * Edit `BIOS-Update.txt` and change the VERSION parameter to `VERSION == 2.99`
 
-:information_source: **Note** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartExampleDownloads.bat` which will download the required files from HP.com.
+:information_source: **Note:** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartExampleDownloads.bat` which will download the required files from HP.com.
 
 Within MDT/SCCM, locate the second where the calls to BIOS Sledgehammer are. Just **before** the first call, insert a new section and set a WMI filter so this section will only run when the computer/device model is *HP Compaq Pro 6300*. 
 
@@ -704,7 +704,7 @@ What will happen is the following:
 
 As this `\BiosSledeghammer_PreUpdate` folder is only used for one model, it’s not necessary to keep it up to date with new releases or files, since it only serves one purpose and it’s highly unlikely that HP will ever update the BIOS 2.99 release. Of course, this folder can also support other models that might are in the need of such a Pre-Update. 
 
-:information_source: **Note** It can happen that these rather old BIOS versions are not able to read the “normal” password files (*.bin) and might insist that the BIOS password is wrong (which it wasn’t). If this happens, recreate the password files with `\HPQFlash\HpqPswd.exe` from BIOS-2.99 and store them in `BiosSledeghammer_PreUpdate\PwdFiles`.
+:information_source: **Note:** It can happen that these rather old BIOS versions are not able to read the “normal” password files (*.bin) and might insist that the BIOS password is wrong (which it wasn’t). If this happens, recreate the password files with `\HPQFlash\HpqPswd.exe` from BIOS-2.99 and store them in `BiosSledeghammer_PreUpdate\PwdFiles`.
 
 ## Using it from MDT or SCCM
 
