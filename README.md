@@ -62,7 +62,7 @@ If this sounds good to you, see [Process](#process) how BIOS Sledgehammer works,
 * Windows 7 64-bit or Windows 10 64-bit
   * Due to restrictions in several HP tools, it can **NOT** be run in Windows Preinstallation Environment (WinPE)
 * [HP BIOS Configuation Utility](https://ftp.hp.com/pub/caps-softpaq/cmit/HP_BCU.html) (BCU) stored in the folder ``\BCU-[Version]`` and the device must be supported by it. Most commercial devices that report "HP" as manufacturer are working. To cite the BCU docs:
-  * *BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
+  * BCU requires HP custom WMI namespace and WMI classes (at the namespace root\HP\InstrumentedBIOS)
 provided by BIOS. BCU will only support models with a WMI-compliant BIOS, which are most commercial HP
 desktops, notebooks, and workstations.*
 * BIOS updates file for the models you want to support
@@ -672,6 +672,39 @@ When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TP
 * See [TPM BIOS Settings](#tpm-bios-settings) for details how to do this
 
 ---------------------------------
+
+## Two-Step BIOS Update Process
+
+Some older devices require a two-step process to update, e.g. [HP Compaq Pro 6300 BIOS 3.03](http://h20564.www2.hp.com/hpsc/swd/public/detail?sp4ts.oid=5232700&swItemId=vc_176829_1&swEnvOid=4158#tab-history). It requires the user first to update the device to the transition BIOS version 2.99 (if the current version < 3.00) and then install 3.03. when trying to flash directly from anything below 2.99 to 3.xxx, the update fails.
+
+This two-step process is not directly supported by BIOS Sledgehammer but can be solved by creating a second “Pre-Update” installation of BIOS Sledgehammer that is run before your “main” installation. It is only responsible to update those older machines to an updatable BIOS version, which will happen in the main installation.
+
+The general procedure is as follows:
+
+* Create a new BIOS Sledgehammer folder, completely separated from the “main” folder. 
+* If the main folder is `\Scripts\BiosSledgehammer`, name the new folder `\Scripts\BiosSledeghammer_PreUpdate`.
+* To that new folder, copy all files from the main BIOS Sledgehammer folder
+* **Delete** everything in `BiosSledeghammer_PreUpdate\Shared` and in `BiosSledeghammer_PreUpdate\Models` except the folder `HP Compaq Pro 6300`
+* Inside that folder delete all folders and files except `FIRST-FLASH-BIOS-2.99` and `BIOS-Update.txt`
+* Rename the folder `FIRST-FLASH-BIOS-2.99` to `BIOS-2.99`
+* Edit `BIOS-Update.txt` and change the VERSION parameter to `VERSION == 2.99`
+
+:information_source: **Note** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartExampleDownloads.bat` which will download the required files from HP.com.
+
+Within MDT/SCCM, locate the second where the calls to BIOS Sledgehammer are. Just **before** the first call, insert a new section and set a WMI filter so this section will only run when the computer/device model is *HP Compaq Pro 6300*. 
+
+Insert a new command and let SCCM/MDT execute `cmd.exe /c "%SCRIPTROOT%\BiosSledgehammer_PreUpdate\RunVisible.bat"` and add a restart command after that. If you want to be sure, add another command and restart, duplicating the one you already created. This is not necessary, just a precaution.
+
+What will happen is the following:
+
+* For any device that is **NOT** a 6300, nothing will change because the section is ignored as the WMI filter does not match. This means, only the main BIOS Sledgehammer script is run as before.
+* In case the device is a Pro 6300, `\BiosSledeghammer_PreUpdate` will run and update the BIOS to 2.99. 
+* After the restart(s), the task sequence will continue, starting the main BIOS Sledgehammer (`\BiosSledeghammer`) and updating the BIOS to 3.x (or anything newer) which is now possible because the device has BIOS 2.99 already
+* If an already updated (BIOS 3.x) Pro 6300 is started again, the `\BiosSledeghammer_PreUpdate` will be executed, but since the BIOS is already newer, it won’t update anything, making the call a no-operation.
+
+As this `\BiosSledeghammer_PreUpdate` folder is only used for one model, it’s not necessary to keep it up to date with new releases or files, since it only serves one purpose and it’s highly unlikely that HP will ever update the BIOS 2.99 release. Of course, this folder can also support other models that might are in the need of such a Pre-Update. 
+
+:information_source: **Note** It can happen that these rather old BIOS versions are not able to read the “normal” password files (*.bin) and might insist that the BIOS password is wrong (which it wasn’t). If this happens, recreate the password files with `\HPQFlash\HpqPswd.exe` from BIOS-2.99 and store them in `BiosSledeghammer_PreUpdate\PwdFiles`.
 
 ## Using it from MDT or SCCM
 
