@@ -101,7 +101,7 @@ Starting with Windows 10 1703, you can in-place convert from BIOS legacy (MBR) t
 
 ## Installation
 
-BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#using-it-from-mdt-or-sccm), a good place is a new sub-folder below ``\Scripts`` in the MDT share.
+BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#using-it-from-mdt-or-sccm), a good place is a new sub-folder below ``\Scripts`` in the MDT share. If you do not use any of these tools and wish to execute the script manually, you can also use a file share from a file server or NAS. 
 
 You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](#pwdfiles-folder)).
 
@@ -301,7 +301,7 @@ The settings for a BIOS update are read from the file ``BIOS-Update.txt`` in the
 Version == 1.37
 
 # Command to be executed for the BIOS update
-Command==HPBiosUpdRec64.exe
+Command == HPBiosUpdRec64.exe
 
 # Arguments to pass to COMMAND
 
@@ -324,11 +324,11 @@ Some devices (e.g. ProBook 6570b) feature different BIOS families which require 
 Version == F.66
 
 # This model supports different BIOS families - define the update files for each of them
-68ICE==68ICE.CAB
-68ICF==68ICF.CAB
+68ICE == 68ICE.CAB
+68ICF == 68ICF.CAB
 
 # Command to be executed for the BIOS update
-Command==hpqFlash64.exe
+Command == hpqFlash64.exe
 
 # Arguments to pass to COMMAND
 
@@ -379,9 +379,7 @@ If anything goes wrong during the process, an error is generated.
 
 :warning: **WARNING!** Some versions of the update tool for the ME firmware from HP **DO NOT** check if the provided ME firmware file matches the current model. This means, they allows to flash the wrong firmware without any error message. If this happens, the machine will be FUBAR on next start (CAPS LOCK will blink 5 times and a mainboard replacement is required). Please pay extra caution when using ME firmware updates and always do a test run on a spare machine.
 
----------------------------------
-
-## (5.0 BETA DOCUMENTAION) Ignoring Management Engine (ME) detection errors
+## Ignoring Management Engine (ME) detection errors
 
 As soon as a ``ME-Update.txt`` file is found, BIOS Sledgehammer expects the Intel SA tool to be able to read the current ME version to detect if an update is required.
 
@@ -392,86 +390,12 @@ To have BIOS Sledgehammer continue, and ignore this error, use the following set
 ```cfg
 # Ignore ME detection errors
 # If activated, a failure to get the current ME version is ignored, and the script will continue.
-
 IgnoreMEDetectionError == Yes
 ```
 
 Please note however, that this can cause inconsistent ME versions of your device fleet. For example, if it is started on 10 identical devices that all have an outdated ME, but six of those devices have AMT disabled, only four will get the ME update.
 
----------------------------------
-
 ## TPM Update
-
-The settings for a TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#models-folder). Example:
-
-```cfg
-# 1040 G3 TPM Update
-
-# Manufacturer of the TPM.
-# If the value exists, the device must have this vendor or no update takes place
-Manufacturer == 1229346816
-# 1229346816 is IFX
-
-# The TPM Spec version we want this device to have
-SpecVersion == 2.0
-
-# The Firmware version we want this device to have
-FirmwareVersion == 7.41
-
-# Define the upgrade file to be used for each firmware
-# The firmware active on the device must match an entry here or no upgrade can be performed
-6.40 == Firmware\TPM12_6.40.190.0_to_TPM20_7.41.2375.0.BIN
-6.41 == Firmware\TPM12_6.41.197.0_to_TPM20_7.41.2375.0.BIN
-7.40 == Firmware\TPM20_7.40.2098.0_to_TPM20_7.41.2375.0.BIN
-
-# Command to be used to perform the TPM firmware upgrade
-Command == TPMConfig64.exe
-
-# Arguments passed to COMMAND
-Arg1 == -s
-Arg2 == -f"@@FIRMWARE_FILE@@"
-Arg3 == -p"@@PASSWORD_FILE@@"
-```
-
-The first setting **Manufacturer** is optional and can be used to ensure that the TPM firmware vendor for the device matches the update files. If it's not defined, the TPM firmware vendor is ignored.
-
-To detect if an TPM update is required, two versions need to be checked: The TPM Specification version (**SpecVersion**) and the firmware version (**FirmwareVersion**).
-
-The reason is that all TPM firmware is developed by 3rd parties so a change from TPM 1.2 to 2.0 can result in a LOWER firmware version when the vendor is changed (see [this article on the Dell wiki]( http://en.community.dell.com/techcenter/enterprise-client/w/wiki/11850.how-to-change-tpm-modes-1-2-2-0) – TPM Spec 1.2 is firmware 5.81 from WEC, TPM Spec 2.0 is firmware 1.3 from NTC). BIOS Sledgehammer checks both versions and if any of those two are higher than the current device reports, a TPM update is started.
-
-The current TPM firmware version of the device is retrieved and it is checked if the settings file contains an entry for this firmware version. Given that the current device has TPM firmware 6.40, the update can be performed as an entry for this version exists (**6.40 == Firmware\TPM12....**). However, if the device would have firmware 6.22 the update would fail because no entry for this version exists.
-
-The TPM update also requires that BitLocker is turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 as the required BitLocker PowerShell module does not exist.
-
-Once this is all set and done, the source folder is copied to %TEMP% (to avoid any network issues) and the process is started from there.
-
-:information_source: **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``TPM-<VERSION>``. If the desired TPM firmware version is ``7.41``, the folder name would be ``\TPM-7.41\``.
-
-Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the actual update process happens during POST, after the restart.
-
-If anything goes wrong during the process, an error is generated.
-
-### Special handling for 6.41 firmware
-
-BIOS Sledgehammer is able to handle the special case of the 6.41.x firmware. This firmware comes in two different versions:
-
-* 6.41.**197** is used for devices that have a TPM 1.2 by default
-* 6.41.**198** is used for devices that were downgraded from TPM 2.0 to TPM 1.2
-
-The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD number (.197 or .198) in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. However, if the firmware file specified for the update does not match **exactly**, the TPM will reject the update (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
-
-To support this special case, it is possible to define two entries for the same firmware version:
-
-```cfg
-6.41.A == Firmware\TPM12_6.41.197.0_to_TPM20_7.61.2785.0.BIN
-6.41.B == Firmware\TPM12_6.41.198.0_to_TPM20_7.61.2785.0.BIN
-```
-
-BIOS Sledgehammer will first try to flash the first file (*6.41.A*). If the TPM update executable returns a *Wrong firmware file* error, the second firmware file (*6.41.B*) is tried.
-
----------------------------------
-
-## (5.0 BETA DOCUMENTAION) TPM Update
 
 The settings for the TPM update are read from the file ``TPM-Update.txt`` in the matching [model folder](#models-folder). Example:
 
@@ -660,8 +584,6 @@ It is recommended to start BIOS Sledgehammer **four** times and restart the devi
 
 In case you used ``RunVisible.bat`` the last (4th) run should not use it but instead execute directly ``BiosSledgehammer.ps1`` using *Run PowerShell Script* with the parameter ``-Verbose``. That's because ``RunVisible.bat`` does not return any error code. So if there is a problem, this last run will make sure MDT/SCCM is getting a correct return code and can break the deployment if there is a problem. The ``-Verbose`` option will make sure that the log contains all data (even BCU output) for troubelshooting.
 
----------------------------------
-
 ## TPM Update configuration changes for v5
 
 BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
@@ -685,8 +607,6 @@ When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TP
 * When found, copy those files from your local folder and overwrite them in the productive installation
 * In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
 * See [TPM BIOS Settings](#tpm-bios-settings) for details how to do this
-
----------------------------------
 
 ## Two-Step BIOS Update Process
 
