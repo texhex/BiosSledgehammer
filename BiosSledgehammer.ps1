@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.0.6.BETA"
+$scriptversion = "5.1.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
