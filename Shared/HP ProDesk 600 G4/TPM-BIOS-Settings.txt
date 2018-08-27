@@ -1,0 +1,9 @@
+# BIOS Settings for TPM Update
+
+# No F1 prompt for TPM update
+TPM Activation Policy==No prompts
+
+#When these options are activated, no TPM upgrade can be performed
+Intel Software Guard Extensions (SGX)==Disable
+Virtualization Technology (VTx)==Disable
+

@@ -1,0 +1,74 @@
+#ProDesk 600 G4
+
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+#Legacy Boot Options == Disable
+Enable MS UEFI CA key == Yes
+
+
+## Misc
+Verbose Boot Messages == Enable
+
+# Let the BIOS do some basic init stuff
+Fast Boot == Disable
+
+# Turn LAN/WLAN Switching OFF (!) - This is the default for these devices
+LAN / WLAN Auto Switching == Disable
+
+
+## TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+
+# Security features turned ON
+Enhanced HP Firmware Runtime Intrusion Prevention and Detection == Enable
+Sure Start Secure Boot Keys Protection == Enable
+Sure Start Security Event Boot Notification == Require Acknowledgment
+Sure Start Security Event Policy == Log Event and notify user
+SureStart Production Mode == Enable
+
+
+# Security features turned OFF
+Sure Start BIOS Settings Protection == Disable
+Lock BIOS Version == Disable
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+
+
+##  CPU - General
+Turbo-boost == Enable
+Multi-processor == Enable
+
+
+## CPU Features
+
+# VTx is required for any Device Guard function
+Virtualization Technology (VTx) == Enable
+
+# Might cause issues with the GPU so disabled
+Virtualization Technology for Directed I/O (VTd) == Disable
+
+# Not needed right now 
+Intel Software Guard Extensions (SGX) == Software control
+
+
+## vPro/AMT/ME
+Active Management (AMT) == Enable
+
+
+## Ownership
+
+Asset Tracking Number == @@COMPUTERNAME@@
+# Ownership Tag == Property of ....
+
+
+##From the TCG docs:
+##> [..] defines a mechanism by which a host application can alert the storage device to block attempts
+##  to authenticate the SID authority until a subsequent device power cycle occurs. This mechanism can be 
+##  used by BIOS/platform firmware to prevent a malicious entity from taking ownership of a SID credential 
+##  that is still set to its default value of MSID. 
+#Allow OPAL Hard Drive SID Authentication==Enable
