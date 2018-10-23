@@ -1,0 +1,58 @@
+#Z2 G4 BIOS Settings
+
+## Main boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+Fast Boot == Disable
+
+
+## TPM
+TPM State == Enable
+TPM Device == Available
+TPM Activation Policy == No prompts
+
+
+## Security features turned ON
+Enhanced HP Firmware Runtime Intrusion Prevention and Detection == Enable
+Sure Start Secure Boot Keys Protection == Enable
+Sure Start Security Event Boot Notification == Require Acknowledgment
+Sure Start Security Event Policy == Log Event and notify user
+SureStart Production Mode == Enable
+
+
+## BIOS security settings
+Sure Start BIOS Settings Protection == Disable
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+Lock BIOS Version == Disable
+Absolute Persistence Module Current State == Inactive
+
+
+## CPU settings
+Hyperthreading == Enable
+Multi-processor == Enable
+Turbo-boost == Enable
+
+
+## CPU features
+Virtualization Technology (VTx) == Enable
+Virtualization Technology for Directed I/O (VTd) == Enable
+#the value is not called "Software Controlled" in this BIOS version
+Intel Software Guard Extensions (SGX) == Software control
+Trusted Execution Technology (TXT) == Disable
+
+
+## Intel ME
+Intel Active Management Technology (AMT) == Disable
+
+
+## Other settings
+S4/S5 Maximum Power Savings == Disable
+#NumLock on at boot == Enable
+
+
+## Ownership
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+

@@ -1,0 +1,19 @@
+# Z2 G4 ME Update
+
+# The ME firmware version the device should have
+Version == 12.0.7.1122
+
+#Command to be executed for the ME update
+
+# NOTE: CallInst.exe is NOT included in the original  
+#       download from HP. Please copy this file from 
+#       a ME-xxx folder from a different model. 
+
+Command == CallInst.exe
+Arg1 == /app silent.bat
+Arg2 == /hide
+
+
+# Ignore ME detection errors
+# If activated, a failure to get the current ME version is ignored, and the script will continue.
+IgnoreMEDetectionError == Yes
