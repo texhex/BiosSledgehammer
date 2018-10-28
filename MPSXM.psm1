@@ -1,5 +1,5 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.28.4
+# Version 3.29.2
 # https://github.com/texhex/MPSXM
 #
 # Copyright © 2010-2018 Michael 'Tex' Hex 
@@ -253,9 +253,28 @@ Function Get-StringHasData()
 
 Function Test-String()
 <#
+A word of warning: Whatever we are doing here, it's flawed. As we are processing strings here, 
+we should take the local character handling rules into account.
+
+However, this can lead to the situation where this function becomes non-deterministic as the same 
+output leads to different results, as it depends on current rules (in .NET terms: Current Culture). 
+Which means, the function might have a bug on a system (because of the current rules applied 
+“in the background” because of the culture) and when somebody else tries to reproduce this, the bug 
+disappears because that system is using different rules (as it uses a different culture).
+
+We will therefore use CultureInfo.InvariantCulture which should allow the function to be deterministic
+as the current rules are ignored. 
+ 
+This might lead to other bugs as a user expects the function to respect local rule “A”, but at least 
+the bug will be reproducible. 
+
+Please also see:
+https://stackoverflow.com/a/9760339
+https://www.jetbrains.com/help/resharper/2018.2/SpecifyACultureInStringConversionExplicitly.html
+-----------------------------------
+
  -IsNullOrWhiteSpace:
    Helper function for [string]::IsNullOrWhiteSpace - http://msdn.microsoft.com/en-us/library/system.string.isnullorwhitespace%28v=vs.110%29.aspx
- 
 
    Test-String "a" -IsNullorWhitespace #false
    Test-String $null -IsNullorWhitespace #$true
@@ -267,10 +286,13 @@ Function Test-String()
    String is not IsNullOrWhiteSpace
 
  -Contains
-   Standard Contains() or IndexOf
+   Standard IndexOf
 
  -StartsWith
    Uses string.StartsWith() with different parameters
+
+ -EndsWith
+   Uses string.EndsWith() with different parameters
 #> 
 {   
     #.SYNOPSIS
@@ -286,10 +308,13 @@ Function Test-String()
     #Returns true if the string contains data (not $null, empty or only white spaces)
     #
     #.PARAMETER Contains
-    #Returns true if string contains the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If any of the strings do not contain data, $false is returned.
+    #Returns true if string contains the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If this parameter or SearchFor does not contain data, $false is returned.
     #
     #.PARAMETER StartsWith
-    #Returns true if the string starts with the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If any of the strings do not contain data, $false is returned.
+    #Returns true if the string starts with the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If this parameter or SearchFor does not contain data, $false is returned.
+    #
+    #.PARAMETER EndsWith
+    #Returns true if the string ends with the text in SearchFor. A case-insensitive (ABCD = abcd) is performed by default. If this parameter or SearchFor does not contain data, $false is returned.
     #
     #.PARAMETER SearchFor
     #The string beeing sought
@@ -300,12 +325,13 @@ Function Test-String()
     #.OUTPUTS
     #bool
 
+
     [OutputType([bool])]  
     param (
         #Be aware that PowerShell will move the  first string it finds to this parameter,
         #as this parameter is not mandatory. E.g. when calling this function as 
         #Test-String -Contains "X", "X" will in $string, not in $searchFor!
-        #But we require the not mandatory parameter or else  we can not pass empty strings here.
+        #But we require the not mandatory parameter or else we can not pass empty strings here.
         [Parameter(Mandatory = $false, Position = 1)] 
         [string]$String = $null,
 
@@ -321,12 +347,17 @@ Function Test-String()
         [Parameter(ParameterSetName = "StartsWith", Mandatory = $true)]
         [switch]$StartsWith,
 
+        [Parameter(ParameterSetName = "EndsWith", Mandatory = $true)]
+        [switch]$EndsWith,
+
         [Parameter(ParameterSetName = "Contains", Position = 2, Mandatory = $false)] #$False or we can not pass an empty string in
-        [Parameter(ParameterSetName = "StartsWith", Position = 2, Mandatory = $false)]         
+        [Parameter(ParameterSetName = "StartsWith", Position = 2, Mandatory = $false)]
+        [Parameter(ParameterSetName = "EndsWith", Position = 2, Mandatory = $false)]
         [string]$SearchFor,
 
-        [Parameter(ParameterSetName = "Contains", Mandatory = $false)] 
-        [Parameter(ParameterSetName = "StartsWith", Mandatory = $false)] #$False or we can not pass an empty string in
+        [Parameter(ParameterSetName = "Contains", Mandatory = $false)] #$False or we can not pass an empty string in
+        [Parameter(ParameterSetName = "StartsWith", Mandatory = $false)]
+        [Parameter(ParameterSetName = "EndsWith", Mandatory = $false)]
         [Switch]$CaseSensitive = $false
     )
 
@@ -365,7 +396,11 @@ Function Test-String()
             {
                 if ( $CaseSensitive ) 
                 {
-                    $result = $String.Contains($SearchFor)
+                    #<string>.Contains: This method performs an ordinal (case-sensitive and culture-insensitive) comparison.
+                    #$result = $String.Contains($SearchFor)
+
+                    #We are using IndexOf to make sure we are using the same method in any case
+                    $result = ( $String.IndexOf($SearchFor, [StringComparison]::Ordinal) ) -ge 0
                 }
                 else
                 {
@@ -377,7 +412,8 @@ Function Test-String()
                     #$index=$String.IndexOf($SearchFor, ([System.StringComparer]::OrdinalIgnoreCase))
                     #$index=$String.IndexOf($SearchFor, "System.StringComparison.OrdinalIgnoreCase")       
         
-                    #We could also use [StringComparison]::CurrentCultureIgnoreCase but it seems OrdinalIgnoreCase does the job also
+                    #According to https://docs.microsoft.com/de-de/dotnet/standard/base-types/best-practices-strings?view=netframework-4.7.2
+                    #Ordinal operations are the safest and fastes method available
                     $result = ( $String.IndexOf($SearchFor, [StringComparison]::OrdinalIgnoreCase) ) -ge 0
                 }
             }
@@ -398,11 +434,35 @@ Function Test-String()
             {
                 if ( $CaseSensitive ) 
                 {
-                    $result = $String.StartsWith($SearchFor)
+                    $result = $String.StartsWith($SearchFor, [StringComparison]::Ordinal)
                 }
                 else
                 {
                     $result = $String.StartsWith($SearchFor, [StringComparison]::OrdinalIgnoreCase)
+                }
+            }
+        }
+
+        "EndsWith"
+        {
+            
+            #If either $string or $searchFor is $null, the result is always $false
+            if (
+                ([string]::IsNullOrWhiteSpace($String)) -or
+                ([string]::IsNullOrWhiteSpace($SearchFor))
+            )
+            {
+                $result = $false
+            }
+            else
+            {
+                if ( $CaseSensitive ) 
+                {
+                    $result = $String.EndsWith($SearchFor, [StringComparison]::Ordinal)
+                }
+                else
+                {
+                    $result = $String.EndsWith($SearchFor, [StringComparison]::OrdinalIgnoreCase)
                 }
             }
         }
@@ -416,7 +476,6 @@ Function Test-String()
 
 #Yes, I'm aware of $env:TEMP but this will always return a 8+3 path, e.g. C:\USERS\ADMIN~1\AppData..."
 #This function returns the real path without that "~" garbage
-
 Function Get-TempFolder() 
 {   
     #.SYNOPSIS
@@ -550,19 +609,28 @@ Function Start-TranscriptTaskSequence()
     catch
     {
         $logPath = $env:windir + "\temp"
-        Write-Verbose "Start-TranscriptTaskSequence: This script is not running in a task sequence, will use [$logPath]"
+        Write-Verbose "Start-TranscriptTaskSequence: This script is not running in a task sequence, defaulting to [$logPath]"
     }
 
-    $logName = Split-Path -Path $myInvocation.ScriptName -Leaf   
-    Write-Verbose "Start-TranscriptTaskSequence: Using logfile $($logName)"
- 
-    if ( $NewLog ) 
+    #Use the calling script as the name of the logfile. In case ScriptName is not set, we are using PowerShell 3+ command path
+    if ( Test-String $myInvocation.ScriptName -HasData )
     {
-        Start-TranscriptIfSupported -Path $logPath -Name $logName -NewLog 
+        $logName = $myInvocation.ScriptName
     }
     else
     {
-        Start-TranscriptIfSupported -Path $logPath -Name $logName
+        $logName = $PSCommandPath
+    }
+    $logName = Split-Path -Path $logName -Leaf   
+    Write-Verbose "Start-TranscriptTaskSequence: Using log filename [$($logName)]"
+ 
+    if ( $NewLog ) 
+    {
+        Start-TranscriptIfSupported -Path $logPath -Name $logName -NewLog -Verbose:$VerbosePreference
+    }
+    else
+    {
+        Start-TranscriptIfSupported -Path $logPath -Name $logName -Verbose:$VerbosePreference
     }
 
 }
@@ -588,26 +656,50 @@ Function Start-TranscriptIfSupported()
 #>    
     param(
         [Parameter(Mandatory = $False, Position = 1)]
-        [string]$Path = $env:TEMP,
+        [AllowEmptyString()] #This allows to set this parameter in a call, altough the value is empty
+        [string]$Path,
 
         [Parameter(Mandatory = $False, Position = 2)]
+        [AllowEmptyString()] #This allows to set this parameter in a call, altough the value is empty
         [string]$Name,
   
         [Parameter(Mandatory = $False)]
         [switch]$NewLog = $False
     )
 
-    if ( Test-String -IsNullOrWhiteSpace $Name )
+    #Check if we got a working path. If not, default to TEMP
+    if ( Test-String -IsNullOrWhiteSpace $Path )
     {
-        $Name = Split-Path -Path $myInvocation.ScriptName -Leaf   
+        $Path = $env:TEMP
+        Write-Verbose "Start-TranscriptIfSupported: Path parameter was not specified or is empty, defaulting to [$Path]"
+    }
+    else
+    {            
+        #Check if the given folder exists and default to TEMP if not
+        if ( -not (Test-DirectoryExists $Path) )
+        {
+            write-error "Start-TranscriptIfSupported: Given path [$Path] does not exist, defaulting to [$($env:TEMP)]" -ErrorAction Continue
+            $Path = $env:TEMP
+        }
     }
 
-    if ( -not (Test-DirectoryExists $Path) )
+    #Check if a log file name was given. If not, use the current script name
+    if ( Test-String -IsNullOrWhiteSpace $Name )
     {
-        write-error "Logfile path [$Path] does not exist, defaulting to [$($env:TEMP)]" -ErrorAction Continue
-        $Path = $env:TEMP
+        #Use the calling script as the name of the logfile. In case ScriptName is not set, we are using PowerShell 3+ command path
+        if ( Test-String $myInvocation.ScriptName -HasData )
+        {
+            $Name = $myInvocation.ScriptName
+        }
+        else
+        {
+            $Name = $PSCommandPath
+        }
+        $Name = Split-Path -Path $Name -Leaf   
+
+        Write-Verbose "Start-TranscriptIfSupported: Name parameter was not specified or is empty, will use [$Name]"
     }
- 
+
     $logFileTemplate = "$($Name).log"
     $extension = "txt" #always use lower case chars only!
  
@@ -687,7 +779,7 @@ Function Start-TranscriptIfSupported()
 
     try 
     {
-        write-verbose "Trying to execute Start-Transcript for $logFile"
+        write-verbose "Start-TranscriptIfSupported: Log will be written to [$logFile]"
         Start-Transcript -Path $logfile
     }
     catch [System.Management.Automation.PSNotSupportedException]
@@ -2267,7 +2359,7 @@ Function Test-DirectoryExists()
         [ValidateNotNullOrEmpty()]
         [string]$Path
     )
-    return Test-Path -Path $Path -PathType Container
+    return Test-Path -LiteralPath $Path -PathType Container
 }
 
 
@@ -2289,7 +2381,7 @@ Function Test-FileExists()
         [ValidateNotNullOrEmpty()]
         [string]$Path
     )
-    return Test-Path -Path $Path -PathType Leaf
+    return Test-Path -LiteralPath $Path -PathType Leaf
 }
 
 

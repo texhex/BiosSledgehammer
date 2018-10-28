@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.1.0"
+$scriptversion = "5.1.1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -40,6 +40,8 @@ Set-StrictMode -version 2.0
 #Import Module with some helper functions
 Import-Module $PSScriptRoot\MPSXM.psm1 -Force
 
+#Verbose output in case the script dies early
+Write-Verbose "BIOS Sledgehammer $scriptVersion starting"
 
 #----- ACTIVATE DEBUG MODE WHEN RUNNING IN ISE -----
 $DebugMode = Test-RunningInEditor
@@ -51,9 +53,9 @@ if ( $DebugMode )
 }
 #----DEBUG----
 
+#Log the output and ensure this function also writes verbose output if it's activated
+Start-TranscriptTaskSequence -NewLog -Verbose:$VerbosePreference
 
-#log the output
-Start-TranscriptTaskSequence -NewLog
 
 #This banner was taken from http://chris.com/ascii/index.php?art=objects/tools
 #region BANNER
