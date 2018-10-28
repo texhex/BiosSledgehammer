@@ -1,5 +1,5 @@
 ﻿# Michael's PowerShell eXtension Module
-# Version 3.29.2
+# Version 3.29.3
 # https://github.com/texhex/MPSXM
 #
 # Copyright © 2010-2018 Michael 'Tex' Hex 
@@ -604,7 +604,17 @@ Function Start-TranscriptTaskSequence()
     {
         $tsenv = New-Object -COMObject Microsoft.SMS.TSEnvironment
         $logPath = $tsenv.Value("LogPath")
-        Write-Verbose "Start-TranscriptTaskSequence: Running in task sequence, using folder [$logPath]"
+
+        if ( Test-String -HasData $logPath )
+        {
+            Write-Verbose "Start-TranscriptTaskSequence: Running in task sequence, using path from [LogPath] variable: [$logPath]"
+        }
+        else            
+        {
+            #In case this value comes back empty, default to WINDIR\Temp
+            $logPath = $env:windir + "\temp"
+            Write-Verbose "Start-TranscriptTaskSequence: Running in task sequence, but [LogPath] variable is empty; defaulting to [$logPath]"
+        }
     }
     catch
     {
