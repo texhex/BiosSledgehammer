@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.1.1"
+$scriptversion = "5.1.2"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -651,7 +651,8 @@ function Get-BiosValue()
                 Set-Location $($TEMP_FOLDER) | Out-Null
          
                 #$output=&$BCU_EXE -getvalue $Name | Out-String
-                $output = &$BCU_EXE /GetValue:`"$Name`" | Out-String
+                #$output = &$BCU_EXE /GetValue:`"$Name`" | Out-String
+                $output = &$BCU_EXE /GetValue:""$Name"" | Out-String
 
                 Set-Location $previousLocation -ErrorAction SilentlyContinue | Out-Null
 
@@ -822,12 +823,14 @@ function Set-BiosPassword()
                     if ( Test-String -HasData $CurrentPasswordFile )
                     {
                         #BCU expects an empty string if the password should be set to empty, so we use the parameter directly
-                        $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
+                        #$output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
+                        $output = &$BCU_EXE /nspwdfile:""$newPasswordFile_FullPath"" /cspwdfile:""$CurrentPasswordFile"" | Out-String
                     }
                     else
                     {
                         #Currently using an empty password
-                        $output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" | Out-String                  
+                        #$output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" | Out-String
+                        $output = &$BCU_EXE /nspwdfile:""$newPasswordFile_FullPath"" | Out-String
                     }
 
                     #Let this function figure out what this means     
@@ -916,19 +919,16 @@ function Set-BiosValue()
         #This "," causes PowerShell to put the value into the NEXT argument!
         #Therefore it must be escapced using "`,".
         if ( Test-String -IsNullOrWhiteSpace $passwordfile )
-        {
-          
+        {          
             #No password defined
             write-verbose "   Will not use a password file" 
-            $output = &$BCU_EXE /setvalue:"$name"`,"$value" | Out-String 
-
+            $output = &$BCU_EXE /setvalue:"$name"`,"$value" | Out-String
         }
         else
         {        
           
             write-verbose "   Using password file $passwordfile" 
             $output = &$BCU_EXE /setvalue:"$name"`,"$value" /cpwdfile:"$passwordFile" | Out-String 
-
         }
 
         #Get a parsed result
