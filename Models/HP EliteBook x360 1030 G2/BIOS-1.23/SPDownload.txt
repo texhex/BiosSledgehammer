@@ -1,0 +1,4 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.html
+
