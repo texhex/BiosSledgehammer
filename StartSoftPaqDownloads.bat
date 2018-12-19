@@ -12,7 +12,7 @@ IF EXIST "%PS_EXE_SYSNATIVE%" SET PS_EXE=%PS_EXE_SYSNATIVE%
 echo.
 echo Starting script, please wait...
 echo.
-%PS_EXE% -ExecutionPolicy Bypass -File "%~dp0StartExampleDownloads.ps1"
+%PS_EXE% -ExecutionPolicy Bypass -File "%~dp0StartSoftPaqDownloads.ps1"
 
 pause
 

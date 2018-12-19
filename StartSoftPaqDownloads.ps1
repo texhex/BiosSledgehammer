@@ -1,13 +1,13 @@
 ﻿<#
- Start Example Downloads v1.08
- Copyright © 2015-2017 Michael 'Tex' Hex 
+ Start SoftPaq Downloads
+ Copyright © 2015-2019 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
 #>
 
 #Script version
-$scriptversion = "1.1.2"
+$scriptversion = "1.1.3"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
