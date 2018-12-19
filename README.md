@@ -101,11 +101,11 @@ Starting with Windows 10 1703, you can in-place convert from BIOS legacy (MBR) t
 
 ## Installation
 
-BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#using-it-from-mdt-or-sccm), a good place is a new sub-folder below ``\Scripts`` in the MDT share. If you do not use any of these tools and wish to execute the script manually, you can also use a file share from a file server or NAS. 
+BIOS Sledgehammer is "installed" by copying it to a folder where the device, that should run it, can execute it. Just store the contents of the ZIP archive (see [Releases](https://github.com/texhex/BiosSledgehammer/releases)) all in the same folder and don't rename any folder (``\PwdFiles``, ``\Models`` etc.). In case you want to run it from [MDT/SCCM](#using-it-from-mdt-or-sccm), a good place is a new sub-folder below ``\Scripts`` in the MDT share. If you do not use any of these tools and wish to execute the script manually, you can also use a file share from a file server or NAS.
 
 You still need to customize some files so it works in your environment. The first thing should be to create the password files so BIOS Sledgehammer is able to access the BIOS (see [PwdFiles folder](#pwdfiles-folder)).
 
-The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#models-folder) and [Shared folder](#shared-folder). Those examples lack the required BIOS, ME or TPM update files from HP. To acquire them, just start ``StartExampleDownloads.bat`` which will download and store them automatically.
+The configuration for your different models is up to you, but the archive comes with several example in the [Models folder](#models-folder) and [Shared folder](#shared-folder). Those examples lack the required BIOS, ME or TPM update files from HP. To acquire them, just start ``StartSoftPaqDownloads.bat`` which will download and store them automatically.
 
 :exclamation: **IMPORTANT!** The settings and downloaded files in ``\Models`` and ``\Shared`` are just examples; there might be newer firmware files available from HP, the settings provided might not match you environment etc. Please do not use these examples "as is" in production.
 
@@ -247,41 +247,6 @@ Because the procedures to find the correct folder and settings files in \Models 
 
 For more examples, see the \Models folder in the downloaded archive.
 
-<!----------------------------------
-
-````text
-.
-├── BENCHMARKS.md
-├── CHANGELOG.md
-├── LICENSE.md
-├── Makefile
-├── README.md
-├── bin
-│   └── Crunch.app
-│       └── Contents
-│           ├── Info.plist
-│           ├── MacOS
-│           │   └── Crunch
-│           └── Resources
-│               ├── AppSettings.plist
-│               ├── Credits.html
-│               ├── MainMenu.nib
-│               │   ├── designable.nib
-│               │   └── keyedobjects.nib
-│               ├── appIcon.icns
-│               ├── clear.html
-│               ├── complete.html
-│               ├── execution.html
-│               ├── fastdots.gif
-│               ├── pngquant
-│               ├── script
-│               ├── slowdots.gif
-│               ├── start.html
-│               └── zopflipng
-````
-
----------------------------------->
-
 ## *PwdFiles* folder
 
 The ``\PwdFiles`` folder stores all BIOS passwords that your devices might use. When BIOS Sledgehammer starts, it tries every file in this folder until the password for the device has been found (an empty password is automatically added, there is no file for this). If no password file matches, an error is generated.
@@ -389,7 +354,7 @@ To have BIOS Sledgehammer continue, and ignore this error, use the following set
 
 ```cfg
 # Ignore ME detection errors
-# If activated, a failure to get the current ME version is ignored, and the script will continue.
+# If activated, a failure to get the current ME version is ignored and the script will continue.
 IgnoreMEDetectionError == Yes
 ```
 
@@ -443,11 +408,11 @@ To detect if an TPM update is required, two versions need to be checked: The TPM
 The problem is that the [Win32_TPM](https://msdn.microsoft.com/en-us/library/windows/desktop/aa376484(v=vs.85).aspx) CIM class does not provide the BUILD number (.197 or .198) in the ``ManufacturerVersion`` field. Therefore, it can not be detected which 6.41 firmware is currently active. However, if the firmware file specified for the update does not match **exactly**, the TPM will reject the update (Full details in [Issue #9](https://github.com/texhex/BiosSledgehammer/issues/9)).
 -->
 
-TPM updates differ from other updates as they require a special From-To firmware file. This means, if the device is currently using version 7.40 and an update to 7.63 is required, a firmware file exactly for this From-To combination (TPM20_7.40_to_TPM20_7.63) is required. Together with the above noted limitation, selecting the correct firmware file can be tricky. 
+TPM updates differ from other updates as they require a special From-To firmware file. This means, if the device is currently using version 7.40 and an update to 7.63 is required, a firmware file exactly for this From-To combination (TPM20_7.40_to_TPM20_7.63) is required. Together with the above noted limitation, selecting the correct firmware file can be tricky.
 
-Starting with [SoftPaq #87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware by using the parameter ``-a``. This is the method BIOS Sledgehammer uses and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` has to be in ``TPM-Update.txt``. 
+Starting with [SoftPaq #87492](https://ftp.hp.com/pub/softpaq/sp87001-87500/sp87492.html), HP offers TPMConfig64.exe v2 which can automatically select the correct From-To firmware by using the parameter ``-a``. This is the method BIOS Sledgehammer uses and to document this, the entry ``UpgradeFirmwareSelection==ByTPMConfig`` has to be in ``TPM-Update.txt``.
 
-To allow TPMConfig64.exe this automatic selection, it is required that the firmware files are in the same folder as the EXE itself. Since the SoftPaq stores these files in the subfolder \src, the configuration entry ``AdditionalFilesDirectory == src`` will instruct BIOS Sledgehammer to copy the firmware files from \src to the root of the temporary folder used during update. 
+To allow TPMConfig64.exe this automatic selection, it is required that the firmware files are in the same folder as the EXE itself. Since the SoftPaq stores these files in the subfolder \src, the configuration entry ``AdditionalFilesDirectory == src`` will instruct BIOS Sledgehammer to copy the firmware files from \src to the root of the temporary folder used during update.
 
 A TPM update also requires that BitLocker is turned off (as any BitLocker keys are lost during the upgrade), so BIOS Sledgehammer will check if the system drive C: is encrypted with BitLocker and starts an automatic decryption before executing the update. This works for Windows 10, but fails in Windows 7 as the required BitLocker PowerShell module does not exist.
 
@@ -520,7 +485,7 @@ Regarding BIOS passwords, please also note the following:
 To create a password file, do the following:
 
 * Download any newer BIOS release from HP, e.g. [SoftPaq #85233](https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85233.exe)
-* Open a command prompt with administrative priviledges and change to the folder the SPxxx.exe was downloaded to
+* Open a command prompt with administrative privileges and change to the folder the SPxxx.exe was downloaded to
 * Execute *SPxxxx.exe -s -e* (e.g. `SP85233.exe -s -e`)
 * The contents of the SoftPaq will be extract to *C:\SWSetup\SPxxxx*, e.g. `C:\SWSetup\SP85233`
 * Start `HpqPswd64.exe` from that location
@@ -584,6 +549,43 @@ It is recommended to start BIOS Sledgehammer **four** times and restart the devi
 
 In case you used ``RunVisible.bat`` the last (4th) run should not use it but instead execute directly ``BiosSledgehammer.ps1`` using *Run PowerShell Script* with the parameter ``-Verbose``. That's because ``RunVisible.bat`` does not return any error code. So if there is a problem, this last run will make sure MDT/SCCM is getting a correct return code and can break the deployment if there is a problem. The ``-Verbose`` option will make sure that the log contains all data (even BCU output) for troubelshooting.
 
+## Adding firmware files
+
+BIOS Sledgehammer requires firmware files (BIOS, TPM etc.) from HP to update a device, which are distributed as SoftPaqs (self-extracting executables). Before they can be used, they need to be extracted and stored in a matching folder.
+
+ This section will explain the required steps based on a [new BIOS update](#bios-update) for the *HP EliteBook x360 1030 G2*, but the general procedure applies to all firmware files for all models.
+
+* Locate the new BIOS for this model. The easiest way is to search for *HP EliteBook x360 1030 G2 bios download* using Google which should bring you directly to the *HP Software and Driver Downloads* page
+* On this page, expand the section BIOS and make a note of the current BIOS version (1.23 as of writing this) and download the SoftPaq file (*SP90109.exe*)
+* Open a command prompt with administrative privileges and change to the folder the SoftPaq was downloaded to
+* Execute `SP90109.exe -s -e` (Silent extract) to extract the archive to `C:\SWSetup\SP90109`
+* Open the matching [model folder](#models-folder) for the model on your BIOS Sledgehammer installation, e.g. `\\MDTSRV01\MDT$\Scripts\BiosSledgehammer\Models\HP EliteBook x360 1030 G2\`
+* Create a new folder that matches the firmware type and the version. As this is a BIOS file and the version is 1.23, create the folder `\BIOS-1.23`. In this example, the full path would be `\\MDTSRV01\MDT$\Scripts\BiosSledgehammer\Models\HP EliteBook x360 1030 G2\BIOS-1.23`
+* Copy the files from `C:\SWSetup\SP90109` to this new folder so that for example `HPBiosUpdRec64.exe` is found directly inside the `\BIOS-1.23` folder
+* Update the file `BIOS-Update.txt` in the [model folder](#models-folder) to the new version. 
+
+```cfg
+# The BIOS version the device should be on
+Version == 1.23
+```
+
+BIOS Sledgehammer also comes with `StartSoftPaqDownloads.bat` which can take care of the entire download, extract and copy process, given you provide a text file with the required URLs of the downloads. To use this method, do the following:
+
+* On the HP download page, right-click the download button and select *Copy link location* / *Copy link address*. In this example, it’s `https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.exe`
+* Create the required folder `\BIOS-1.23` in the [model folder](#models-folder)
+* Create a new text file called `SPDownload.txt` in this folder with the following content:
+
+```cfg
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.html
+```
+
+* The *SPaqURL* value contains the URL for the SoftPaq itself, while *NoteURL* is the name of the release notes HTML document. This is always the name of the SoftPaq but with the *html* extension instead of EXE.
+* Run `StartSoftPaqDownloads.bat` which will download `SP90109.exe` (and the HTML file), extract it and copy the results to `\BIOS-1.23`. As `StartSoftPaqDownloads.bat` will only download files that have not been downloaded so far, you can run it as often as you want without fearing it will pull gigabytes of data on every run
+* When it’s finished, update `BIOS-Update.txt` in the [model folder](#models-folder)
+
+:exclamation: **IMPORTANT** Please make sure to only use http**S** links within `SPDownload.txt` to make sure the files are originating from hp.com.
+
 ## TPM Update configuration changes for v5
 
 BIOS Sledgehammer 5.x (or newer) requires changes to TPM-Update.txt and the TPM updates files that are not compatible with 4.x or earlier.
@@ -593,7 +595,7 @@ From v5 on, the update tool (TPMConfig64.exe v2) decides which TPM firmware file
 Please do the following:
 
 * Make a copy of your current productive installation (e.g. just copy \Scripts\BiosSledgehammer\ so you can access it when something goes wrong)
-* Download the [newest release]( https://github.com/texhex/BiosSledgehammer/releases) and unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine. Then start `StartExampleDownloads.bat` so the newest releases from HP are downloaded
+* Download the [newest release]( https://github.com/texhex/BiosSledgehammer/releases) and unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine. Then start `StartSoftPaqDownloads.bat` so the newest releases from HP are downloaded
 * When finished, delete the folder `\Shared\TPM SLB 9670` in your current productive installation.
 * Copy the local folder (e.g. `C:\Temp\BiosSledge\Shared\TPM SLB 9670`) with all files and sub folders to your productive installation. This will ensure that the newest TPM-Update.txt and associate TPM firmware files are in place
 * Next, search the folder `\Models\` of your productive installation for any `TPM-Update.txt` file (ignore any `Shared-TPM-Update.txt` file for now). If you find a file, this indicates that this model is not yet switched to the shared folder.
@@ -605,7 +607,7 @@ When done, the next step is to replace all `Shared-TPM-BIOS-Settings.txt` or `TP
 
 * Search your entire productive installation for `Shared-TPM-BIOS-Settings.txt` or `TPM-BIOS-Settings.txt` files
 * When found, copy those files from your local folder and overwrite them in the productive installation
-* In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update. 
+* In case your installation supports models that are not included in our examples, please update your files to disable *VTx* for the TPM update.
 * See [TPM BIOS Settings](#tpm-bios-settings) for details how to do this
 
 ## Two-Step BIOS Update Process
@@ -624,7 +626,7 @@ The general procedure is as follows:
 * Rename the folder `FIRST-FLASH-BIOS-2.99` to `BIOS-2.99`
 * Edit `BIOS-Update.txt` and change the VERSION parameter to `VERSION == 2.99`
 
-:information_source: **Note:** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartExampleDownloads.bat` which will download the required files from HP.com.
+:information_source: **Note:** This of course requires that the folder `BIOS-2.99` contains the BIOS update files. If your installation does not, just download the [latest release]( https://github.com/texhex/BiosSledgehammer/releases/), unpack it and run `StartSoftPaqDownloads.bat` which will download the required files from HP.com.
 
 Within MDT/SCCM, locate the second where the calls to BIOS Sledgehammer are. Just **before** the first call, insert a new section and set a WMI filter so this section will only run when the computer/device model is *HP Compaq Pro 6300*.
 
