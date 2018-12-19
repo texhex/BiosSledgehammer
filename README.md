@@ -562,7 +562,7 @@ BIOS Sledgehammer requires firmware files (BIOS, TPM etc.) from HP to update a d
 * Open the matching [model folder](#models-folder) for the model on your BIOS Sledgehammer installation, e.g. `\\MDTSRV01\MDT$\Scripts\BiosSledgehammer\Models\HP EliteBook x360 1030 G2\`
 * Create a new folder that matches the firmware type and the version. As this is a BIOS file and the version is 1.23, create the folder `\BIOS-1.23`. In this example, the full path would be `\\MDTSRV01\MDT$\Scripts\BiosSledgehammer\Models\HP EliteBook x360 1030 G2\BIOS-1.23`
 * Copy the files from `C:\SWSetup\SP90109` to this new folder so that for example `HPBiosUpdRec64.exe` is found directly inside the `\BIOS-1.23` folder
-* Update the file `BIOS-Update.txt` in the [model folder](#models-folder) to the new version. 
+* Update the file `BIOS-Update.txt` in the [model folder](#models-folder):
 
 ```cfg
 # The BIOS version the device should be on
@@ -582,9 +582,11 @@ NoteURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.html
 
 * The *SPaqURL* value contains the URL for the SoftPaq itself, while *NoteURL* is the name of the release notes HTML document. This is always the name of the SoftPaq but with the *html* extension instead of EXE.
 * Run `StartSoftPaqDownloads.bat` which will download `SP90109.exe` (and the HTML file), extract it and copy the results to `\BIOS-1.23`. As `StartSoftPaqDownloads.bat` will only download files that have not been downloaded so far, you can run it as often as you want without fearing it will pull gigabytes of data on every run
-* When it’s finished, update `BIOS-Update.txt` in the [model folder](#models-folder)
+* When finished, update `BIOS-Update.txt` in the [model folder](#models-folder)
 
-:exclamation: **IMPORTANT** Please make sure to only use http**S** links within `SPDownload.txt` to make sure the files are originating from hp.com.
+:exclamation: **IMPORTANT** Please make sure to only use http**S** links within `SPDownload.txt` to ensure  the files are originating from hp.com.
+
+You also have the option to let a batch file generate `SPDownload.txt` for you; it only require the SoftPaq number for this. You can find this batch file in the first message for [issue #75](https://github.com/texhex/BiosSledgehammer/issues/75).
 
 ## TPM Update configuration changes for v5
 
