@@ -647,7 +647,7 @@ Any constructive contribution is very welcome!
 
 If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose (``.\BiosSledgehammer.ps1 -Verbose``) and attach the logfile to [new issue](https://github.com/texhex/BiosSledgehammer/issues/new).
 
-## License
+## [License](#license)
 
 ``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2018 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
