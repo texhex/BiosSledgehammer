@@ -580,13 +580,13 @@ SPaqURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.exe
 NoteURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.html
 ```
 
+:exclamation: **IMPORTANT** Please make sure to only use http**S** links within `SPDownload.txt` to ensure  the files are originating from hp.com.
+
 * The *SPaqURL* value contains the URL for the SoftPaq itself, while *NoteURL* is the name of the release notes HTML document. This is always the name of the SoftPaq but with the *html* extension instead of EXE.
 * Run `StartSoftPaqDownloads.bat` which will download `SP90109.exe` (and the HTML file), extract it and copy the results to `\BIOS-1.23`. As `StartSoftPaqDownloads.bat` will only download files that have not been downloaded so far, you can run it as often as you want without fearing it will pull gigabytes of data on every run
 * When finished, update `BIOS-Update.txt` in the [model folder](#models-folder)
 
-:exclamation: **IMPORTANT** Please make sure to only use http**S** links within `SPDownload.txt` to ensure  the files are originating from hp.com.
-
-You also have the option to let a batch file generate `SPDownload.txt` for you; it only require the SoftPaq number for this. You can find this batch file in the first message for [issue #75](https://github.com/texhex/BiosSledgehammer/issues/75).
+You can also let a batch file generate `SPDownload.txt` for you; it only require the SoftPaq number as input. You find this batch file in the first message for [issue #75](https://github.com/texhex/BiosSledgehammer/issues/75).
 
 ## TPM Update configuration changes for v5
 
