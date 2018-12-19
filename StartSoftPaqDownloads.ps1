@@ -1,13 +1,13 @@
 ﻿<#
  Start SoftPaq Downloads
- Copyright © 2015-2019 Michael 'Tex' Hex 
+ Copyright © 2015-2018 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
 #>
 
 #Script version
-$scriptversion = "1.1.3"
+$scriptversion = "1.1.4"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -28,14 +28,20 @@ Import-Module $PSScriptRoot\MPSXM.psm1 -Force
 
 function Get-UserConfirm()
 {
+    param(
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$BaseFolder
+    )
+
     #from https://social.technet.microsoft.com/Forums/scriptcenter/en-US/3d8f242b-199b-4d4c-b973-0246ce1c065c/windows-powershell-tip-of-the-week-is-there-an-easy-way-to-display-and-process-confirmation?forum=ITCG
     #by Shay Levi (https://social.technet.microsoft.com/profile/shay%20levi)
 
-    $caption = "BIOS Sledgehammer: Start Example Downloads v$scriptversion"
-    $message = "This script will download BIOS and TPM update files from HP.com for all . Ready to start?"
+    $caption = "BIOS Sledgehammer: Start SoftPaq Downloads v$scriptversion"
+    $message = "This script will download firmware update files from HP.com,`nbased on the SPDownload.txt files found in [$BaseFolder].`nStart downloads?"
 
-    $yes = new-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Start download"
-    $no = new-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not download, stop script"
+    $yes = new-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Start downloads"
+    $no = new-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not start, stop script"
 
     $choices = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
     $answer = $host.ui.PromptForChoice($caption, $message, $choices, 1)
@@ -238,7 +244,7 @@ function Invoke-AcquireHPFile()
 }
 
 
-function Invoke-DownloadSettingsProcess()
+function Invoke-DownloadProcess()
 {
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
@@ -249,8 +255,6 @@ function Invoke-DownloadSettingsProcess()
         [ValidateNotNullOrEmpty()]
         [string]$DownloadPath
     )
-
-    #Set-Variable TEMP_DOWNLOAD_FOLDER "$(Get-TempFolder)\TempDownload" –option ReadOnly -Force
 
     $destFolder = Get-ContainingDirectory($SettingsFile)
 
@@ -299,7 +303,7 @@ Set-Variable TEMP_DOWNLOAD_FOLDER "$(Get-TempFolder)\TempDownload" –option Rea
 Set-Variable UNPACK_FOLDER "C:\SWSetup" –option ReadOnly -Force
 
 
-if ( Get-UserConfirm )
+if ( Get-UserConfirm -BaseFolder $PSScriptRoot)
 {
     $ignored = Test-FolderStructure -SearchPath $PSScriptRoot
 
@@ -313,7 +317,7 @@ if ( Get-UserConfirm )
         $curFile = $file.Fullname
         write-host "File [$curFile]"
  
-        Invoke-DownloadSettingsProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
+        Invoke-DownloadProcess -SettingsFile $curFile -DownloadPath $TEMP_DOWNLOAD_FOLDER  
     }
 
     write-host "All done, waiting 20 seconds before starting clean up..."
