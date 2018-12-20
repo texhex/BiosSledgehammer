@@ -307,7 +307,7 @@ Arg3 == -f"@@FIRMWARE_FILE@@"
 Arg4 == -r
 ```
 
-:information_source: **Note:** BIOS Sledgehammer enforces that the source files are stored in a sub folder of the [model folder](#models-folder) called ``BIOS-<VERSION>``. If the desired BIOS version is ``1.37``, the folder name would be ``\BIOS-1.37\``.
+:information_source: **Note:** BIOS Sledgehammer enforces that the BIOS updates (firmware files) are stored in a sub folder of the [model folder](#models-folder) called ``BIOS-<VERSION>``. If the desired BIOS version is ``1.37``, the folder needs be named ``\BIOS-1.37\``. For more information how to obtain new firmware files, please see [Adding firmware files](#adding-firmware-files).
 
 The source folder is then copied to %TEMP% (to avoid any network issues) and the update process is started from there. Because the update utility sometimes restarts itself, the execution is paused until the process noted in COMMAND is no longer running. If any **.log* file was generated in the local folder, the content is added to the normal BIOS Sledgehammer log. A restart is requested after that because the “real” update process happens during POST, after the restart.
 
