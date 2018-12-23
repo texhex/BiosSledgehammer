@@ -1,7 +1,7 @@
 # BIOS Update ProDesk 600 G2
 
 #The BIOS version the device should be on
-Version == 2.28
+Version == 2.36
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe

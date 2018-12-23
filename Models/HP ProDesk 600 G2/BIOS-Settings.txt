@@ -16,7 +16,10 @@ Virtualization Technology for Directed I/O (VTd)==Disable
 
 Fast Boot==Disable
 
-Hyperthreading==Enable
+#Hyperthreading setting is only available on i3-61xx CPUs, but not on i5-65xx
+#As it is Enabled out of the box, we skip it here
+##Hyperthreading==Enable
+
 Multi-processor==Enable
 
 Asset Tracking Number == @@COMPUTERNAME@@
