@@ -1,0 +1,7 @@
+# EliteBook 8x0 G3 BIOS settings to allow BIOS update
+
+Lock BIOS Version == Disable
+
+BIOS Rollback Policy == Unrestricted Rollback to older BIOS
+
+Minimum BIOS Version == 00.00

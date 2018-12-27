@@ -1,0 +1,4 @@
+# EliteBook 8x0 G2 BIOS settings to allow BIOS update
+
+Lock BIOS Version == Disable
+
