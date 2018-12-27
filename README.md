@@ -313,6 +313,27 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 
 If anything goes wrong during the process, an error is generated.
 
+## v5.2: BIOS settings for BIOS Update
+
+Modern HP BIOS version supports BIOS Settings that control if and how BIOS firmware updates can be applied. These settings are intended to prevent unwanted BIOS updates or that an older BIOS version is installed to exploit security issues.
+
+Depending on the device, BIOS version and which settings are in place, the [BIOS update](#bios-update) might either fail when `HpFirmwareUpdRec64.exe` is executed or during the first restart after executing it (POST phase). It might also happen that the BIOS Update is allowed, but a *Press F1 to update BIOS* prompt appears during POST, breaking an unattended deployment.
+
+This can be solved by using the configuration file ``BIOS-Update-Settings.txt`` which contains BIOS settings that are applied just before the BIOS update is executed. In case a BIOS update is not required, this file is ignored, and no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should **only** contain the BIOS settings to allow the BIOS update to work.
+
+```cfg
+# EliteBook 8x0 G5 BIOS Settings to allow a BIOS update
+
+Lock BIOS Version == Disable
+
+BIOS Rollback Policy == Unrestricted Rollback to older BIOS
+
+Minimum BIOS Version == 00.00.00
+
+```
+
+:information_source: **Note:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Lock BIOS Version** needs to be *DISABLE* to allow a BIOS update, but it can be set to *ENABLE* in [BIOS Settings](#bios-settings) when this is required by company policies. The later is executed after the BIOS update so the settings there will be in effect.
+
 ## Management Engine (ME) Update
 
 Depending on the model, a device might be equipped with [Intel Active Management Technology](https://en.wikipedia.org/wiki/Intel_Active_Management_Technology) (Intel vPro) which allows for remote out-of-band management, so the device can be managed even if it's off or no operating system at all is installed. This function is provided by the Intel Management Engine (ME) which is also updatable.
