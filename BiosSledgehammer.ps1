@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.1.2"
+$scriptversion = "5.2.0"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1579,6 +1579,23 @@ function Update-BiosFirmware()
                 {
                     write-host "BIOS update required!"
 
+                    #------ BIOS-Update-Settings.txt -----------------
+                    #Maybe we need to apply BIOS settings to allow the BIOS update (e.g. changing "Lock BIOS Version" setting )
+                    $displayText = "BIOS settings for BIOS update"
+
+                    Write-HostSection -Start $displayText
+                    $biosChanges = -1
+                    $biosChanges = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Update-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    Write-HostSection -End $displayText -NoEmptyLineAtEnd
+
+                    #This should not be necessary since Update-BiosSettingsEx will throw an error
+                    if ( $biosChanges -lt 0 )
+                    {
+                        throw "BIOS settings for BIOS update failed, can not continue"
+                    }
+                    #-----------------------------------------------
+
+                    #Continue BIOS update
                     $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "BIOS-$versionDesiredText"
 
                     #check if we need to pass a firmware file based on the BIOS Family
@@ -1989,6 +2006,7 @@ function Update-TPMFirmware()
                       
                 if ($continueTPMUpgrade)
                 {                
+                    #------ TPM-BIOS-Settings.txt -----------------
                     #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                                              
                     $displayText = "BIOS settings for TPM update"
 
@@ -2002,6 +2020,7 @@ function Update-TPMFirmware()
                     {
                         throw "BIOS settings for TPM update failed, can not continue"
                     }
+                    #-----------------------------------------------
       
                     #Get the folder we need to copy locally
                     $sourceFolder = Get-UpdateFolder -SettingsFilePath $updateFile -Name "TPM-$firmwareVersionDesiredText"
