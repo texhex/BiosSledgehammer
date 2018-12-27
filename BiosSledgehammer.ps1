@@ -1584,15 +1584,8 @@ function Update-BiosFirmware()
                     $displayText = "BIOS settings for BIOS update"
 
                     Write-HostSection -Start $displayText
-                    $biosChanges = -1
-                    $biosChanges = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Update-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Update-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
                     Write-HostSection -End $displayText -NoEmptyLineAtEnd
-
-                    #This should not be necessary since Update-BiosSettingsEx will throw an error
-                    if ( $biosChanges -lt 0 )
-                    {
-                        throw "BIOS settings for BIOS update failed, can not continue"
-                    }
                     #-----------------------------------------------
 
                     #Continue BIOS update
@@ -2011,15 +2004,8 @@ function Update-TPMFirmware()
                     $displayText = "BIOS settings for TPM update"
 
                     Write-HostSection -Start $displayText
-                    $biosChanges = -1
-                    $biosChanges = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "TPM-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "TPM-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
                     Write-HostSection -End $displayText -NoEmptyLineAtEnd
-
-                    #This should not be necessary since Update-BiosSettingsEx will throw an error
-                    if ( $biosChanges -lt 0 )
-                    {
-                        throw "BIOS settings for TPM update failed, can not continue"
-                    }
                     #-----------------------------------------------
       
                     #Get the folder we need to copy locally
