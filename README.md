@@ -322,7 +322,7 @@ Depending on the device, BIOS version and which settings are in place, the [BIOS
 This can be solved by using the configuration file ``BIOS-Update-Settings.txt`` which contains BIOS settings that are applied just before the BIOS update is executed. In case a BIOS update is not required, this file is ignored, and no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should **only** contain the BIOS settings to allow the BIOS update to work.
 
 ```cfg
-# EliteBook 8x0 G5 BIOS Settings to allow a BIOS update
+# EliteBook 8x0 G5 BIOS settings to allow BIOS update
 
 Lock BIOS Version == Disable
 
