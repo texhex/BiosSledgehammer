@@ -2,6 +2,4 @@
 
 Lock BIOS Version == Disable
 
-BIOS Rollback Policy == Unrestricted Rollback to older BIOS
-
 Minimum BIOS Version == 00.00
