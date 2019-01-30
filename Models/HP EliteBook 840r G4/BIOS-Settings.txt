@@ -1,0 +1,89 @@
+# EliteBook 8xx G5
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+
+
+# Let the BIOS do some basic init stuff
+Fast Boot == Disable
+
+# Turn LAN/WLAN Switching OFF (!) - This is the default for G5 devices
+LAN / WLAN Auto Switching == Disable
+
+# Nobody should turn this off, but stil...
+Dynamic Platform and Thermal Framework (DPTF) == Enable
+
+## TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+# Security features turned ON
+Enhanced HP Firmware Runtime Intrusion Prevention and Detection == Enable
+Sure Start Secure Boot Keys Protection == Enable
+Sure Start Security Event Boot Notification == Require Acknowledgment
+Sure Start Security Event Policy == Log Event and notify user
+SureStart Production Mode == Enable
+
+# Security features turned OFF
+Sure Start BIOS Settings Protection == Disable
+Lock BIOS Version == Disable
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+
+##  CPU - General
+Turbo-boost == Enable
+Hyperthreading == Enable
+Multi-processor == Enable
+
+## CPU Features
+
+# VTx is required for any Device Guard function
+Virtualization Technology (VTx) == Enable
+
+# Might cause issues with the GPU so disabled
+Virtualization Technology for Directed I/O (VTd) == Disable
+
+# Not needed right now 
+Intel Software Guard Extensions (SGX) == Software control
+
+# Not needed right now
+#Trusted Execution Technology (TXT) == Disable
+
+## vPro/AMT/ME
+#Active Management (AMT) == Enable
+	
+
+## Thunderbolt
+#Thunderbolt Mode == Enable
+#Thunderbolt Type-C Ports == Enable
+
+#Thunderbolt Security Level == PCIe and DisplayPort - Secure Connect
+# default: PCIe and DisplayPort - User Authorization
+
+# Better leave this alone
+# Require BIOS PW to change TBT SL == Disable
+
+
+## Ownership
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+    
+
+	
+##This seems to be the options for the "Single device, single MAC address" using HP MAC Address Manager 
+##> [..] HP MAC Address Manager enables customers to use MAC addresses to manage computer assets in a 
+##  distributed environment by providing a unique platform MAC address to the network for device drivers 
+##  that are updated to support this HBMA protocol.
+##  ftp://ftp.hp.com/pub/softpaq/sp78501-79000/sp78634.html
+#Pre-boot HBMA Support==Enable
+#Windows HBMA Support==Enable
+#Single NIC Operation (Disable All Other NICs when HBMA is active on one NIC)==Enable
+
+
+
+
+
