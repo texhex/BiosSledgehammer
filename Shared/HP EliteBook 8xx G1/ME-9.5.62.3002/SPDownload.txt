@@ -1,8 +1,0 @@
-
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp82501-83000/sp82540.exe
-NoteURL==https://ftp.hp.com/pub/softpaq/sp82501-83000/sp82540.html
-
-
-
-
-
