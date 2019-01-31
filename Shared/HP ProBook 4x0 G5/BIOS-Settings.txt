@@ -21,7 +21,7 @@ Ready BIOS for Device Guard Use == Do Nothing
 Automatic BIOS Update Setting == Disable
 
 ##  CPU - General
-Turbo-boost == Enable
+#Turbo-boost == Enable
 Hyperthreading == Enable
 Multi-processor == Enable
 

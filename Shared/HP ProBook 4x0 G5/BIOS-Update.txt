@@ -2,7 +2,7 @@
 
 
 # The BIOS version the device should be on
-Version == 1.02.07
+Version == 01.03.00
 
 # Command to be executed for the BIOS update
 Command == HpFirmwareUpdRec64.exe 
