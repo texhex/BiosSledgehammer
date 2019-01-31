@@ -1,7 +1,7 @@
 # BIOS Update HP ProDesk 600 G3 DM
 
 #The BIOS version the device should be on
-Version == 2.19
+Version == 2.22
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
