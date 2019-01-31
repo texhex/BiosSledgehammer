@@ -1,7 +1,7 @@
 # BIOS Update ProDesk 600 G3 MT (P02 Family)
 
 #The BIOS version the device should be on
-Version == 2.15
+Version == 2.22
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe
