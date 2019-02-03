@@ -1,0 +1,57 @@
+# EliteBook 7x5 G5 BIOS Settings
+
+## Boot options
+Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Boot Enable
+UEFI Boot Options == Enable
+Enable MS UEFI CA key == Yes
+
+# Let BIOS do some basic HW init stuff
+Fast Boot == Disable
+
+# Turn LAN/WLAN Switching OFF - This is the default for G5 devices
+LAN / WLAN Auto Switching == Disable
+
+
+## TPM
+TPM Device == Available
+TPM State == Enable
+TPM Activation Policy == No prompts
+
+
+#When VRAM is set to Auto, the device will use 1GB (taken from system memory)
+#Given that most users need only basic 3D function, 512MB should do
+Video Memory Size == 512 MB
+
+
+##CPU Features
+
+#SVM is the same as Virtualization Technology (VTx) for Intel 
+SVM CPU Virtualization == Enable
+
+#Enter a clever description here what DASH is
+AMD DASH == Disable
+
+
+## Security 
+
+# Security features turned ON
+HP Firmware Runtime Intrusion Detection == Enable
+
+Sure Start Secure Boot Keys Protection == Enable
+Sure Start Security Event Boot Notification == Require Acknowledgment
+Sure Start Security Event Policy == Log Event and notify user
+SureStart Production Mode == Enable
+
+# Security features turned OFF
+Sure Start BIOS Settings Protection == Disable
+Lock BIOS Version == Disable
+Ready BIOS for Device Guard Use == Do Nothing
+Automatic BIOS Update Setting == Disable
+
+
+## Ownership
+
+Asset Tracking Number == @@COMPUTERNAME@@
+#Ownership Tag == Property of ...
+    
+	

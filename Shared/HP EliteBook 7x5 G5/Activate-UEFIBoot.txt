@@ -1,0 +1,6 @@
+# EliteBook 7x5 G5 Activate UEFI Boot
+
+
+Configure Legacy Support and Secure Boot==Legacy Support Disable and Secure Boot Enable
+
+
