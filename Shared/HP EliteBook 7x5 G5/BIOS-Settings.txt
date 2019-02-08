@@ -5,8 +5,8 @@ Configure Legacy Support and Secure Boot == Legacy Support Disable and Secure Bo
 UEFI Boot Options == Enable
 Enable MS UEFI CA key == Yes
 
-# Let BIOS do some basic HW init stuff
-Fast Boot == Disable
+# Fast Boot can not be switched in normal BIOS and will remain on Enable, so we keep here the same setting
+Fast Boot == Enable
 
 # Turn LAN/WLAN Switching OFF - This is the default for G5 devices
 LAN / WLAN Auto Switching == Disable
