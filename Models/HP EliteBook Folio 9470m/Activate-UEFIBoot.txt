@@ -2,4 +2,3 @@
 
 Boot Mode==UEFI Native (Without CSM)
 SecureBoot==Enable
-

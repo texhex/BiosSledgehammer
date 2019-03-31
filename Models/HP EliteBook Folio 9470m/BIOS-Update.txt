@@ -1,7 +1,7 @@
 # 9470m BIOS Update
 
 #The BIOS version the device should be on
-Version == F.71
+Version == F.72
 
 #Command to be executed for the BIOS update
 Command==hpqFlash64.exe
