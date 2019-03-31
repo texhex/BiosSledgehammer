@@ -1,0 +1,4 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp93001-93500/sp93332.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp93001-93500/sp93332.html
+
