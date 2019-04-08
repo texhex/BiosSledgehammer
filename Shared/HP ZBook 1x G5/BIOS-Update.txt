@@ -1,12 +1,10 @@
-# 9480m BIOS Update
+# BIOS Update ZBook 1x G5
 
 #The BIOS version the device should be on
-Version == 1.46
+Version == 1.04.05
 
-# Command to be executed for the BIOS update
-Command==HPBiosUpdRec64.exe 
-
-# Arguments passed to COMMAND
+#Command to be executed for the BIOS update
+Command==HpFirmwareUpdRec64.exe
 
 # Silent
 Arg1 == -s
@@ -19,8 +17,4 @@ Arg3 == -b
 
 # Password file (will be removed if empty password)
 Arg4 == -p"@@PASSWORD_FILE@@"
-
-
-
-
 
