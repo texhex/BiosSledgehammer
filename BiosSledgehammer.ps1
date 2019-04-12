@@ -654,8 +654,6 @@ function Get-BiosValue()
                 $previousLocation = Get-Location         
                 Set-Location $($TEMP_FOLDER) | Out-Null
          
-                #$output=&$BCU_EXE -getvalue $Name | Out-String
-                #$output = &$BCU_EXE /GetValue:`"$Name`" | Out-String
                 $output = &$BCU_EXE /GetValue:""$Name"" | Out-String
 
                 Set-Location $previousLocation -ErrorAction SilentlyContinue | Out-Null
@@ -688,16 +686,16 @@ function Get-BiosValue()
             }
             catch
             {
-                if ( -not $Silent ) 
+                if ( $Silent ) 
                 { 
-                    Write-Host "    Get-BiosValue failed! Error:" 
-                    Write-Host $error[0] 
-                }
-                else
-                {
                     #even if we are silent, we will at least write the information with verbose
                     Write-Verbose "    Get-BiosValue failed! Error:" 
                     Write-Verbose $error[0] 
+                }
+                else
+                {
+                    Write-Host "    Get-BiosValue failed! Error:" 
+                    Write-Host $error[0] 
                 }
                 $result = $null
             }
@@ -827,13 +825,11 @@ function Set-BiosPassword()
                     if ( Test-String -HasData $CurrentPasswordFile )
                     {
                         #BCU expects an empty string if the password should be set to empty, so we use the parameter directly
-                        #$output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" /cspwdfile:`"$CurrentPasswordFile`" | Out-String
                         $output = &$BCU_EXE /nspwdfile:""$newPasswordFile_FullPath"" /cspwdfile:""$CurrentPasswordFile"" | Out-String
                     }
                     else
                     {
                         #Currently using an empty password
-                        #$output = &$BCU_EXE /nspwdfile:`"$newPasswordFile_FullPath`" | Out-String
                         $output = &$BCU_EXE /nspwdfile:""$newPasswordFile_FullPath"" | Out-String
                     }
 
@@ -873,9 +869,9 @@ function Set-BiosPassword()
 }
 
 	  
-#Returns -1 = Error, 0 = OK, was already set, 1 = Setting changed
 function Set-BiosValue()
 {
+    #Returns: -1 = Error, 0 = OK, was already set, 1 = Setting changed
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
         [ValidateNotNullOrEmpty()]
@@ -915,6 +911,7 @@ function Set-BiosValue()
     #BCU returns something like "Disable, *Enable" where the * stands for the current value.
     #I habe no idea if we can rework the parsing of Get-BiosValue without risking to break something
     #Hence, right now we set each value directly.
+    #
     #$curvalue=Get-BiosValue -name $name -Silent
  
     try
@@ -980,9 +977,9 @@ function Set-BiosValue()
 }
 
 
-# -1 = Error, 0 = OK but no changes, 1 = at least one setting was changed
 function Set-BiosValuesByDictionary()
 {
+    #Returns: -1 = Error, 0 = OK but no changes, 1 = at least one setting was changed
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
         [ValidateNotNullOrEmpty()]
@@ -1035,8 +1032,7 @@ function Test-BiosPasswordFiles()
 
     Write-HostSection -Start "Determine BIOS Password"
 
-    #We test each password file by trying to write the Asset tag. If it works,
-    #we know we got the right password.
+    #We test each password file by trying to write the Asset tag. If it works, we know we got the right password.
     #
     #Most models call this Asset tag "Asset Tracking Number" but some models (e.g. Pro Desk 500 G2.5)
     #call it indeed "Asset Tag" - https://github.com/texhex/BiosSledgehammer/issues/70
@@ -1084,7 +1080,7 @@ function Test-BiosPasswordFiles()
         $files += $pwdfile.FullName 
     }
 
-    $oldAssettag = get-biosvalue -Name $assetSettingName -Silent
+    $oldAssettag = Get-BiosValue -Name $assetSettingName -Silent
     Write-Host "Original asset value: [$oldAssettag]"
 
     $testvalue = Get-RandomString 14
@@ -1189,6 +1185,7 @@ function Get-BIOSVersionDetails()
     #L83 Ver. 01.34 
     #Q78 ver. 01.00.05 01/25/2018
     #02.17
+    #1.06.00
 
     Write-Verbose "Trying to parse raw BIOS data [$RawData]"
 
@@ -1342,7 +1339,7 @@ function Copy-Folder()
         [ValidateNotNullOrEmpty()]
         [string]$Destination,
 
-        #Required cases the files should be copied, not the structure (see below)
+        #Required if the files should be copied, not the structure (see below)
         [switch]$Flatten
     )
 
@@ -1353,7 +1350,7 @@ function Copy-Folder()
         #a folder with the same name as defined in source exist, PS will just copy 
         #it to that folder as a subfolder (not the content to the root)
 
-        #That's why the Flatten switch is there. It will just take the contents 
+        #That's why the Flatten switch is there. It will take the contents 
         #from Source and copy it to the root of destination 
         
         #Make sure the paths end with \ (Normal) or \* (Flatten)
@@ -1381,7 +1378,6 @@ function Copy-Folder()
         throw "Unable to copy from [$source] to [$dest]: $($error[0])"
     }
 }
-
 
 
 
@@ -1967,8 +1963,6 @@ function Update-TPMFirmware()
             else
             {
                 Write-Host "TPM update required!"
-
-                <# 5.0 TPM UPDATE REWORK STARTS HERE #>
                       
                 #We might need to stop here, depending on the BitLockerStatus
                 $continueTPMUpgrade = $false
@@ -2017,7 +2011,7 @@ function Update-TPMFirmware()
 
                     #Check if an extra source folder was specified. 
                     $extraFilesFolder = $null
-                    $additionalDirectory = $settings["AdditionalFilesDirectory"]                    
+                    $additionalDirectory = $settings["AdditionalFilesDirectory"] 
                     if ( Test-String $additionalDirectory -HasData )
                     {
                         $extraFilesFolder = Join-Path -Path $sourceFolder -ChildPath $additionalDirectory
