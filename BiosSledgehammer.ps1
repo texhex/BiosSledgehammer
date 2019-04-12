@@ -1,6 +1,6 @@
 <#
  BIOS Sledgehammer
- Copyright (c) 2015-2018 Michael 'Tex' Hex 
+ Copyright (c) 2015-2019 Michael 'Tex' Hex 
  Licensed under the Apache License, Version 2.0. 
 
  https://github.com/texhex/BiosSledgehammer
@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "5.2.0"
+$scriptversion = "6.0.0-Beta1"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -85,7 +85,7 @@ $banner = @"
 
 #Show banner
 $banner = $banner -replace "@@VERSION@@", $scriptversion
-write-host $banner
+Write-Host $banner
 
 
 #Configure with temp folder to use
@@ -128,7 +128,7 @@ Set-Variable ERROR_RETURN 666 -option ReadOnly -Force
 
 function Test-Environment()
 {
-    write-host "Verifying environment..." -NoNewline
+    Write-Host "Verifying environment..." -NoNewline
 
     try
     {
@@ -178,14 +178,14 @@ function Test-Environment()
             throw "Unsupported manufacturer [$Make]"
         }                                                                    
 
-        write-host "  Success"
+        Write-Host "  Success"
 
         return $true
         
     }
     catch
     {
-        write-host "  Failed!"
+        Write-Host "  Failed!"
         throw $_
     }
 
@@ -194,38 +194,40 @@ function Test-Environment()
 
 function Test-BiosCommunication()
 {  
-    write-host "Verifying BIOS Configuration Utility (BCU) can communicate with BIOS." 
+    Write-Host "Verifying BIOS Configuration Utility (BCU) can communicate with BIOS." 
 
-    write-host "  Trying to read Universally Unique Identifier (UUID)..." -NoNewline
+    Write-Host "  Trying to read Universally Unique Identifier (UUID)..." -NoNewline
 
-    #Newer models use "Universally Unique Identifier (UUID)"  
+    #Most models use "Universally Unique Identifier (UUID)"  
     #At least the ProDesk 600 G1 uses the name "Enter UUID"  
     #Raynorpat (https://github.com/raynorpat): My 8560p here uses "Universal Unique Identifier(UUID)", not sure about other older models...
     $UUIDNames = @("Universally Unique Identifier (UUID)", "Enter UUID", "Universal Unique Identifier(UUID)")
   
     if ( (Test-BiosValueRead $UUIDNames) )
     {
-        write-host "  Success"
+        Write-Host "  Success"
         return $true
     }
     else
     {
-        write-host "  Failed."
+        Write-Host "  Failed."
 
-        #Some revision of some older models (8x0 G1 for example) might have a BIOS bug. In these cases BCU never returns UUID, 
-        #although everything else works fine. We try to read "Serial Number" in this case
-        write-host "  Trying to read Serial Number (S/N)..." -NoNewline
+        #Some revision of older models (e.g. 8x0 G1) might have a BIOS bug. 
+        #In these cases, BCU never returns UUID, although everything else works fine. 
+        #We try to read "Serial Number" or "S/N" in these cases
+
+        Write-Host "  Trying to read Serial Number (S/N)..." -NoNewline
        
         $SNNames = @("Serial Number", "S/N")
        
         if ( (Test-BiosValueRead $SNNames) )
         {
-            write-host "  Success"
+            Write-Host "  Success"
             return $true
         }
         else
         {
-            write-host "  Failed."
+            Write-Host "  Failed."
             throw "BCU is unable to communicate with BIOS, can't continue."
         }
     }
@@ -234,6 +236,7 @@ function Test-BiosCommunication()
 
 function Test-BiosValueRead()
 {
+    #Returns TRUE if any of the given BIOS values return something useful (something else than an empty string)
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $false)]
         [ValidateNotNullOrEmpty()]
@@ -254,6 +257,7 @@ function Test-BiosValueRead()
 
 function Test-BiosValueSupported()
 {
+    #Retruns TRUE if the given value is supported by the BIOS
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $false)]
         [ValidateNotNullOrEmpty()]
@@ -264,7 +268,7 @@ function Test-BiosValueSupported()
     #Remove -Silent in order to see what this command does
     $testvalue = Get-BiosValue -Name $ValueName -Silent
     
-    if ( ($testvalue -eq $null) ) 
+    if ( $null -eq $testvalue ) 
     {
         $result = $false
     }
@@ -291,15 +295,15 @@ function Get-ModelFolder()
     $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
 
     Write-HostSection "Locate Model Folder"
-    write-Host "Searching [$ModelsFolder]"
+    Write-Host "Searching [$ModelsFolder]"
     
     if ( Test-String -HasData $SKU )
     {
-        write-Host "  for SKU [$SKU] or [$Model]..."
+        Write-Host "  for SKU [$SKU] or [$Model]..."
     }
     else
     {
-        write-Host "      for [$Model]..."    
+        Write-Host "      for [$Model]..."    
     }
     
     $result = $null
@@ -310,7 +314,7 @@ function Get-ModelFolder()
     #Try is to locate a folder matching the SKU number
     if ( Test-String -HasData $SKU )
     {
-        write-host "  Searching for SKU folder..."
+        Write-Host "  Searching for SKU folder..."
         foreach ($folder in $folders) 
         {
             $name = $folder.Name.ToUpper()
@@ -318,17 +322,17 @@ function Get-ModelFolder()
             if ( $name -eq $SKU.ToUpper() )
             {
                 $result = $folder.FullName
-                write-host "    Matching folder: [$result]"
+                Write-Host "    Matching folder: [$result]"
                 break
             }
         }
-        if ( $result -eq $null ) {  write-host "    No folder found" }
+        if ( $result -eq $null ) { Write-Host "    No folder found" }
     }
         
     #Try is to locate a folder matching EXACTLY the model name  
     if ( $result -eq $null )
     {
-        write-host "  Searching for exactly matching folder for this model..."
+        Write-Host "  Searching for exactly matching folder for this model..."
         foreach ($folder in $folders) 
         {
             $name = $folder.Name.ToUpper()
@@ -336,17 +340,17 @@ function Get-ModelFolder()
             if ( $name -eq $Model.ToUpper() )
             {
                 $result = $folder.FullName
-                write-host "    Matching folder: [$result]"
+                Write-Host "    Matching folder: [$result]"
                 break
             }
         }
-        if ( $result -eq $null ) {  write-host "    No folder found" }
+        if ( $result -eq $null ) { Write-Host "    No folder found" }
     }
 
     #Try a partitial model name search
     if ( $result -eq $null )
     {
-        write-host "  Searching for partially matching folder..."
+        Write-Host "  Searching for partially matching folder..."
      
         foreach ($folder in $folders) 
         {
@@ -355,12 +359,12 @@ function Get-ModelFolder()
             if ( Test-String $Model -Contains $name )
             {
                 $result = $folder.FullName
-                write-host "    Matching folder: [$result]"
+                Write-Host "    Matching folder: [$result]"
                 break
             }
         }
     }
-    if ( $result -eq $null ) {  write-host "    No folder found" }
+    if ( $result -eq $null ) { Write-Host "    No folder found" }
 
 
     if ( $result -ne $null )
@@ -393,7 +397,7 @@ function Get-ModelSettingsFile()
 
     #First check for a direct file
     $checkFile = "$($ModelFolder)\$($Name)"
-    write-host "Reading settings from [$checkFile]..."
+    Write-Host "Reading settings from [$checkFile]..."
     
     if ( Test-FileExists $checkFile ) 
     {
@@ -406,12 +410,12 @@ function Get-ModelSettingsFile()
         $sharedFileName = "Shared-$($Name)"
         $checkFile = "$($ModelFolder)\$($sharedFileName)"
 
-        write-host "Not found, looking for shared file [$sharedFilename] in same directory..."
+        Write-Host "Not found, looking for shared file [$sharedFilename] in same directory..."
 
         if ( Test-FileExists $checkFile ) 
         {            
             #Shared file exists, try to read it to get the folder name
-            write-host "  Shared file found"
+            Write-Host "  Shared file found"
             $settings = Read-StringHashtable $checkFile
 
             if ( -not ($settings.ContainsKey("Directory")) )
@@ -437,7 +441,7 @@ function Get-ModelSettingsFile()
                     }
                     else
                     {
-                        write-host "Using settings from [$checkFile]"
+                        Write-Host "Using settings from [$checkFile]"
                         $FileName = $checkFile                        
                     }
                     
@@ -454,7 +458,7 @@ function Get-ModelSettingsFile()
 
     if ( $fileName -eq $null)
     {
-        write-host "No settings file was found"
+        Write-Host "No settings file was found"
     }
 
     return $fileName
@@ -537,18 +541,18 @@ function ConvertTo-ResultFromBCUOutput()
     $props = @{"Returncode" = [int]-1; "ReturncodeText" = [string]"Unknown"; "Changestatus" = [string]"Unknown"; "Message" = [string]"Unknown" }
     $result = New-Object -TypeName PSObject -Property $props
 
-    write-verbose "=== BCU Result ==============================="
-    write-verbose $BCUOutput.Trim()
-    write-verbose "=============================================="
+    Write-Verbose "=== BCU Result ==============================="
+    Write-Verbose $BCUOutput.Trim()
+    Write-Verbose "=============================================="
 
     try
     {
         [xml]$xml = $BCUOutput
 
-        $info_node = select-xml "//Information" $xml
-        $setting_node = select-xml "//SETTING" $xml
-        $error_node = select-xml "//ERROR" $xml
-        $success_node = select-xml "//SUCCESS" $xml
+        $info_node = Select-Xml "//Information" $xml
+        $setting_node = Select-Xml "//SETTING" $xml
+        $error_node = Select-Xml "//ERROR" $xml
+        $success_node = Select-Xml "//SUCCESS" $xml
 
         #For password changes, the return value needs to be pulled from the Information node.
         #If we also have a setting node, this will overwrite this anyway.
@@ -638,7 +642,7 @@ function Get-BiosValue()
     {  
         "SingleValue"
         {
-            if (-not ($Silent)) { write-host "Reading BIOS setting [$Name]..." }
+            if (-not ($Silent)) { Write-Host "Reading BIOS setting [$Name]..." }
 
             try
             {
@@ -657,9 +661,9 @@ function Get-BiosValue()
                 Set-Location $previousLocation -ErrorAction SilentlyContinue | Out-Null
 
          
-                write-verbose "Read BIOS value: Result from BCU ============="
-                write-verbose $output.Trim()
-                write-verbose "=============================================="
+                Write-Verbose "Read BIOS value: Result from BCU ============="
+                Write-Verbose $output.Trim()
+                Write-Verbose "=============================================="
 
                 [xml]$xml = $output
      
@@ -669,31 +673,31 @@ function Get-BiosValue()
                 #This should be zero to indicate everything is OK
                 $returncode = $xml.BIOSCONFIG.SETTING.returnCode
 
-                write-verbose "Value: $result"
-                write-verbose "Return code: $returncode"
+                Write-Verbose "Value: $result"
+                Write-Verbose "Return code: $returncode"
 
                 if ($returncode -ne 0) 
                 {
-                    if (-not ($Silent)) { write-host "    Get-BiosValue failed. Return code was $returncode" }
+                    if (-not ($Silent)) { Write-Host "    Get-BiosValue failed. Return code was $returncode" }
                     $result = $null
                 }
                 else
                 {
-                    if (-not ($Silent)) { write-host "    Setting read: [$result]" }
+                    if (-not ($Silent)) { Write-Host "    Setting read: [$result]" }
                 }
             }
             catch
             {
                 if ( -not $Silent ) 
                 { 
-                    write-host "    Get-BiosValue failed! Error:" 
-                    write-host $error[0] 
+                    Write-Host "    Get-BiosValue failed! Error:" 
+                    Write-Host $error[0] 
                 }
                 else
                 {
                     #even if we are silent, we will at least write the information with verbose
-                    write-verbose "    Get-BiosValue failed! Error:" 
-                    write-verbose $error[0] 
+                    Write-Verbose "    Get-BiosValue failed! Error:" 
+                    Write-Verbose $error[0] 
                 }
                 $result = $null
             }
@@ -701,7 +705,7 @@ function Get-BiosValue()
 
         "NameArray"
         {
-            write-verbose "Reading BIOS setting using different setting names"
+            Write-Verbose "Reading BIOS setting using different setting names"
 
             $result = $null
 
@@ -784,7 +788,7 @@ function Set-BiosPassword()
 
         if ( $newPasswordFile_Exists ) 
         {
-            write-host " Desired password file is [$newPasswordFile_FullPath]" 
+            Write-Host " Desired password file is [$newPasswordFile_FullPath]" 
          
             $noChangeRequired = $false
 
@@ -818,7 +822,7 @@ function Set-BiosPassword()
                     #Passwords do not match, we need to change them
                     $noChangeRequired = $False
 
-                    write-host " Changing password using password file [$CurrentPasswordFile]..." 
+                    Write-Host " Changing password using password file [$CurrentPasswordFile]..." 
 
                     if ( Test-String -HasData $CurrentPasswordFile )
                     {
@@ -842,13 +846,13 @@ function Set-BiosPassword()
 
                     if ( $bcuResult.Returncode -eq 0 ) 
                     {
-                        write-host "Password was changed"
+                        Write-Host "Password was changed"
                         $result = $newPasswordFile_FullPath
                     }
                     else
                     {
-                        write-warning "   Changing BIOS password failed with message: $($bcuResult.Message)" 
-                        write-warning "   BCU return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
+                        Write-Warning "   Changing BIOS password failed with message: $($bcuResult.Message)" 
+                        Write-Warning "   BCU return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
                     }
 
                     #all done
@@ -858,7 +862,7 @@ function Set-BiosPassword()
 
             if ( $noChangeRequired )
             {
-                write-host "BIOS is already set to configured password file, no change required."
+                Write-Host "BIOS is already set to configured password file, no change required."
             }
         } #new password file exists           
         
@@ -894,12 +898,12 @@ function Set-BiosValue()
     if ( Test-String $value -Contains "@@COMPUTERNAME@@" )
     {
         $value = $value -replace "@@COMPUTERNAME@@", $env:computername
-        if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value] (replaced)..." -NoNewline  }
+        if (-Not $Silent) { Write-Host " Update BIOS setting [$name] to [$value] (replaced)..." -NoNewline }
     }
     else
     {
         #no replacement
-        if (-Not $Silent) { write-host " Update BIOS setting [$name] to [$value]..." -NoNewline }
+        if (-Not $Silent) { Write-Host " Update BIOS setting [$name] to [$value]..." -NoNewline }
     }
  
     #If verbose output is activated, this line will make sure that the next call to write-verbose will be on a new line
@@ -921,13 +925,13 @@ function Set-BiosValue()
         if ( Test-String -IsNullOrWhiteSpace $passwordfile )
         {          
             #No password defined
-            write-verbose "   Will not use a password file" 
+            Write-Verbose "   Will not use a password file" 
             $output = &$BCU_EXE /setvalue:"$name"`,"$value" | Out-String
         }
         else
         {        
           
-            write-verbose "   Using password file $passwordfile" 
+            Write-Verbose "   Using password file $passwordfile" 
             $output = &$BCU_EXE /setvalue:"$name"`,"$value" /cpwdfile:"$passwordFile" | Out-String 
         }
 
@@ -941,23 +945,23 @@ function Set-BiosValue()
 
         if ( ($bcuResult.Returncode -eq 18) -and ($bcuResult.Message = "skip") ) 
         {
-            if (-Not $Silent) { write-host "  Done (was already set)" }
+            if (-Not $Silent) { Write-Host "  Done (was already set)" }
             $result = 0
         } 
         else 
         {        
             if ($bcuResult.Returncode -eq 0) 
             {
-                if (-Not $Silent) { write-host "  Done" }
+                if (-Not $Silent) { Write-Host "  Done" }
                 $result = 1
             }
             else
             {
                 if (-Not $Silent) 
                 {
-                    write-host " " #to create a new line
-                    write-warning "   Update BIOS setting failed with status [$($bcuResult.Changestatus)]: $($bcuResult.Message)" 
-                    write-warning "   Return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
+                    Write-Host " " #to create a new line
+                    Write-Warning "   Update BIOS setting failed with status [$($bcuResult.Changestatus)]: $($bcuResult.Message)" 
+                    Write-Warning "   Return code [$($bcuResult.Returncode)]: $($bcuResult.ReturncodeText)" 
                 }
 
                 $result = -1
@@ -967,7 +971,7 @@ function Set-BiosValue()
     catch
     {
         #this should never happen
-        write-host " " #to create a new line
+        Write-Host " " #to create a new line
         throw "Update BIOS setting fatal error: $($error[0])"
         $result = -1
     }
@@ -1039,18 +1043,18 @@ function Test-BiosPasswordFiles()
     #
     #Therefore, we first need to know which asset BIOS value to use
 
-    write-host "Checking which asset value setting name this device supports..."
+    Write-Host "Checking which asset value setting name this device supports..."
 
     $assetSettingNameList = @("Asset Tracking Number", "Asset Tag")
     $assetSettingName = ""
 
     ForEach ($testSettingName in $assetSettingNameList)
     {
-        write-host "  Testing setting name [$testSettingName]..."
+        Write-Host "  Testing setting name [$testSettingName]..."
         
         if ( Test-BiosValueSupported -ValueName $testSettingName )
         {
-            write-host "  Setting is supported, will use it for write tests"
+            Write-Host "  Setting is supported, will use it for write tests"
             $assetSettingName = $testSettingName
             break
         }
@@ -1064,12 +1068,12 @@ function Test-BiosPasswordFiles()
     
 
     #Now that we know how the asset tag BIOS setting is called, we can start checking for password files
-    write-host "Testing BIOS password files from [$PwdFilesFolder]..."
+    Write-Host "Testing BIOS password files from [$PwdFilesFolder]..."
 
     $files = @()
 
     #Read all files that exist and sort them directly
-    $pwd_files = Get-ChildItem -Path $PwdFilesFolder -File -Force -Filter "*.bin"  | Sort-Object
+    $pwd_files = Get-ChildItem -Path $PwdFilesFolder -File -Force -Filter "*.bin" | Sort-Object
   
     #Always add an empty password as first option
     $files += ""
@@ -1081,24 +1085,24 @@ function Test-BiosPasswordFiles()
     }
 
     $oldAssettag = get-biosvalue -Name $assetSettingName -Silent
-    write-host "Original asset value: [$oldAssettag]"
+    Write-Host "Original asset value: [$oldAssettag]"
 
     $testvalue = Get-RandomString 14
-    write-host "Asset value used for testing: [$testvalue]"
+    Write-Host "Asset value used for testing: [$testvalue]"
   
     $matchingPwdFile = $null
 
     ForEach ($file in $files) 
     {       
-        write-host "Trying to write asset value using password file [$file]..."
+        Write-Host "Trying to write asset value using password file [$file]..."
 
         $result = Set-BiosValue -Name $assetSettingName -Value $testvalue -Passwordfile $file -Silent
 
         if ( ($result -ge 0) ) 
         {
-            write-host "Success; password file is [$file]!"
+            Write-Host "Success; password file is [$file]!"
             
-            write-host "Restoring original asset value"        
+            Write-Host "Restoring original asset value"        
             $ignored = Set-BiosValue -Name $assetSettingName -Value $oldAssettag -Passwordfile $file -Silent
 
             $matchingPwdFile = $file
@@ -1186,7 +1190,7 @@ function Get-BIOSVersionDetails()
     #Q78 ver. 01.00.05 01/25/2018
     #02.17
 
-    write-verbose "Trying to parse raw BIOS data [$RawData]"
+    Write-Verbose "Trying to parse raw BIOS data [$RawData]"
 
     [version]$maxversion = "99.99" 
     $biosData = [Ordered]@{"Raw" = ""; "Family" = "Unknown"; "VersionText" = $maxversion.ToString(); "Version" = $maxversion; "Parsed" = $false; }
@@ -1202,13 +1206,13 @@ function Get-BIOSVersionDetails()
 
     if ( ($tokens -eq $null) )
     {
-        write-verbose "   Tokenizing raw BIOS data failed!"
+        Write-Verbose "   Tokenizing raw BIOS data failed!"
     }
     else
     {
         if ( $tokens.Count -eq 1 )
         {
-            write-verbose "   Raw BIOS data does not containing any whitespace, assuming it only contains the BIOS version"
+            Write-Verbose "   Raw BIOS data does not containing any whitespace, assuming it only contains the BIOS version"
             $biosData.VersionText = $tokens[0].Trim()
         }
         else
@@ -1217,7 +1221,7 @@ function Get-BIOSVersionDetails()
             if ( $tokens.Count -ge 2 )
             {       
                 $biosData.Family = $tokens[0].Trim()
-                write-verbose "   BIOS Family: $($biosData.Family)"
+                Write-Verbose "   BIOS Family: $($biosData.Family)"
 
                 #Now we need to check if we have exactly two or more tokens            
                 #If there are exactly two tokens, we have FAMILY VERSION
@@ -1248,25 +1252,25 @@ function Get-BIOSVersionDetails()
     #Do we have something to parse or not
     if ( (Test-String -HasData $biosData.VersionText) )
     {
-        write-verbose "   BIOS Version text/raw: $($biosData.VersionText)"
+        Write-Verbose "   BIOS Version text/raw: $($biosData.VersionText)"
 
         #use special ConvertTo-Version version that respects special version numbers that some models report
         [version]$curver = ConvertTo-VersionFromBIOSVersion -Text $biosData.VersionText
         if ( $curver -eq $null )
         {
-            write-verbose "   Converting [$($biosData.VersionText)] to a VERSION object failed!"
+            Write-Verbose "   Converting [$($biosData.VersionText)] to a VERSION object failed!"
         }
         else
         {
             $biosdata.Version = $curver            
             $biosdata.Parsed = $true
 
-            write-verbose "   BIOS Version: $($biosData.Version.ToString())"
+            Write-Verbose "   BIOS Version: $($biosData.Version.ToString())"
         }
     }
     else
     {
-        write-verbose "   BIOS data could not be parsed!"
+        Write-Verbose "   BIOS data could not be parsed!"
     }
         
     return $biosData 
@@ -1365,12 +1369,12 @@ function Copy-Folder()
         #Destination always ends with \
         $Destination = Join-Path -Path $Destination -ChildPath "\"
 
-        write-host "Copying [$Source] "
-        write-host "     to [$Destination] ..."            
+        Write-Host "Copying [$Source] "
+        Write-Host "     to [$Destination] ..."            
 
         Copy-Item -Path $Source -Destination $Destination -Force -Recurse -ErrorAction Stop
         
-        write-host "Done"
+        Write-Host "Done"
     }
     catch
     {
@@ -1492,7 +1496,7 @@ function Update-BiosSettingsEx()
         else
         {
             #Inform which password we use
-            write-host "Using password file [$PasswordFile]" 
+            Write-Host "Using password file [$PasswordFile]" 
 
             #Apply settings
             $changeresult = Set-BiosValuesByDictionary -Dictionary $settings -Passwordfile $PasswordFile
@@ -1506,7 +1510,7 @@ function Update-BiosSettingsEx()
             if ( $changeresult -eq 1 )
             {
                 #Since this message will appear each and every time, I'm unsure if it should remain or not
-                write-host "One or more BIOS setting(s) have been changed. A restart is recommended to activated them."
+                Write-Host "One or more BIOS setting(s) have been changed. A restart is recommended to activated them."
             }
 
             $result = $changeresult
@@ -1567,17 +1571,17 @@ function Update-BiosFirmware()
             }
             else
             {
-                write-host "Current BIOS Version: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
-                write-host "Desired BIOS Version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
+                Write-Host "Current BIOS Version: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
+                Write-Host "Desired BIOS Version: $(Get-VersionTextAndNumerical $versionDesiredText $versionDesired)"
 
                 if ( $versionDesired -le $BIOSDetails.Version ) 
                 {
-                    write-host "BIOS update not required"
+                    Write-Host "BIOS update not required"
                     $result = $false
                 }
                 else
                 {
-                    write-host "BIOS update required!"
+                    Write-Host "BIOS update required!"
 
                     #------ BIOS-Update-Settings.txt -----------------
                     #Maybe we need to apply BIOS settings to allow the BIOS update (e.g. changing "Lock BIOS Version" setting )
@@ -1595,19 +1599,19 @@ function Update-BiosFirmware()
                     $firmwareFile = ""
                     $biosFamily = $BiosDetails.Family
 
-                    write-host "BIOS family is [$biosFamily]"
+                    Write-Host "BIOS family is [$biosFamily]"
                     if ( $details.ContainsKey($biosFamily) )
                     {
                         #Entry exists
                         $firmwareFile = $details[$biosFamily]
-                        write-host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"                
+                        Write-Host "  Found firmware file entry for the current BIOS family: [$firmwarefile]"                
                     } 
 
                     $returncode = Invoke-UpdateProgram -Settings $details -SourcePath $updateFolder -PasswordFile $PasswordFile -FirmwareFile $firmwareFile           
      
                     if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
-                        write-host "BIOS update success"
+                        Write-Host "BIOS update success"
                         $result = $true
                     }
                     else
@@ -1638,7 +1642,7 @@ function Update-BiosFirmware()
 
 function Get-TPMDetails()
 {
-    write-verbose "Trying to get TPM data..."
+    Write-Verbose "Trying to get TPM data..."
     <# 
     More about TPM Data:
     http://en.community.dell.com/techcenter/b/techcenter/archive/2015/12/09/retrieve-trusted-platform-module-tpm-version-information-using-powershell
@@ -1676,7 +1680,7 @@ function Get-TPMDetails()
     }
     catch
     {
-        write-verbose "Getting TPM data error: $($error[0])"
+        Write-Verbose "Getting TPM data error: $($error[0])"
     }
 
     return $TPMData 
@@ -1685,7 +1689,7 @@ function Get-TPMDetails()
 
 function Invoke-BitLockerDecryption()
 {
-    write-host "Checking BitLocker status..."
+    Write-Host "Checking BitLocker status..."
 
     $bitLockerActive = $false
 
@@ -1693,18 +1697,18 @@ function Invoke-BitLockerDecryption()
     try
     {
         #Because we do not know if we can access the BitLocker module, we check the status using WMI/CMI
-        $encryptableVolumes = Get-CIMInstance "Win32_EncryptableVolume" -Namespace "root/CIMV2/Security/MicrosoftVolumeEncryption"
+        $encryptableVolumes = Get-CimInstance "Win32_EncryptableVolume" -Namespace "root/CIMV2/Security/MicrosoftVolumeEncryption"
                       
         $systemdrive = $env:SystemDrive
         $systemdrive = $systemdrive.ToUpper()
 
-        write-verbose "Testing if system drive $($systemdrive) is BitLocker encrypted"
+        Write-Verbose "Testing if system drive $($systemdrive) is BitLocker encrypted"
 
         if ( $encryptableVolumes -ne $null ) 
         {
             foreach ($volume in $encryptableVolumes)
             {
-                write-verbose "Checking volume $($volume.DeviceID)"
+                Write-Verbose "Checking volume $($volume.DeviceID)"
 
                 #There might be drives that are BitLocker encrypted but do not have a drive letter.
                 #The system drive will always have a drive letter, so we can simply rule them out.
@@ -1714,7 +1718,7 @@ function Invoke-BitLockerDecryption()
 
                     if ( $volume.DriveLetter.ToUpper() -eq $systemdrive )
                     {           
-                        write-verbose "Found entry for system drive"
+                        Write-Verbose "Found entry for system drive"
                                
                         #The property ProtectionStatus will also be 0 if BitLocker was just suspended, so we can't use this property.
                         #We go for EncryptionMethod which will report 0 if no BitLocker encryption is used
@@ -1730,11 +1734,11 @@ function Invoke-BitLockerDecryption()
                                 if ( $volume.EncryptionMethod -ne 0 )
                                 {
                                     $bitLockerActive = $true
-                                    write-host "BitLocker is active for system drive ($systemdrive)!"
+                                    Write-Host "BitLocker is active for system drive ($systemdrive)!"
                                 }                        
                                 else
                                 {
-                                    write-verbose "BitLocker is not used"
+                                    Write-Verbose "BitLocker is not used"
                                 }
                             }
                         }
@@ -1747,7 +1751,7 @@ function Invoke-BitLockerDecryption()
 
         if ( $bitLockerActive )
         {
-            write-host "BitLocker is active for the system drive, starting automatic decryption process..."
+            Write-Host "BitLocker is active for the system drive, starting automatic decryption process..."
 
             #Check if we can auto descrypt the volume by using the BitLocker module
             $module_avail = Get-ModuleAvailable "BitLocker"
@@ -1761,7 +1765,7 @@ function Invoke-BitLockerDecryption()
                 Write-HostFramedText -Heading $header -Text $text -Footer $footer -NoDoubleEmptyLines:$true                          
                 Start-Sleep -Seconds 20
 
-                write-host "Starting decryption (this might take some time)..."
+                Write-Host "Starting decryption (this might take some time)..."
                 $ignored = Disable-BitLocker -MountPoint $systemdrive
 				
                 #wait three seconds to avoid that we check the status before the decryption has started
@@ -1782,12 +1786,12 @@ function Invoke-BitLockerDecryption()
                     #During the process, the status is "DecryptionInProgress"
                     if ( $volumestatus -ne "FullyDecrypted" )
                     {
-                        write-host "  Decryption in progress, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
+                        Write-Host "  Decryption in progress, $($Percentage)% remaining ($volumestatus). Waiting 15 seconds..."
                         Start-Sleep -Seconds 15
                     }
                     else
                     {
-                        write-host "  Decryption finished!"
+                        Write-Host "  Decryption finished!"
                                  
                         #Just to be sure
                         Start-Sleep -Seconds 5
@@ -1801,17 +1805,17 @@ function Invoke-BitLockerDecryption()
             }
             else
             {
-                write-error "Unable to decrypt the volume, BitLocker PowerShell module not found"
+                Write-Error "Unable to decrypt the volume, BitLocker PowerShell module not found"
             }
         } 
         else
         {
-            write-host "BitLocker is not in use for the system drive"
+            Write-Host "BitLocker is not in use for the system drive"
         }
     }
     catch
     {
-        write-error "BitLocker Decryption error: $($error[0])"
+        Write-Error "BitLocker Decryption error: $($error[0])"
         $bitLockerActive = $true #just to be sure
     }
 
@@ -1883,23 +1887,23 @@ function Update-TPMFirmware()
         {       
             $tpmManufacturer = $settings["Manufacturer"]
 
-            write-host "TPM manufacturer ID of this device: $($TPMDetails.ManufacturerId)"
-            write-host "TPM manufacturer ID required......: $tpmManufacturer"
+            Write-Host "TPM manufacturer ID of this device: $($TPMDetails.ManufacturerId)"
+            Write-Host "TPM manufacturer ID required......: $tpmManufacturer"
 
             #Yes, I'm aware this are numbers, but the day they will use chars this line will save me some debugging
             if ( $tpmManufacturer.ToLower() -ne $TPMDetails.ManufacturerId.ToLower() )
             {
-                write-warning "  TPM manufacturer IDs do not match, unable to update TPM"
+                Write-Warning "  TPM manufacturer IDs do not match, unable to update TPM"
                 $manufacturerOK = $false
             }
             else
             {
-                write-host "  TPM manufacturer IDs match"
+                Write-Host "  TPM manufacturer IDs match"
             }         
         }
         else
         {
-            write-host "Manufacturer not defined in configuration file, will not check TPM manufacturer ID"
+            Write-Host "Manufacturer not defined in configuration file, will not check TPM manufacturer ID"
         }
   
         if ( $manufacturerOK )
@@ -1915,17 +1919,17 @@ function Update-TPMFirmware()
 
             #Check TPM spec version
             $updateBecauseTPMSpec = $false
-            write-host "Current TPM Spec: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
-            write-host "Desired TPM Spec: $(Get-VersionTextAndNumerical $tpmSpecDesiredText $tpmSpecDesired)"  
+            Write-Host "Current TPM Spec: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
+            Write-Host "Desired TPM Spec: $(Get-VersionTextAndNumerical $tpmSpecDesiredText $tpmSpecDesired)"  
 
             if ( $TPMDetails.SpecVersion -lt $tpmSpecDesired )
             {
-                write-host "  TPM Spec is lower than desired, update required"            
+                Write-Host "  TPM Spec is lower than desired, update required"            
                 $updateBecauseTPMSpec = $true
             }
             else
             {
-                write-host "  TPM Spec version matches or is newer"
+                Write-Host "  TPM Spec version matches or is newer"
             }
 
             #Verify firmware version
@@ -1938,31 +1942,31 @@ function Update-TPMFirmware()
             }
                         
             $updateBecauseFirmware = $false
-            write-host "Current TPM firmware: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
-            write-host "Desired TPM firmware: $(Get-VersionTextAndNumerical $firmwareVersionDesiredText $firmwareVersionDesired)"
+            Write-Host "Current TPM firmware: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
+            Write-Host "Desired TPM firmware: $(Get-VersionTextAndNumerical $firmwareVersionDesiredText $firmwareVersionDesired)"
 
             if ( $TPMDetails.Version -lt $firmwareVersionDesired )
             {
-                write-host "  Firmware version is lower than desired, update required"            
+                Write-Host "  Firmware version is lower than desired, update required"            
                 $updateBecauseFirmware = $true
             }
             else
             {
-                write-host "  Firmware version matches or is newer"
+                Write-Host "  Firmware version matches or is newer"
             }
 
-            write-host "Update check result:"
-            write-host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
-            write-host "  Update required because of TPM firmware: $updateBecauseFirmware"
+            Write-Host "Update check result:"
+            Write-Host "  Update required because of TPM Spec....: $updateBecauseTPMSpec"
+            Write-Host "  Update required because of TPM firmware: $updateBecauseFirmware"
              
             if ( -not ($updateBecauseTPMSpec -or $updateBecauseFirmware) )
             {
-                write-host "No update necessary"
+                Write-Host "No update necessary"
                 $result = $false
             }
             else
             {
-                write-host "TPM update required!"
+                Write-Host "TPM update required!"
 
                 <# 5.0 TPM UPDATE REWORK STARTS HERE #>
                       
@@ -1974,7 +1978,7 @@ function Update-TPMFirmware()
                                                   
                 if ( $ignoreBitLocker -eq "Yes") 
                 {
-                    write-host "BitLocker status is ignored, will continue without checking BitLocker"
+                    Write-Host "BitLocker status is ignored, will continue without checking BitLocker"
                     $continueTPMUpgrade = $true
                 }
                 else
@@ -2026,7 +2030,7 @@ function Update-TPMFirmware()
 
                     if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                     {
-                        write-host "TPM update success"
+                        Write-Host "TPM update success"
                         $result = $true
                     }
                     else
@@ -2122,10 +2126,10 @@ function Invoke-UpdateProgram()
     )
 
     $result = $null
-    write-verbose "Invoke-UpdateProgram() started"
+    Write-Verbose "Invoke-UpdateProgram() started"
     
 
-    write-host "Checking if the computer is on AC or DC (battery) power..."    
+    Write-Host "Checking if the computer is on AC or DC (battery) power..."    
     
     #Checking the property might fail with the message "The property 'BatteryStatus' cannot be found on this object. Verify that the property exists."    
     try
@@ -2138,7 +2142,7 @@ function Invoke-UpdateProgram()
     }
     catch
     {
-        write-host "Querying CIM for Win32_Battery.BatteryStatus failed ($($error[0])), assuming this computer has no battery."
+        Write-Host "Querying CIM for Win32_Battery.BatteryStatus failed ($($error[0])), assuming this computer has no battery."
     }
 
     $batteryOK = $false    
@@ -2163,15 +2167,15 @@ function Invoke-UpdateProgram()
     
     if ( $batteryOK ) 
     {
-        write-host "  Battery status is OK or no battery present."
+        Write-Host "  Battery status is OK or no battery present."
 
         if ( Test-String -HasData $Name)
         {
-            write-host "::: Preparing launch of update executable - $name :::"
+            Write-Host "::: Preparing launch of update executable - $name :::"
         }
         else
         {
-            write-host "::: Preparing launch of update executable :::"
+            Write-Host "::: Preparing launch of update executable :::"
         }
 
         $localFolder = Copy-FolderForExec -SourceFolder $SourcePath -ExtraFilesFolder $ExtraFilesPath -DeleteFilter "*.log"
@@ -2197,10 +2201,10 @@ function Invoke-UpdateProgram()
         #always try to grab the log file
         $ignored = Write-HostFirstLogFound -Folder $localFolder
         
-        write-host "::: Launching update executable finished :::"
+        Write-Host "::: Launching update executable finished :::"
     }
     
-    write-verbose "Invoke-UpdateProgram() ended"
+    Write-Verbose "Invoke-UpdateProgram() ended"
     return $result
 }
 
@@ -2218,7 +2222,7 @@ function Copy-FolderForExec()
         [string]$DeleteFilter = ""
     )
 
-    write-verbose "Copy-FolderForExec() started"
+    Write-Verbose "Copy-FolderForExec() started"
 
     #When using $env:temp, we might get a path with "~" in it
     #Remove-Item does not like these path, no idea why...
@@ -2269,7 +2273,7 @@ function Copy-FolderForExec()
             $files = Get-ChildItem $dest -File -Include $deleteFilter -Recurse -Force -ErrorAction Stop
             foreach ($file in $files)
             {
-                write-host "  Found $($file.Fullname), deleting"
+                Write-Host "  Found $($file.Fullname), deleting"
                 Remove-FileExact -Filename $file.Fullname 
             }
                      
@@ -2394,9 +2398,9 @@ function Invoke-ExeAndWaitForExit()
 
     $result = -1
   
-    write-host "Starting: "
-    write-host "  $ExeName"
-    write-host "  $Parameter"
+    Write-Host "Starting: "
+    Write-Host "  $ExeName"
+    Write-Host "  $Parameter"
  
     try
     {
@@ -2445,29 +2449,29 @@ function Invoke-ExeAndWaitForExit()
             $stdErr = $proc.StandardError.ReadToEnd()
         }
 
-        write-host "  Done, return code is $result"
+        Write-Host "  Done, return code is $result"
 
         $stdOutput = Get-TrimmedString $stdOutput
         $stdErr = Get-TrimmedString $stdErr
     
-        write-host "--- Output ---"
+        Write-Host "--- Output ---"
         if ( Test-String -HasData $stdOutput )
         {        
-            write-host $stdOutput        
+            Write-Host $stdOutput        
         }
     
         if ( Test-String -HasData $stdErr )
         {                
-            write-host "--- Error(s) ---"
-            write-host $stdErr        
+            Write-Host "--- Error(s) ---"
+            Write-Host $stdErr        
         }
-        write-host "--------------"
+        Write-Host "--------------"
 
         #now check if the EXE is still running in the background
         #We need to remove the extension because get-process does not list .EXE
         $execheck = [io.path]::GetFileNameWithoutExtension($ExeName)
     
-        write-host "  Waiting 10 seconds before checking if the process is still running..."
+        Write-Host "  Waiting 10 seconds before checking if the process is still running..."
         Start-Sleep -Seconds 10
 
         Do
@@ -2475,19 +2479,19 @@ function Invoke-ExeAndWaitForExit()
             $check = Get-Process "$execheck*" -ErrorAction SilentlyContinue
             if ( $check )
             {
-                write-host "   [$execheck] is still runing, waiting 10 seconds..."
+                Write-Host "   [$execheck] is still runing, waiting 10 seconds..."
                 Start-Sleep -Seconds 10
             }
             else
             {
-                write-host "   [$execheck] is no longer running, waiting 5 seconds to allow cleanup..."
+                Write-Host "   [$execheck] is no longer running, waiting 5 seconds to allow cleanup..."
                 Start-Sleep -Seconds 5
                 break
             }                                                                                
         } while ($true)
      
      
-        write-host "  Start of [$ExeName] done"
+        Write-Host "  Start of [$ExeName] done"
     }
     catch
     {
@@ -2509,13 +2513,13 @@ function Write-HostFirstLogFound()
         [string]$Filter = "*.log"
     )
 
-    write-host "Checking for first file matching [$filter] in [$folder]..."
+    Write-Host "Checking for first file matching [$filter] in [$folder]..."
 
     $logfiles = Get-ChildItem -Path $Folder -File -Include $filter -Recurse -Force 
 
     if ( $logfiles -eq $null )
     {
-        write-host "  No file found!"
+        Write-Host "  No file found!"
     }
     else
     {
@@ -2525,7 +2529,7 @@ function Write-HostFirstLogFound()
 
         if ( Test-String $content -IsNullOrWhiteSpace )
         {
-            write-host "  File $filename is empty!"
+            Write-Host "  File $filename is empty!"
         } 
         else
         {
@@ -2556,7 +2560,7 @@ function Update-MEFirmware()
         $settings = Read-StringHashtable $settingsFile
 
         #Now start the Intel tool
-        write-host "Starting SA-00075 discovery tool to get ME data..."
+        Write-Host "Starting SA-00075 discovery tool to get ME data..."
   
         #We use the XML output method, so the tool will generate a file called [DEVICENAME].xml.    
         $xmlFilename = "$TEMP_FOLDER\$($env:computername).xml"
@@ -2566,7 +2570,7 @@ function Update-MEFirmware()
     
         try
         {
-            $runToolResult = &"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $TEMP_FOLDER | out-string
+            $runToolResult = &"$ISA75DT_EXE_SOURCE" --delay 0 --writefile --filepath $TEMP_FOLDER | Out-String
         }
         catch
         {
@@ -2576,7 +2580,7 @@ function Update-MEFirmware()
         #Output console output to make sure we have something in the log even if the XML parsing fails
         Write-HostOutputFromProgram -Name "Discovery Tool Output" -Content $runToolResult
 
-        write-host "Processing XML result [$xmlFilename]..."        
+        Write-Host "Processing XML result [$xmlFilename]..."        
 
         if ( -not (Test-FileExists $xmlFilename) ) 
         {
@@ -2609,7 +2613,7 @@ function Update-MEFirmware()
                     $MEData.DriverInstalled = $true
                 }    
                              
-                write-host "XML processing finished"
+                Write-Host "XML processing finished"
             }
             catch
             {
@@ -2630,8 +2634,8 @@ function Update-MEFirmware()
                 if ( $ignoreMEDetectionError -eq "Yes" )
                 {
                     #Alright, ignore this error
-                    write-host $errorMessage
-                    write-host "IgnoreMEDetectionError setting active, ignoring error and continuing"
+                    Write-Host $errorMessage
+                    Write-Host "IgnoreMEDetectionError setting active, ignoring error and continuing"
                     $result = $false
                 }
                 else
@@ -2650,18 +2654,18 @@ function Update-MEFirmware()
                 }
                 else
                 {
-                    write-host "ME Driver is installed.....: $($MEData.DriverInstalled)"
-                    write-host "Current ME firmware version: $($MEData.Version)"
-                    write-host "Desired ME firmware version: $($versionDesired)"
+                    Write-Host "ME Driver is installed.....: $($MEData.DriverInstalled)"
+                    Write-Host "Current ME firmware version: $($MEData.Version)"
+                    Write-Host "Desired ME firmware version: $($versionDesired)"
                     
                     if ( $versionDesired -le $MEData.Version ) 
                     {
-                        write-host "  ME firmware update not required"
+                        Write-Host "  ME firmware update not required"
                         $result = $false
                     }
                     else
                     {
-                        write-host "  ME update required!"
+                        Write-Host "  ME update required!"
                             
                         <#
                          All ME firmware downloads from HP advise that the driver needs to be installed before:                            
@@ -2679,7 +2683,7 @@ function Update-MEFirmware()
                         }
                         else
                         {
-                            write-host "The ME update will take some time, please be patient."
+                            Write-Host "The ME update will take some time, please be patient."
                                 
                             $updateFolder = Get-UpdateFolder -SettingsFilePath $settingsFile -Name "ME-$versionDesiredText"
 
@@ -2687,7 +2691,7 @@ function Update-MEFirmware()
                                                         
                             if ( ($returnCode -eq 0) -or ($returnCode -eq 3010) )
                             {
-                                write-host "ME update success"
+                                Write-Host "ME update success"
                                 $result = $true
                             }
                             else
@@ -2750,13 +2754,13 @@ function Write-HostSection()
     {
         if ( Test-String -HasData $End )
         {
-            write-host "Section -$($End)- finished"
+            Write-Host "Section -$($End)- finished"
         }
         
         $output = '*' * $charlength    
     }
 
-    write-host $output
+    Write-Host $output
 
  
     #Add a single empty line if this is an END section
@@ -2765,7 +2769,7 @@ function Write-HostSection()
         #Only write the empty line if NoEmptyLine is NOT set (=False)
         if ( $NoEmptyLineAtEnd -eq $False )
         {
-            write-host "   "
+            Write-Host "   "
         }
     }
 
@@ -2822,37 +2826,37 @@ function Write-HostFramedText()
 
     )
 
-    write-host " "
-    if (!$NoDoubleEmptyLines) { write-host " " }
-    write-host (Get-StringWithBorder)
-    if (!$NoDoubleEmptyLines) { write-host (Get-StringWithBorder -Text " ") }
-    write-host (Get-StringWithBorder -Text $Heading.ToUpper())
-    write-host (Get-StringWithBorder -Text " ")
-    if (!$NoDoubleEmptyLines) { write-host (Get-StringWithBorder -Text " ") }
+    Write-Host " "
+    if (!$NoDoubleEmptyLines) { Write-Host " " }
+    Write-Host (Get-StringWithBorder)
+    if (!$NoDoubleEmptyLines) { Write-Host (Get-StringWithBorder -Text " ") }
+    Write-Host (Get-StringWithBorder -Text $Heading.ToUpper())
+    Write-Host (Get-StringWithBorder -Text " ")
+    if (!$NoDoubleEmptyLines) { Write-Host (Get-StringWithBorder -Text " ") }
  
     if ( ($Text -is [system.array]) )
     {
         foreach ($item in $text)
         {
-            write-host (Get-StringWithBorder -Text "$($item.ToString())")
+            Write-Host (Get-StringWithBorder -Text "$($item.ToString())")
         }
-        write-host (Get-StringWithBorder -Text " ")
+        Write-Host (Get-StringWithBorder -Text " ")
     }
     else
     {
         if ( $Text -ne "" )
         {
-            write-host (Get-StringWithBorder -Text "$($Text.ToString())")
-            write-host (Get-StringWithBorder -Text " ")
+            Write-Host (Get-StringWithBorder -Text "$($Text.ToString())")
+            Write-Host (Get-StringWithBorder -Text " ")
         }
     }
 
-    if (!$NoDoubleEmptyLines) { write-host (Get-StringWithBorder -Text " ") }
-    write-host (Get-StringWithBorder -Text "$Footer")
-    if (!$NoDoubleEmptyLines) { write-host (Get-StringWithBorder -Text " ") }
-    write-host (Get-StringWithBorder)
-    write-host " "
-    if (!$NoDoubleEmptyLines) { write-host " " }
+    if (!$NoDoubleEmptyLines) { Write-Host (Get-StringWithBorder -Text " ") }
+    Write-Host (Get-StringWithBorder -Text "$Footer")
+    if (!$NoDoubleEmptyLines) { Write-Host (Get-StringWithBorder -Text " ") }
+    Write-Host (Get-StringWithBorder)
+    Write-Host " "
+    if (!$NoDoubleEmptyLines) { Write-Host " " }
 }
 
 
@@ -2930,7 +2934,7 @@ try
     #(4) BIOS Password change - Because some BIOS settings (TPM Activation Policy for example) will not work until a password is set    
     #(5) BIOS Settings
 
-    write-host "Collecting system information..."
+    Write-Host "Collecting system information..."
 
     $compSystem = Get-CimInstance Win32_ComputerSystem -OperationTimeoutSec 10
 
@@ -2938,10 +2942,10 @@ try
     $SKU = Get-PropertyValueSafe $compSystem "SystemSKUNumber" ""
     $computername = $env:computername
 
-    write-host " "
-    write-host "  Name.........: $computername"
-    write-host "  Model........: $Model"
-    write-host "  SKU..........: $SKU"
+    Write-Host " "
+    Write-Host "  Name.........: $computername"
+    Write-Host "  Model........: $Model"
+    Write-Host "  SKU..........: $SKU"
 
     ########################################
     #Retrieve and parse BIOS version 
@@ -2959,16 +2963,16 @@ try
     }
     $BIOSDetails = Get-BIOSVersionDetails $BIOSRaw
 
-    write-host "  BIOS (Raw)...: $BIOSRaw"
+    Write-Host "  BIOS (Raw)...: $BIOSRaw"
 
     if ( !($BIOSDetails.Parsed) )
     {
-        write-warning "BIOS Data could not be parsed!"
+        Write-Warning "BIOS Data could not be parsed!"
     }
     else
     {
-        write-host "  BIOS Family..: $($BIOSDetails.Family)"
-        write-host "  BIOS Version.: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
+        Write-Host "  BIOS Family..: $($BIOSDetails.Family)"
+        Write-Host "  BIOS Version.: $(Get-VersionTextAndNumerical $BIOSDetails.VersionText $BIOSDetails.Version)"
     }
 
 
@@ -2978,15 +2982,15 @@ try
     $TPMDetails = Get-TPMDetails
     if ( !($TPMDetails.Parsed) ) 
     {
-        write-host "  No TPM found or data could not be parsed."
+        Write-Host "  No TPM found or data could not be parsed."
     } 
     else
     {
-        write-host "  TPM Vendor...: $($TPMDetails.ManufacturerId)"
-        write-host "  TPM Firmware.: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
-        write-host "  TPM Spec.....: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
+        Write-Host "  TPM Vendor...: $($TPMDetails.ManufacturerId)"
+        Write-Host "  TPM Firmware.: $(Get-VersionTextAndNumerical $TPMDetails.VersionText $TPMDetails.Version)"
+        Write-Host "  TPM Spec.....: $(Get-VersionTextAndNumerical $TPMDetails.SpecVersionText $TPMDetails.SpecVersion)"
     }
-    write-host " "
+    Write-Host " "
 
 
     #Locate Model folder
@@ -3065,7 +3069,7 @@ try
 
                     if ( ($settingsApplied -lt 0) )
                     {
-                        write-warning "Applying BIOS settings completed with errors"
+                        Write-Warning "Applying BIOS settings completed with errors"
                     }
 
                     $returncode = 0
@@ -3103,7 +3107,7 @@ try
 }
 catch
 {
-    write-error "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)" -Category OperationStopped
+    Write-Error "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)" -Category OperationStopped
     #Not used right now: `n$($_.Exception.StackTrace)
 
     $returncode = $ERROR_RETURN
@@ -3114,8 +3118,8 @@ catch
 $ignored = Remove-FileExact -Filename $CurrentPasswordFile
 $ignored = Remove-FileExact -Filename $BCU_EXE
 
-write-host "BIOS Sledgehammer finished, return code $returncode."
-write-host "Thank you, please come again!"
+Write-Host "BIOS Sledgehammer finished, return code $returncode."
+Write-Host "Thank you, please come again!"
 
 if ( $DebugMode ) 
 {
@@ -3126,7 +3130,7 @@ else
 {
     if ( $WaitAtEnd )
     {
-        write-host "Waiting 30 seconds..."
+        Write-Host "Waiting 30 seconds..."
         Start-Sleep -Seconds 30
     }
 }
