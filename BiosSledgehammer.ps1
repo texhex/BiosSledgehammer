@@ -326,11 +326,11 @@ function Get-ModelFolder()
                 break
             }
         }
-        if ( $result -eq $null ) { Write-Host "    No folder found" }
+        if ( $null -eq $result ) { Write-Host "    No folder found" }
     }
         
     #Try is to locate a folder matching EXACTLY the model name  
-    if ( $result -eq $null )
+    if ( $null -eq $result )
     {
         Write-Host "  Searching for exactly matching folder for this model..."
         foreach ($folder in $folders) 
@@ -344,11 +344,11 @@ function Get-ModelFolder()
                 break
             }
         }
-        if ( $result -eq $null ) { Write-Host "    No folder found" }
+        if ( $null -eq $result ) { Write-Host "    No folder found" }
     }
 
     #Try a partitial model name search
-    if ( $result -eq $null )
+    if ( $null -eq $result )
     {
         Write-Host "  Searching for partially matching folder..."
      
@@ -364,10 +364,10 @@ function Get-ModelFolder()
             }
         }
     }
-    if ( $result -eq $null ) { Write-Host "    No folder found" }
+    if ( $null -eq $result ) { Write-Host "    No folder found" }
 
 
-    if ( $result -ne $null )
+    if ( $null -ne $result )
     {
         Write-Host "Model folder is [$result]"
     }
@@ -456,7 +456,7 @@ function Get-ModelSettingsFile()
         }        
     }
 
-    if ( $fileName -eq $null)
+    if ( $null -eq $fileName )
     {
         Write-Host "No settings file was found"
     }
@@ -556,13 +556,13 @@ function ConvertTo-ResultFromBCUOutput()
 
         #For password changes, the return value needs to be pulled from the Information node.
         #If we also have a setting node, this will overwrite this anyway.
-        if ( $info_node -ne $null) 
+        if ( $null -ne $info_node ) 
         {
             $result.Returncode = [string]$xml.BIOSCONFIG.Information.translated
         }  
 
         #Try to get the data from the SETTING node
-        if ( $setting_node -ne $null) 
+        if ( $null -ne $setting_node ) 
         {        
             #This should be zero to indicate everything is OK
             $result.Returncode = [string]$xml.BIOSCONFIG.SETTING.returnCode
@@ -571,7 +571,7 @@ function ConvertTo-ResultFromBCUOutput()
         }
      
         #if there is an error node, we get the message from there
-        if ( $error_node -ne $null ) 
+        if ( $null -ne $error_node ) 
         {
             #The error message is in the first error node
             $result.Message = [string]$error_node[0].Node.Attributes["msg"].'#text'
@@ -582,7 +582,7 @@ function ConvertTo-ResultFromBCUOutput()
         else
         {
             #If no ERROR node exists, we can check for SUCCESS Nodes
-            if ( $success_node -ne $null) 
+            if ( $null -ne $success_node ) 
             {          
                 #Check if this a single node or a list of nodes
                 try 
@@ -713,7 +713,7 @@ function Get-BiosValue()
         
                 $value = Get-BiosValue -Name $Name -Silent:$Silent
 
-                if ( $value -ne $null) 
+                if ( $null -ne $value ) 
                 {
                     #We have a result
                     $result = $value
@@ -1107,7 +1107,7 @@ function Test-BiosPasswordFiles()
     }
 
     #Check if we were able to locate a password file
-    if ( $matchingPwdFile -eq $null )
+    if ( $null -eq $matchingPwdFile )
     {
         throw "The folder [$PwdFilesFolder] does not contain a BIOS password file this device accepts"
     }
@@ -1126,7 +1126,7 @@ function ConvertTo-VersionFromBIOSVersion()
 {
     param(
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [string]$Text = ""
+        [string]$Text
     )  
  
     $Text = $Text.Trim() 
@@ -1201,7 +1201,7 @@ function Get-BIOSVersionDetails()
 
     $tokens = $biosData.Raw.Split(" ")
 
-    if ( ($tokens -eq $null) )
+    if ( ($null -eq $tokens) )
     {
         Write-Verbose "   Tokenizing raw BIOS data failed!"
     }
@@ -1253,7 +1253,7 @@ function Get-BIOSVersionDetails()
 
         #use special ConvertTo-Version version that respects special version numbers that some models report
         [version]$curver = ConvertTo-VersionFromBIOSVersion -Text $biosData.VersionText
-        if ( $curver -eq $null )
+        if ( $null -eq $curver )
         {
             Write-Verbose "   Converting [$($biosData.VersionText)] to a VERSION object failed!"
         }
@@ -1540,7 +1540,7 @@ function Update-BiosFirmware()
     Write-HostSection "BIOS Update"
     $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "BIOS-Update.txt"
 
-    if ( $settingsFile -ne $null)
+    if ( $null -ne $settingsFile )
     {
         #Check if the BIOS data was parsed
         if ( -not $BIOSDetails.Parsed) 
@@ -1561,7 +1561,7 @@ function Update-BiosFirmware()
             #use special ConvertTo-Version version 
             [version]$versionDesired = ConvertTo-VersionFromBIOSVersion -Text $versionDesiredText
 
-            if ( $versionDesired -eq $null ) 
+            if ( $null -eq $versionDesired ) 
             {
                 throw "Unable to parse [$versionDesiredText] as a version"
             }
@@ -1614,7 +1614,7 @@ function Update-BiosFirmware()
                     {
                         $result = $null
 
-                        if ( $returnCode -eq $null )
+                        if ( $null -eq $returnCode )
                         {
                             throw "Running BIOS update program failed"
                         }
@@ -1700,7 +1700,7 @@ function Invoke-BitLockerDecryption()
 
         Write-Verbose "Testing if system drive $($systemdrive) is BitLocker encrypted"
 
-        if ( $encryptableVolumes -ne $null ) 
+        if ( $null -ne $encryptableVolumes ) 
         {
             foreach ($volume in $encryptableVolumes)
             {
@@ -1709,7 +1709,7 @@ function Invoke-BitLockerDecryption()
                 #There might be drives that are BitLocker encrypted but do not have a drive letter.
                 #The system drive will always have a drive letter, so we can simply rule them out.
                 #This should be the fix for issue #43 - https://github.com/texhex/BiosSledgehammer/issues/43
-                if ( $volume.DriveLetter -ne $null )
+                if ( $null -ne $volume.DriveLetter )
                 {
 
                     if ( $volume.DriveLetter.ToUpper() -eq $systemdrive )
@@ -1849,7 +1849,7 @@ function Update-TPMFirmware()
 
     $updateFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "TPM-Update.txt"
 
-    if ( $updatefile -ne $null ) 
+    if ( $null -ne $updatefile ) 
     {
         if ( -not ($TPMDetails.Parsed) ) 
         {
@@ -1908,7 +1908,7 @@ function Update-TPMFirmware()
             $tpmSpecDesiredText = $settings["SpecVersion"]
             $tpmSpecDesired = ConvertTo-Version $tpmSpecDesiredText
 
-            if ( $tpmSpecDesired -eq $null ) 
+            if ( $null -eq $tpmSpecDesired ) 
             {
                 throw "Unable to convert value of SpecVersion [$tpmSpecDesiredText] to a version!"
             }
@@ -1932,7 +1932,7 @@ function Update-TPMFirmware()
             $firmwareVersionDesiredText = $settings["FirmwareVersion"]
             $firmwareVersionDesired = ConvertTo-Version $firmwareVersionDesiredText
 
-            if ( $firmwareVersionDesired -eq $null ) 
+            if ( $null -eq $firmwareVersionDesired ) 
             {
                 throw "Unable to convert value of FirmwareVersion [$firmwareVersionDesiredText] to a version!"
             }
@@ -2031,7 +2031,7 @@ function Update-TPMFirmware()
                     {
                         $result = $null
 
-                        if ( $returnCode -eq $null )
+                        if ( $null -eq $returnCode )
                         {
                             throw "Running TPM update program failed"
                         }
@@ -2140,7 +2140,7 @@ function Invoke-UpdateProgram()
     }
 
     $batteryOK = $false    
-    if ($batteryStatus -eq $null)
+    if ( $null -eq $batteryStatus )
     {
         #No battery found, ignoring state 
         $batteryOK = $true
@@ -2511,7 +2511,7 @@ function Write-HostFirstLogFound()
 
     $logfiles = Get-ChildItem -Path $Folder -File -Include $filter -Recurse -Force 
 
-    if ( $logfiles -eq $null )
+    if ( $null -eq $logfiles )
     {
         Write-Host "  No file found!"
     }
@@ -2548,7 +2548,7 @@ function Update-MEFirmware()
 
     $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "ME-Update.txt"
 
-    if ( $settingsFile -ne $null )    
+    if ( $null -ne $settingsFile )    
     {    
         #Read the settings file so we have everything later on
         $settings = Read-StringHashtable $settingsFile
@@ -2642,7 +2642,7 @@ function Update-MEFirmware()
                 $versionDesiredText = $settings["version"]
                 [version]$versionDesired = ConvertTo-Version -Text $versionDesiredText
 
-                if ( $versionDesired -eq $null ) 
+                if ( $null -eq $versionDesired ) 
                 {
                     throw "Unable to parse configured version [$versionDesiredText] as a version"
                 }
@@ -2692,7 +2692,7 @@ function Update-MEFirmware()
                             {
                                 $result = $null
 
-                                if ( $returnCode -eq $null )
+                                if ( $null -eq $returnCode )
                                 {
                                     throw "ME update failed"
                                 }
@@ -2911,13 +2911,13 @@ $returncode = $ERROR_RETURN
 try 
 {
     #verify that our environment is ready
-    $ignored = Test-Environment
+    Test-Environment | Out-Null
 
     #For performance reasons, copy the BCU to TEMP
     $BCU_EXE = Copy-FileToTemp $BCU_EXE_SOURCE
 
     #Test BCU can communicate with BIOS
-    $ignored = Test-BiosCommunication
+    Test-BiosCommunication | Out-Null
   
     #We need to do the following in the correct order
     #
@@ -2951,7 +2951,7 @@ try
     $BIOSRaw = (Get-CimInstance Win32_Bios).SMBIOSBIOSVersion
   
     #replace $NULL in case we were unable to retireve the data
-    if ( $BIOSRaw -eq $null ) 
+    if ( $null -eq $BIOSRaw ) 
     { 
         $BIOSRaw = "Failed" 
     }
@@ -3051,7 +3051,7 @@ try
                     #BIOS Password update
                     $updatedPasswordFile = Set-BiosPassword -ModelFolder $modelFolder -PwdFilesFolder $PWDFILES_PATH -CurrentPasswordFile $CurrentPasswordFile
 
-                    if ( $updatedPasswordFile -ne $null )
+                    if ( $null -ne $updatedPasswordFile )
                     {
                         #File has changed - remove old password file
                         $ignored = Remove-FileExact -Filename $CurrentPasswordFile
