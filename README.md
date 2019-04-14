@@ -91,6 +91,8 @@ When starting BiosSledgehammer.ps1, the following will happen:
 * If the file **BIOS-Password.txt** is found, it is checked if the device is already set to use this password. The password is not specified directly (clear), but by using a *.bin file name that stores the password encrypted. If the passwords differ, the configured *.bin file is read from the [PwdFiles folder](#pwdfiles-folder) and the password is changed. See [BIOS Password](#bios-password) for more details.
 * If the file **BIOS-Settings.txt** exists, it is read and each entry is the name of a BIOS setting that needs to be changed. Each entry will be executed as a single change in the exact order they are defined; this makes detecting faulty settings (if any) easy. See [BIOS Settings](#bios-settings) for more details.
 
+For both [BIOS Update](#bios-update) and [TPM Update](#tpm-update), BIOS Sledeghammer can change BIOS settings just before an update happens. This is often required since both updates will not work if certain BIOS settings are in place. Please see [BIOS Settings for BIOS update](#bios-settings-for-bios-update) and [TPM BIOS Settings](#tpm-bios-settings).
+
 Starting with Windows 10 1703, you can in-place convert from BIOS legacy (MBR) to UEFI boot mode (GPT); this is supported by BIOS Sledgehammer using the parameter ``-ActivateUEFIBoot``. This parameter will result in BIOS Sledgehammer only apply the BIOS settings defined in **Activate-UEFIBoot.txt**, which are one or two settings to change the boot mode to UEFI. Please see [In-place BIOS to UEFI boot mode conversion](#in-place-bios-to-uefi-boot-mode-conversion) for more details.
 
 ## Return Code (exit code)
@@ -461,7 +463,7 @@ IgnoreBitLocker == Yes
 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions), [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) or [Virtualization Technology aka "VTx"](https://en.wikipedia.org/wiki/X86_virtualization#Intel_virtualization_(VT-x)) are activated. Additonally, any TPM firmware upgrade will require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
 
-To support these dependencies, several BIOS settings can be changed just before the TPM update takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
+To support these dependencies, several BIOS settings can be changed just before the [TPM Update](#tpm-update) takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
