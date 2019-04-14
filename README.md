@@ -673,7 +673,7 @@ If you encounter a bug, please start BIOS Sledgehammer with the option -Verbose 
 
 ## License
 
-``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2018 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
+``BiosSledgehammer.ps1`` and ``MPSXM.psm1``: Copyright © 2015-2019 [Michael Hex](http://www.texhex.info/). Licensed under the **Apache 2 License**. For details, please see LICENSE.txt.
 
 All HP related files (BCU, BIOS, TPM etc.) are © Copyright 2012–2018 Hewlett-Packard Development Company, L.P. and/or other HP companies. These files are licensed under different terms.
 
