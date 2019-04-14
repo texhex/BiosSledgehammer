@@ -1,3 +1,0 @@
-
-SPaqURL==https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85295.exe
-NoteURL==https://ftp.hp.com/pub/softpaq/sp85001-85500/sp85295.html

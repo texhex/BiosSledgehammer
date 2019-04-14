@@ -1,7 +1,7 @@
 # Z240 BIOS Update
 
 #The BIOS version the device should be on
-Version == 1.67
+Version == 1.72
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC.exe

@@ -1,7 +1,7 @@
 # BIOS Update EliteOne 800 G3
 
 #The BIOS version the device should be on
-Version == 2.16
+Version == 2.22
 
 #Command to be executed for the BIOS update
 Command==HPBIOSUPDREC\HPBIOSUPDREC64.exe

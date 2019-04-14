@@ -1,7 +1,7 @@
 # 1040 G3 update
 
 # The BIOS version the device should be on
-Version == 1.21
+Version == 1.33
 
 # Command to be executed for the BIOS update
 Command==HPBiosUpdRec64.exe 
