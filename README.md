@@ -6,7 +6,7 @@ Automated BIOS, ME, TPM firmware update and BIOS settings for HP devices.
             _
     jgs   ./ |    
          /  /    BIOS Sledgehammer  
-       /'  /     Copyright © 2015-2018 Michael 'Tex' Hex  
+       /'  /     Copyright © 2015-2019 Michael 'Tex' Hex  
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\     
@@ -315,7 +315,7 @@ If anything goes wrong during the process, an error is generated.
 
 ## BIOS settings for BIOS Update
 
-:exclamation: **IMPORTANT!** This works forvVersion 6 and upward only!
+:exclamation: **IMPORTANT!** This works for v6 and upward only!
 
 Nearly all HP BIOS versions supports BIOS Settings that control if a BIOS firmware update can be applied. These settings are intended to prevent unwanted BIOS updates or to prevent that older BIOS versions are installed to exploit security issues.
 
