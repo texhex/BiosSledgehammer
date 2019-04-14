@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "6.0.0-Beta1"
+$scriptversion = "6.0.0-BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -64,7 +64,7 @@ $banner = @"
             _
     jgs   ./ |   
          /  /    BIOS Sledgehammer Version @@VERSION@@
-       /'  /     Copyright (c) 2015-2018 Michael 'Tex' Hex
+       /'  /     Copyright (c) 2015-2019 Michael 'Tex' Hex
       /   /      
      /    \      https://github.com/texhex/BiosSledgehammer
     |      ``\   
