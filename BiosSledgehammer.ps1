@@ -1579,12 +1579,12 @@ function Update-BiosFirmware()
                 {
                     Write-Host "BIOS update required!"
 
-                    #------ BIOS-Update-Settings.txt -----------------
+                    #------ BIOS-Update-BIOS-Settings.txt -----------------
                     #Maybe we need to apply BIOS settings to allow the BIOS update (e.g. changing "Lock BIOS Version" setting )
                     $displayText = "BIOS settings for BIOS update"
 
                     Write-HostSection -Start $displayText
-                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Update-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "BIOS-Update-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
                     Write-HostSection -End $displayText -NoEmptyLineAtEnd
                     #-----------------------------------------------
 

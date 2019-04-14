@@ -313,13 +313,15 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 
 If anything goes wrong during the process, an error is generated.
 
-## v5.2: BIOS settings for BIOS Update
+## BIOS settings for BIOS Update
+
+:exclamation: **IMPORTANT!** This works forvVersion 6 and upward only!
 
 Nearly all HP BIOS versions supports BIOS Settings that control if a BIOS firmware update can be applied. These settings are intended to prevent unwanted BIOS updates or to prevent that older BIOS versions are installed to exploit security issues.
 
 Depending on the device, the BIOS version and which settings are in place, the [BIOS update](#bios-update) might either fail when `HpFirmwareUpdRec64.exe` is executed or during the first restart after executing it (POST phase). It might also happen that the BIOS Update is allowed, but a BIOS password prompt appears during POST, breaking an unattended deployment.
 
-This can be solved by using the configuration file ``BIOS-Update-Settings.txt`` which contains BIOS settings that are applied just before the BIOS update is executed. In case a BIOS update is not required, this file is ignored and no changes are made. It works exactly the same as described in [BIOS Settings](#bios-settings) but should **only** contain the BIOS settings to allow the BIOS update to work.
+This can be solved by using the configuration file ``BIOS-Update-BIOS-Settings.txt`` which contains BIOS settings that are applied just before the BIOS update is executed. In case a BIOS update is not required, this file is ignored and no changes are made. It works exactly the same as described in [BIOS Settings](#bios-settings) but should **only** contain the BIOS settings to allow the BIOS update to work.
 
 ```cfg
 # EliteBook 8x0 G5 BIOS settings to allow BIOS update
@@ -329,7 +331,7 @@ Lock BIOS Version == Disable
 Minimum BIOS Version == 00.00.00
 ```
 
-Starting in 2014 (e.g. with the EliteBook 8x0 G3 series), HP BIOS also support the setting `BIOS Rollback Policy` which can be set to `Unrestricted Rollback to older BIOS` to allow BIOS downgrades or to `Restricted Rollback to older BIOS` to prevent it. This setting is not required for BIOS Sledgehammer as it will never do a BIOS downgrade.
+Starting in 2014 (e.g. with the EliteBook 8x0 G3 series), HP BIOS also support the setting `BIOS Rollback Policy` which can be set to `Unrestricted Rollback to older BIOS` to allow BIOS downgrades or to `Restricted Rollback to older BIOS` to prevent it. This setting is not required for BIOS Sledgehammer as it will never perform a BIOS downgrade.
 
 :information_source: **Note:** It is perfectly fine to set a setting here differently than in [BIOS Settings](#bios-settings). For example, **Lock BIOS Version** needs to be *DISABLE* to allow a BIOS update, but it can be set to *ENABLE* in [BIOS Settings](#bios-settings) in case this is required by company policies. The later is executed after the BIOS update so the settings there will be in effect.
 
