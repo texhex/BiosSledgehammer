@@ -94,7 +94,7 @@ Set-Variable TEMP_FOLDER (Get-TempFolder) -option ReadOnly -Force
 #Set-Variable TEMP_FOLDER "C:\TEMP" -option ReadOnly -Force
 
 #Configure which BCU version to use 
-Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.25.1\BiosConfigUtility64.exe" -option ReadOnly -Force
+Set-Variable BCU_EXE_SOURCE "$PSScriptRoot\BCU-4.0.26.1\BiosConfigUtility64.exe" -option ReadOnly -Force
 #for testing if the arguments are correctly sent to BCU
 #Set-Variable BCU_EXE "$PSScriptRoot\BCU-4.0.24.1\EchoArgs.exe" -option ReadOnly -Force
 
