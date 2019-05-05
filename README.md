@@ -614,7 +614,7 @@ You can also let a batch file generate `SPDownload.txt` for you; it only require
 
 ## TPM BIOS settings configuration filename change for v6
 
-BIOS Sledgehammer 6.x (or newer) uses a new file for the BIOS settings applied just before a TPM update. Starting with v6, this file has to be named `TPM-Update-BIOS-Settings.txt` (v5 used the name `TPM-BIOS-Settings.txt`). This also applies to the [shared file](#shared-folder) which is now called `Shared-TPM-Update-BIOS-Settings.txt` (old name was `Shared-TPM-BIOS-Settings.txt`). The settings within the file remain the same, only the filename itself has changed.
+BIOS Sledgehammer 6.x (or newer) uses a new filename for the BIOS settings applied just before a TPM update. Starting with v6, this file has to be named `TPM-Update-BIOS-Settings.txt` (v5 used the name `TPM-BIOS-Settings.txt`). This also applies to the [shared file](#shared-folder) which is now called `Shared-TPM-Update-BIOS-Settings.txt` (old name was `Shared-TPM-BIOS-Settings.txt`). The settings within the file remain the same, only the filename itself has changed.
 
 Please do the following:
 
