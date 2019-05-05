@@ -184,7 +184,7 @@ Directory == HP EliteBook 8xx G4
 
 In this example, the requested file was `BIOS-Update.txt` and `Shared-BIOS-Update.txt` pointed to `\Shared\HP EliteBook 8xx G4\`; this means it retrieves the settings for the BIOS update from `\Shared\HP EliteBook 8xx G4\BIOS-Update.txt`. It is necessary to store update files in the same folder - for example, if the BIOS update is 1.22, the update exe needs be located in `\Shared\HP EliteBook 8xx G4\BIOS-1.22\`.
 
-This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-BIOS-Settings.txt` (shared file would be `Shared-TPM-BIOS-Settings.txt`).
+This procedure works in the same fashion for any configuration file, even for "companion" files like `TPM-Update-BIOS-Settings.txt` (shared file would be `Shared-TPM-Update-BIOS-Settings.txt`).
 
 ## Model folder location examples
 
@@ -317,7 +317,7 @@ If anything goes wrong during the process, an error is generated.
 
 ## BIOS settings for BIOS Update
 
-:exclamation: **IMPORTANT!** This works for v6 and upward only!
+:information_source: **Note:** This works for v6 and upward only.
 
 Nearly all HP BIOS versions supports BIOS Settings that control if a BIOS firmware update can be applied. These settings are intended to prevent unwanted BIOS updates or to prevent that older BIOS versions are installed to exploit security issues.
 
@@ -463,7 +463,7 @@ IgnoreBitLocker == Yes
 
 Newer BIOS version for the EliteBook series (G3 or upward) do not allow TPM updates when either [Intel Software Guard Extensions aka "SGX"](https://en.wikipedia.org/wiki/Software_Guard_Extensions), [Intel Trusted Execution Technology aka "TXT"](https://en.wikipedia.org/wiki/Trusted_Execution_Technology) or [Virtualization Technology aka "VTx"](https://en.wikipedia.org/wiki/X86_virtualization#Intel_virtualization_(VT-x)) are activated. Additonally, any TPM firmware upgrade will require the operator to press F1 after restarting the machine to acknowledge the update. To prevent this, the BIOS setting ``TPM Activation Policy`` must be set to ``No prompts``.
 
-To support these dependencies, several BIOS settings can be changed just before the [TPM Update](#tpm-update) takes place by using the file ``TPM-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
+To support these dependencies, several BIOS settings can be changed just before the [TPM Update](#tpm-update) takes place by using the file ``TPM-Update-BIOS-Settings.txt``. If no TPM update is required, no changes are made. The file works exactly the same as described in [BIOS Settings](#bios-settings) but should only contain the changes related to a TPM update.
 
 ```cfg
 # EliteBook 8x0 G4 BIOS Settings required for TPM update
@@ -611,6 +611,25 @@ NoteURL==https://ftp.hp.com/pub/softpaq/sp90001-90500/sp90109.html
 * When finished, update `BIOS-Update.txt` in the [model folder](#models-folder)
 
 You can also let a batch file generate `SPDownload.txt` for you; it only require the SoftPaq number as input. You find this batch file in the first message for [issue #75](https://github.com/texhex/BiosSledgehammer/issues/75).
+
+## TPM BIOS settings configuration filename change for v6
+
+BIOS Sledgehammer 6.x (or newer) uses a new file for the BIOS settings applied just before a TPM update. Starting with v6, this file has to be named `TPM-Update-BIOS-Settings.txt` (v5 used the name `TPM-BIOS-Settings.txt`). This also applies to the [shared file](#shared-folder) which is now called `Shared-TPM-Update-BIOS-Settings.txt` (old name was `Shared-TPM-BIOS-Settings.txt`). The settings within the file remain the same, only the filename itself has changed.
+
+Please do the following:
+
+* Make a copy of your current productive installation (the folder where BIOS Sledgehammer and all configuration files are stored) in case something goes wrong
+* Download the [newest release](https://github.com/texhex/BiosSledgehammer/releases) and unpack it to a folder (e.g. C:\Temp\BiosSledge) on your machine.
+* Copy the files from the root folder of the unpacked archive to the productive folder, overwriting any existing files (BiosSledgehammer.ps1, LICENSE, MPSXM.psm1, RunVisible..., StartSoftpaq... and zRenameConfigFilesForV6.bat)
+* Open a command prompt with administrative privileges and change to the productive folder
+* Run the batch file `zRenameConfigFilesForV6.bat`
+* After a confirmation, the batch file will search for any `TPM-BIOS-Settings.txt` file in any subfolder and rename it to new name `TPM-Update-BIOS-Settings.txt` (shared files will also be renamed)
+
+Once all files are renamed, BIOS Sledgehammer is ready to be used again.
+
+As a side note: you can run the batch file a second time to be sure; it will always only touch “old” files and never re-rename anything.
+
+:exclamation: **IMPORTANT** If you are updating from v4 to v6, please first perform the required changes noted in the next section, then the changes noted here.
 
 ## TPM Update configuration changes for v5
 
