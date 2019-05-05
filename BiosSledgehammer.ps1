@@ -750,7 +750,7 @@ function Set-BiosPassword()
 
     $settingsFile = Get-ModelSettingsFile -ModelFolder $ModelFolder -Name "BIOS-Password.txt"
      
-    if ( $settingsFile -ne $null ) 
+    if ( $null -ne $settingsFile ) 
     {
         $settings = Read-StringHashtable $settingsFile
 
@@ -930,6 +930,26 @@ function Set-BiosValue()
           
             Write-Verbose "   Using password file $passwordfile" 
             $output = &$BCU_EXE /setvalue:"$name"`,"$value" /cpwdfile:"$passwordFile" | Out-String 
+        }
+
+        <#
+        Issue 90: https://github.com/texhex/BiosSledgehammer/issues/90
+        Some models support the setting "Password Prompt on F9 & F12" or "Password prompt on F9 F11 & F12". Because of the ampersand within
+        the value name, as we request XML from BCU, it should be escaped as "&amp;" but BCU does not do this which in turn causes our XML parsing to fail.
+
+        So we check if these two special values are changed and replace the ampersand. 
+        #>        
+        if ( $null -ne $output )
+        {
+            if ( $output -match "Password Prompt on F9 & F12" )
+            {
+                $output = $output -replace "Password Prompt on F9 & F12","Password Prompt on F9 &amp; F12"
+            }
+
+            if ( $output -match "Password Prompt on F9 F11 & F12" )
+            {
+                $output = $output -replace "Password Prompt on F9 F11 & F12","Password Prompt on F9 F11 &amp; F12"
+            }
         }
 
         #Get a parsed result
