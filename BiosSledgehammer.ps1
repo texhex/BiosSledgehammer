@@ -26,7 +26,7 @@ param(
 
 
 #Script version
-$scriptversion = "6.0.0-BETA"
+$scriptversion = "6.0.1-BETA"
 
 #This script requires PowerShell 4.0 or higher 
 #requires -version 4.0
@@ -1997,12 +1997,12 @@ function Update-TPMFirmware()
                       
                 if ($continueTPMUpgrade)
                 {                
-                    #------ TPM-BIOS-Settings.txt -----------------
+                    #------ TPM-Update-BIOS-Settings.txt -----------------
                     #Maybe we have a BIOS that requires BIOS settings to allow the TPM update, e.g. TXT and SGX for G3 Models with BIOS 1.16 or higher                                                                                                                                              
                     $displayText = "BIOS settings for TPM update"
 
                     Write-HostSection -Start $displayText
-                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "TPM-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
+                    $ignored = Update-BiosSettingsEx -ModelFolder $ModelFolder -Filename "TPM-Update-BIOS-Settings.txt" -PasswordFile $PasswordFile -IgnoreNonExistingConfigFile                                                        
                     Write-HostSection -End $displayText -NoEmptyLineAtEnd
                     #-----------------------------------------------
       
