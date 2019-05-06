@@ -315,13 +315,13 @@ The source folder is then copied to %TEMP% (to avoid any network issues) and the
 
 If anything goes wrong during the process, an error is generated.
 
-## BIOS settings for BIOS Update
+## BIOS settings for BIOS update
 
 :information_source: **Note:** This works for v6 and upward only.
 
-Nearly all HP BIOS versions supports BIOS Settings that control if a BIOS firmware update can be applied. These settings are intended to prevent unwanted BIOS updates or to prevent that older BIOS versions are installed to exploit security issues.
+Nearly all HP BIOS versions support BIOS settings that control if a BIOS firmware update can be applied. These settings are intended to prevent unwanted BIOS updates or to prevent that older BIOS versions are installed (to exploit security issues).
 
-Depending on the device, the BIOS version and which settings are in place, the [BIOS update](#bios-update) might either fail when `HpFirmwareUpdRec64.exe` is executed or during the first restart after executing it (POST phase). It might also happen that the BIOS Update is allowed, but a BIOS password prompt appears during POST, breaking an unattended deployment.
+Depending on the device, the BIOS version, and which settings are in place, the [BIOS update](#bios-update) might either fail when `HpFirmwareUpdRec64.exe` is executed or during the first restart after executing it (POST phase). It might also happen that the BIOS Update is allowed, but a BIOS password prompt appears during POST, breaking an unattended deployment.
 
 This can be solved by using the configuration file ``BIOS-Update-BIOS-Settings.txt`` which contains BIOS settings that are applied just before the BIOS update is executed. In case a BIOS update is not required, this file is ignored and no changes are made. It works exactly the same as described in [BIOS Settings](#bios-settings) but should **only** contain the BIOS settings to allow the BIOS update to work.
 
