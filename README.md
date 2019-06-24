@@ -372,7 +372,7 @@ If anything goes wrong during the process, an error is generated.
 
 As soon as a ``ME-Update.txt`` file is found, BIOS Sledgehammer expects the Intel SA tool to be able to read the current ME version to detect if an update is required.
 
-However, the Intel SA tool can’t read the version if AMT is disabled in BIOS or an "kill switch" was used. Normally, BIOS Sledgehammer would  generate an error and halt the execution, because it can't be ensured that the version of ME is "compliant" with the version defined in the configuration.
+However, the Intel SA tool can’t read the version if AMT is disabled in BIOS or an [kill switch](http://blog.ptsecurity.com/2017/08/disabling-intel-me.html) was used. Normally, BIOS Sledgehammer would generate an error and halt the execution, because it can't be ensured that the version of ME is "compliant" with the version defined in the configuration.
 
 To have BIOS Sledgehammer continue, and ignore this error, use the following setting in ``ME-Update.txt``:
 
