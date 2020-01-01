@@ -2,10 +2,10 @@
 
 
 #The BIOS version the device should be on
-Version == 1.37
+Version == 1.44
 
-N76==N76_0137.bin
-N87==N87_0137.bin
+N76==N76_0144.bin
+N87==N87_0144.bin
 
 
 #Command to be executed for the BIOS update
