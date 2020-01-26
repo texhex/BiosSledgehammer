@@ -2,7 +2,7 @@
 
 
 # The BIOS version the device should be on
-Version == 2.75
+Version == 2.77
 
 # Command to be executed for the BIOS update
 Command==HPQFlash\hpqFlash.exe

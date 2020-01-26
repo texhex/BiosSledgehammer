@@ -1,0 +1,3 @@
+
+SPaqURL==https://ftp.hp.com/pub/softpaq/sp96001-96500/sp96014.exe
+NoteURL==https://ftp.hp.com/pub/softpaq/sp96001-96500/sp96014.html

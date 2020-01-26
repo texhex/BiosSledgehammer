@@ -1,7 +1,7 @@
 # BIOS Update Compaq 8200 Elite
 
 #The BIOS version the device should be on
-Version == 2.31
+Version == 2.33
 
 #Command to be executed for the BIOS update
 Command==HPQFlash\hpqFlash.exe
